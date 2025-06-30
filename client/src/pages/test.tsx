@@ -45,15 +45,20 @@ export default function Test() {
       return;
     }
 
-    console.log("Configuration vidéo:", {
-      videoWidth: video.videoWidth,
-      videoHeight: video.videoHeight,
-      readyState: video.readyState,
-      src: video.src
-    });
-
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    // Attendre que les métadonnées soient chargées pour .mov
+    if (video.readyState >= 1) {
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      console.log("Configuration vidéo:", {
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        readyState: video.readyState,
+        src: video.src
+      });
+    } else {
+      // Retry après un court délai
+      setTimeout(setupVideoProcessing, 100);
+    }
   };
 
   const processFrame = () => {
@@ -77,11 +82,13 @@ export default function Test() {
       const g = data[index + 1];
       const b = data[index + 2];
 
-      if (r > 25 || g > 25 || b > 25) {
+      // Seuil plus élevé pour garder plus de détails du pigeon
+      if (r > 30 || g > 30 || b > 30) {
         return true;
       }
 
-      const checkRadius = 2;
+      // Vérifier les contours avec un rayon plus large pour .mov
+      const checkRadius = 3;
       for (let dy = -checkRadius; dy <= checkRadius; dy++) {
         for (let dx = -checkRadius; dx <= checkRadius; dx++) {
           if (dx === 0 && dy === 0) continue;
@@ -95,7 +102,8 @@ export default function Test() {
             const ng = data[nIndex + 1];
             const nb = data[nIndex + 2];
 
-            if (nr > 40 || ng > 40 || nb > 40) {
+            // Seuil plus sensible pour détecter les contours
+            if (nr > 35 || ng > 35 || nb > 35) {
               return true;
             }
           }
@@ -111,10 +119,14 @@ export default function Test() {
         const g = data[i + 1];
         const b = data[i + 2];
 
-        if (r < 15 && g < 15 && b < 15 && !shouldKeepPixel(x, y)) {
+        // Traitement adapté pour le fichier .mov
+        if (r < 20 && g < 20 && b < 20 && !shouldKeepPixel(x, y)) {
+          // Rendre complètement transparent le fond noir
           data[i + 3] = 0;
-        } else if (r < 25 && g < 25 && b < 25) {
-          data[i + 3] = Math.max(data[i + 3], 200);
+        } else if (r < 35 && g < 35 && b < 35) {
+          // Ajuster l'opacité des zones sombres mais pas noires
+          const intensity = Math.max(r, g, b);
+          data[i + 3] = Math.min(255, intensity * 8);
         }
       }
     }
@@ -128,7 +140,17 @@ export default function Test() {
     const audio = audioRef.current;
 
     if (video && !isTalking) {
-      // Activer le son de la vidéo
+      // S'assurer que les métadonnées sont chargées
+      if (video.readyState < 1) {
+        console.log("En attente du chargement des métadonnées...");
+        video.addEventListener('loadedmetadata', startVideo, { once: true });
+        return;
+      }
+
+      // Configurer le canvas avec les bonnes dimensions
+      setupVideoProcessing();
+
+      // Activer le son de la vidéo (.mov peut avoir de l'audio intégré)
       video.muted = false;
       video.volume = 0.8;
       video.currentTime = 0;
@@ -137,9 +159,9 @@ export default function Test() {
       video.play().then(() => {
         setIsTalking(true);
         processFrame();
-        console.log("Vidéo lancée avec succès");
+        console.log("Vidéo .mov lancée avec succès");
       }).catch(error => {
-        console.log("Erreur de lecture vidéo:", error);
+        console.log("Erreur de lecture vidéo .mov:", error);
         // Fallback: essayer avec l'audio séparé
         if (audio) {
           video.muted = true;
@@ -152,13 +174,14 @@ export default function Test() {
           ]).then(() => {
             setIsTalking(true);
             processFrame();
-            console.log("Fallback audio lancé");
+            console.log("Fallback audio lancé pour .mov");
           }).catch(err => {
             console.log("Erreur fallback:", err);
             // Dernière tentative: vidéo muette seulement
             video.play().then(() => {
               setIsTalking(true);
               processFrame();
+              console.log("Vidéo .mov muette lancée");
             });
           });
         }

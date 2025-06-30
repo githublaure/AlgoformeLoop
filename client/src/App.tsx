@@ -7,6 +7,7 @@ import { AuthProvider } from "@/components/auth-provider";
 import { CustomBanner } from "@/components/custom-banner";
 import Dashboard from "@/pages/dashboard";
 import Demo from "@/pages/demo";
+import Test from "@/pages/test";
 import NotFound from "@/pages/not-found";
 import ResetPassword from "@/pages/reset-password";
 
@@ -15,6 +16,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/demo" component={Demo} />
+      <Route path="/test" component={Test} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route component={NotFound} />
     </Switch>

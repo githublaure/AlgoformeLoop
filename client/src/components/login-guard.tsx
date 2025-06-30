@@ -188,6 +188,14 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             <p className="text-gray-600">
               "Comment être un pigeon... et s'en sortir"
             </p>
+            <div className="mt-4">
+              <button
+                onClick={() => setLocation('/test')}
+                className="text-sm text-purple-600 hover:text-purple-800 underline transition-colors"
+              >
+                🎬 Voir la démo IA (test)
+              </button>
+            </div>
             
           </div>
 

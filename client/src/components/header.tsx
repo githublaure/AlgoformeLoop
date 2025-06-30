@@ -2,6 +2,7 @@ import { useAuth } from './auth-provider';
 
 export function Header() {
   const { user, isAuthenticated, login, logout } = useAuth();
+  const [showProfile, setShowProfile] = React.useState(false);
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -18,13 +19,6 @@ export function Header() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <i className="fas fa-volume-up" style={{ color: 'hsl(258, 71%, 65%)' }}></i>
-            </button>
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <i className="fas fa-bell text-gray-400"></i>
-            </button>
-            
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
                 <span className="text-sm text-gray-600">Bonjour, {user?.name}</span>
@@ -41,6 +35,13 @@ export function Header() {
                     </span>
                   </div>
                 )}
+                <button
+                  onClick={() => setShowProfile(true)}
+                  className="text-sm px-4 py-2 rounded-lg text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <i className="fas fa-user mr-1"></i>
+                  Profil
+                </button>
                 <button
                   onClick={logout}
                   className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
@@ -59,6 +60,24 @@ export function Header() {
           </div>
         </div>
       </div>
+
+      {/* Modal pour les paramètres du profil */}
+      {showProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Paramètres</h2>
+              <button
+                onClick={() => setShowProfile(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <ProfileSettings />
+          </div>
+        </div>
+      )}
     </header>
   );
 }

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from './auth-provider';
 import { Button } from './ui/button';
@@ -10,9 +9,10 @@ interface LoginGuardProps {
   children: React.ReactNode;
 }
 
-export function LoginGuard({ children }: LoginGuardProps) {
-  const { isAuthenticated, isLoading, login, register, error } = useAuth();
+export function LoginGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, login, register, forgotPassword, error } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -35,8 +35,10 @@ export function LoginGuard({ children }: LoginGuardProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (isLogin) {
+
+    if (showForgotPassword) {
+      await forgotPassword(formData.email);
+    } else if (isLogin) {
       await login(formData.email, formData.password);
     } else {
       await register(formData.name, formData.email, formData.password);
@@ -78,7 +80,7 @@ export function LoginGuard({ children }: LoginGuardProps) {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {!isLogin && (
+                {!isLogin && !showForgotPassword && (
                   <div className="space-y-2">
                     <Label htmlFor="name">Nom</Label>
                     <Input
@@ -92,7 +94,7 @@ export function LoginGuard({ children }: LoginGuardProps) {
                     />
                   </div>
                 )}
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -105,19 +107,21 @@ export function LoginGuard({ children }: LoginGuardProps) {
                     required
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
+
+                {!showForgotPassword && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Mot de passe</Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                )}
 
                 {error && (
                   <div className="text-red-600 text-sm text-center">
@@ -125,32 +129,54 @@ export function LoginGuard({ children }: LoginGuardProps) {
                   </div>
                 )}
 
-                <Button
-                  type="submit"
-                  className="w-full pigeon-button-primary"
+                <Button 
+                  type="submit" 
                   disabled={isLoading}
+                  className="w-full pigeon-button-primary"
                 >
-                  {isLoading ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                      {isLogin ? 'Connexion...' : 'Inscription...'}
-                    </>
-                  ) : (
-                    isLogin ? 'Se connecter' : 'S\'inscrire'
-                  )}
+                  {isLoading ? 'Chargement...' : 
+                   (showForgotPassword ? 'Envoyer le lien' :
+                    (isLogin ? 'Se connecter' : 'S\'inscrire'))}
                 </Button>
 
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setIsLogin(!isLogin)}
-                    className="text-sm text-gray-600 hover:text-gray-800 underline"
-                  >
-                    {isLogin 
-                      ? 'Pas de compte ? Inscrivez-vous' 
-                      : 'Déjà un compte ? Connectez-vous'
-                    }
-                  </button>
+                <div className="text-center space-y-2">
+                  {!showForgotPassword && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsLogin(!isLogin)}
+                        className="text-sm underline block mx-auto"
+                        style={{ color: 'hsl(258, 71%, 65%)' }}
+                      >
+                        {isLogin ? 'Créer un compte' : 'Déjà un compte ? Se connecter'}
+                      </button>
+
+                      {isLogin && (
+                        <button
+                          type="button"
+                          onClick={() => setShowForgotPassword(true)}
+                          className="text-sm underline block mx-auto"
+                          style={{ color: 'hsl(258, 71%, 65%)' }}
+                        >
+                          Mot de passe oublié ?
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {showForgotPassword && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(false);
+                        setFormData({ name: '', email: '', password: '' });
+                      }}
+                      className="text-sm underline"
+                      style={{ color: 'hsl(258, 71%, 65%)' }}
+                    >
+                      Retour à la connexion
+                    </button>
+                  )}
                 </div>
               </form>
 

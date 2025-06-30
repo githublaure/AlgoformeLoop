@@ -14,6 +14,9 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, newPassword: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
 }
@@ -130,6 +133,83 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null);
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    setError(null);
+    setIsLoading(true);
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Erreur lors de la modification du mot de passe');
+      }
+    } catch (error) {
+      setError('Erreur lors de la modification du mot de passe');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const forgotPassword = async (email: string) => {
+    setError(null);
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setError(data.message || 'Erreur lors de l\'envoi du lien de réinitialisation');
+      }
+    } catch (error) {
+      setError('Erreur lors de l\'envoi du lien de réinitialisation');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPassword = async (token: string, newPassword: string) => {
+    setError(null);
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token, newPassword })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Erreur lors de la réinitialisation du mot de passe');
+      }
+    } catch (error) {
+      setError('Erreur lors de la réinitialisation du mot de passe');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     checkAuthStatus();
   }, []);
@@ -140,6 +220,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     register,
     logout,
+    changePassword,
+    forgotPassword,
+    resetPassword,
     isLoading,
     error
   };

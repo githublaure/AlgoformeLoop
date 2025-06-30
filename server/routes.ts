@@ -121,6 +121,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Change password
+  app.post("/api/auth/change-password", authenticateToken, async (req: any, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Mot de passe actuel et nouveau mot de passe requis" });
+      }
+
+      const user = users.find(u => u.id === req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "Utilisateur non trouvé" });
+      }
+
+      // Vérifier le mot de passe actuel
+      const validPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!validPassword) {
+        return res.status(401).json({ message: "Mot de passe actuel incorrect" });
+      }
+
+      // Hasher le nouveau mot de passe
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedNewPassword;
+
+      res.json({ message: "Mot de passe modifié avec succès" });
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la modification du mot de passe" });
+    }
+  });
+
+  // Forgot password - send reset email
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email requis" });
+      }
+
+      const user = users.find(u => u.email === email);
+      if (!user) {
+        // Pour des raisons de sécurité, on retourne toujours le même message
+        return res.json({ message: "Si un compte avec cet email existe, un lien de réinitialisation a été envoyé" });
+      }
+
+      // Générer un token de réinitialisation
+      const resetToken = jwt.sign(
+        { id: user.id, email: user.email, type: 'password_reset' },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+
+      // Simuler l'envoi d'email (dans un vrai projet, utilisez nodemailer)
+      console.log(`Lien de réinitialisation pour ${email}: ${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`);
+
+      res.json({ message: "Si un compte avec cet email existe, un lien de réinitialisation a été envoyé" });
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de l'envoi du lien de réinitialisation" });
+    }
+  });
+
+  // Reset password with token
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token et nouveau mot de passe requis" });
+      }
+
+      // Vérifier le token
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      if (decoded.type !== 'password_reset') {
+        return res.status(400).json({ message: "Token invalide" });
+      }
+
+      const user = users.find(u => u.id === decoded.id);
+      if (!user) {
+        return res.status(404).json({ message: "Utilisateur non trouvé" });
+      }
+
+      // Hasher le nouveau mot de passe
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+
+      res.json({ message: "Mot de passe réinitialisé avec succès" });
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        return res.status(400).json({ message: "Le lien de réinitialisation a expiré" });
+      }
+      res.status(500).json({ message: "Erreur lors de la réinitialisation du mot de passe" });
+    }
+  });
+
   // Subscription routes
   app.get("/api/subscriptions", async (req, res) => {
     try {

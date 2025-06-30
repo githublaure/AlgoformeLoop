@@ -231,22 +231,28 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
         {/* Pigeon parlant en bas à droite */}
         <div className="fixed bottom-4 right-4 z-50">
           <div 
-            className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center cursor-pointer relative shadow-lg transition-transform hover:scale-105"
-            style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}
+            className="cursor-pointer relative transition-transform hover:scale-105"
             onClick={toggleTalkingPigeon}
           >
             <video
               ref={videoRef}
-              className={`w-16 h-16 object-cover transition-transform duration-300 ${isTalking ? 'animate-pulse scale-110' : ''}`}
+              className={`w-32 h-32 object-contain transition-transform duration-300 ${isTalking ? 'animate-pulse scale-110' : ''}`}
+              style={{ 
+                backgroundColor: 'white',
+                borderRadius: '16px',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+              }}
               loop
               onEnded={() => setIsTalking(false)}
             >
               <source src="/pigeon_talking.mp4" type="video/mp4" />
-              <img src="/pigeongangsta.png" alt="PigeonSub mascot" className="w-16 h-16 object-contain" />
+              <img src="/pigeongangsta.png" alt="PigeonSub mascot" className="w-32 h-32 object-contain" />
             </video>
             {!isTalking && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <i className="fas fa-play text-white text-sm opacity-70"></i>
+                <div className="w-12 h-12 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                  <i className="fas fa-play text-white text-lg"></i>
+                </div>
               </div>
             )}
           </div>

@@ -8,6 +8,7 @@ export default function Test() {
   const [, setLocation] = useLocation();
   const [isTalking, setIsTalking] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
 
@@ -100,25 +101,37 @@ export default function Test() {
   };
 
   const toggleAIVideo = () => {
-    if (videoRef.current) {
+    const video = videoRef.current;
+    const audio = audioRef.current;
+    
+    if (video && audio) {
       if (isTalking) {
-        videoRef.current.pause();
-        videoRef.current.currentTime = 0;
+        video.pause();
+        audio.pause();
+        video.currentTime = 0;
+        audio.currentTime = 0;
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
         }
       } else {
-        // Enlever le mode muet pour activer le son
-        videoRef.current.muted = false;
-        videoRef.current.volume = 0.7; // Volume à 70%
-        videoRef.current.play().then(() => {
-          // Commencer le traitement des frames
+        // Synchroniser et démarrer la lecture
+        video.muted = true; // Garder la vidéo muette
+        audio.volume = 0.7; // Volume à 70% pour l'audio
+        
+        // Synchroniser les temps
+        video.currentTime = 0;
+        audio.currentTime = 0;
+        
+        // Démarrer les deux en même temps
+        Promise.all([
+          video.play(),
+          audio.play()
+        ]).then(() => {
           processFrame();
         }).catch(error => {
-          console.log("Erreur de lecture audio:", error);
-          // Si l'audio échoue, jouer quand même la vidéo en muet
-          videoRef.current!.muted = true;
-          videoRef.current!.play().then(() => {
+          console.log("Erreur de lecture:", error);
+          // Fallback: jouer seulement la vidéo
+          video.play().then(() => {
             processFrame();
           });
         });
@@ -263,9 +276,16 @@ export default function Test() {
             className="hidden"
             onEnded={() => setIsTalking(false)}
             onLoadedData={setupVideoProcessing}
+            preload="metadata"
+            playsInline
           >
-            <source src="/test/video1m44.mov" type="video/mp4" />
+            <source src="/test/ai_talking.mp4" type="video/mp4" />
           </video>
+          
+          {/* Audio séparé pour la synchronisation */}
+          <audio ref={audioRef} preload="metadata">
+            <source src="/test/fit-attention presentation.mp3" type="audio/mpeg" />
+          </audio>
 
           {/* Aperçu statique quand pas en lecture */}
           {!isTalking && (

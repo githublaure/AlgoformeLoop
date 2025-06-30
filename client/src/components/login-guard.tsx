@@ -84,21 +84,22 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
     const width = canvas.width;
     const height = canvas.height;
 
-    // Fonction pour détecter si un pixel fait partie du contour
-    const isEdgePixel = (x: number, y: number) => {
+    // Fonction améliorée pour détecter les contours et éléments importants
+    const shouldKeepPixel = (x: number, y: number) => {
       const index = (y * width + x) * 4;
       const r = data[index];
       const g = data[index + 1];
       const b = data[index + 2];
       
-      // Si le pixel actuel n'est pas noir, vérifier les voisins
-      if (r > 30 || g > 30 || b > 30) {
-        return false;
+      // Garder tous les pixels qui ne sont pas du fond noir pur
+      if (r > 25 || g > 25 || b > 25) {
+        return true;
       }
       
-      // Vérifier les 8 pixels voisins
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
+      // Pour les pixels sombres, vérifier s'ils sont près d'éléments colorés
+      const checkRadius = 2; // Rayon de vérification élargi
+      for (let dy = -checkRadius; dy <= checkRadius; dy++) {
+        for (let dx = -checkRadius; dx <= checkRadius; dx++) {
           if (dx === 0 && dy === 0) continue;
           
           const nx = x + dx;
@@ -110,8 +111,8 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             const ng = data[nIndex + 1];
             const nb = data[nIndex + 2];
             
-            // Si un voisin n'est pas noir, c'est un contour
-            if (nr > 30 || ng > 30 || nb > 30) {
+            // Si un voisin proche a de la couleur, garder le pixel (contour)
+            if (nr > 40 || ng > 40 || nb > 40) {
               return true;
             }
           }
@@ -120,7 +121,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
       return false;
     };
 
-    // Rendre le fond noir transparent mais préserver les contours
+    // Rendre transparent uniquement le fond noir pur
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const i = (y * width + x) * 4;
@@ -128,12 +129,12 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
         const g = data[i + 1];
         const b = data[i + 2];
         
-        // Si le pixel est proche du noir
-        if (r < 30 && g < 30 && b < 30) {
-          // Vérifier si c'est un contour
-          if (!isEdgePixel(x, y)) {
-            data[i + 3] = 0; // Rendre transparent seulement si ce n'est pas un contour
-          }
+        // Si le pixel est très noir ET qu'il n'est pas un contour
+        if (r < 15 && g < 15 && b < 15 && !shouldKeepPixel(x, y)) {
+          data[i + 3] = 0; // Rendre transparent
+        } else if (r < 25 && g < 25 && b < 25) {
+          // Pour les pixels légèrement sombres, les garder mais avec plus d'opacité
+          data[i + 3] = Math.max(data[i + 3], 200);
         }
       }
     }

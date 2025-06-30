@@ -11,7 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
 const users: Array<{ id: string; name: string; email: string; password: string }> = [];
 
 // Configuration email
-const emailTransporter = nodemailer.createTransporter({
+const emailTransporter = nodemailer.createTransport({
   service: 'gmail', // ou votre service email préféré
   auth: {
     user: process.env.EMAIL_USER || 'your-email@gmail.com',

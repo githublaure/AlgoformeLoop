@@ -4,17 +4,18 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 interface User {
   id: string;
   name: string;
+  email: string;
   profileImage?: string;
-  bio?: string;
-  url?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  error: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,62 +35,99 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch('/__replauthuser');
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
       } else {
+        localStorage.removeItem('authToken');
         setUser(null);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
+      localStorage.removeItem('authToken');
       setUser(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = () => {
-    window.addEventListener("message", authComplete);
-    const h = 500;
-    const w = 350;
-    const left = screen.width / 2 - w / 2;
-    const top = screen.height / 2 - h / 2;
+  const login = async (email: string, password: string) => {
+    setError(null);
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
 
-    const authWindow = window.open(
-      "https://replit.com/auth_with_repl_site?domain=" + location.host,
-      "_blank",
-      "modal=yes, toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=" +
-        w +
-        ", height=" +
-        h +
-        ", top=" +
-        top +
-        ", left=" +
-        left
-    );
+      const data = await response.json();
 
-    function authComplete(e: MessageEvent) {
-      if (e.data !== "auth_complete") {
-        return;
+      if (response.ok) {
+        localStorage.setItem('authToken', data.token);
+        setUser(data.user);
+      } else {
+        setError(data.message || 'Erreur de connexion');
       }
-
-      window.removeEventListener("message", authComplete);
-      authWindow?.close();
-      checkAuthStatus();
+    } catch (error) {
+      setError('Erreur de connexion');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const logout = async () => {
+  const register = async (name: string, email: string, password: string) => {
+    setError(null);
+    setIsLoading(true);
+    
     try {
-      await fetch('/logout', { method: 'POST' });
-      setUser(null);
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, email, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('authToken', data.token);
+        setUser(data.user);
+      } else {
+        setError(data.message || 'Erreur d\'inscription');
+      }
     } catch (error) {
-      console.error('Logout failed:', error);
+      setError('Erreur d\'inscription');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('authToken');
+    setUser(null);
+    setError(null);
   };
 
   useEffect(() => {
@@ -100,8 +138,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     isAuthenticated: !!user,
     login,
+    register,
     logout,
-    isLoading
+    isLoading,
+    error
   };
 
   return (

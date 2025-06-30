@@ -3,8 +3,124 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertSubscriptionSchema, insertVoiceReminderSchema } from "@shared/schema";
 import { generateVoiceReminder } from "./services/voice";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
+const users: Array<{ id: string; name: string; email: string; password: string }> = [];
+
+// Middleware pour vérifier l'authentification
+const authenticateToken = (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Token d\'accès requis' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) {
+      return res.status(403).json({ message: 'Token invalide' });
+    }
+    req.user = user;
+    next();
+  });
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { name, email, password } = req.body;
+
+      if (!name || !email || !password) {
+        return res.status(400).json({ message: "Tous les champs sont requis" });
+      }
+
+      // Vérifier si l'utilisateur existe déjà
+      const existingUser = users.find(user => user.email === email);
+      if (existingUser) {
+        return res.status(409).json({ message: "Un compte avec cet email existe déjà" });
+      }
+
+      // Hasher le mot de passe
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Créer l'utilisateur
+      const user = {
+        id: Date.now().toString(),
+        name,
+        email,
+        password: hashedPassword
+      };
+      
+      users.push(user);
+
+      // Créer le token
+      const token = jwt.sign(
+        { id: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.status(201).json({
+        token,
+        user: { id: user.id, name: user.name, email: user.email }
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de l'inscription" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email et mot de passe requis" });
+      }
+
+      // Trouver l'utilisateur
+      const user = users.find(u => u.email === email);
+      if (!user) {
+        return res.status(401).json({ message: "Email ou mot de passe incorrect" });
+      }
+
+      // Vérifier le mot de passe
+      const validPassword = await bcrypt.compare(password, user.password);
+      if (!validPassword) {
+        return res.status(401).json({ message: "Email ou mot de passe incorrect" });
+      }
+
+      // Créer le token
+      const token = jwt.sign(
+        { id: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.json({
+        token,
+        user: { id: user.id, name: user.name, email: user.email }
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la connexion" });
+    }
+  });
+
+  app.get("/api/auth/me", authenticateToken, async (req: any, res) => {
+    try {
+      const user = users.find(u => u.id === req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "Utilisateur non trouvé" });
+      }
+
+      res.json({ id: user.id, name: user.name, email: user.email });
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la récupération du profil" });
+    }
+  });
+
   // Subscription routes
   app.get("/api/subscriptions", async (req, res) => {
     try {

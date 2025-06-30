@@ -5,9 +5,63 @@ import { insertSubscriptionSchema, insertVoiceReminderSchema } from "@shared/sch
 import { generateVoiceReminder } from "./services/voice";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import nodemailer from "nodemailer";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
 const users: Array<{ id: string; name: string; email: string; password: string }> = [];
+
+// Configuration email
+const emailTransporter = nodemailer.createTransporter({
+  service: 'gmail', // ou votre service email préféré
+  auth: {
+    user: process.env.EMAIL_USER || 'your-email@gmail.com',
+    pass: process.env.EMAIL_PASS || 'your-app-password'
+  }
+});
+
+// Fonction pour envoyer un email
+async function sendResetEmail(email: string, resetToken: string, req: any) {
+  const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
+  
+  const mailOptions = {
+    from: process.env.EMAIL_USER || 'noreply@pigeonsub.com',
+    to: email,
+    subject: 'PigeonSub - Réinitialisation de votre mot de passe',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; padding: 20px;">
+          <img src="https://your-domain.com/pigeongangsta.png" alt="PigeonSub" style="width: 80px; height: 80px;">
+          <h1 style="color: hsl(258, 71%, 65%);">PigeonSub</h1>
+        </div>
+        <div style="padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
+          <h2>Réinitialisation de votre mot de passe</h2>
+          <p>Vous avez demandé à réinitialiser votre mot de passe pour votre compte PigeonSub.</p>
+          <p>Cliquez sur le lien ci-dessous pour créer un nouveau mot de passe :</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background-color: hsl(258, 71%, 65%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+              Réinitialiser mon mot de passe
+            </a>
+          </div>
+          <p style="color: #666; font-size: 14px;">
+            Ce lien expire dans 1 heure. Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
+          </p>
+        </div>
+        <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+          <p>© 2024 PigeonSub - Gérez vos abonnements comme un pro</p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    await emailTransporter.sendMail(mailOptions);
+    console.log(`Email de réinitialisation envoyé à ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi de l\'email:', error);
+    return false;
+  }
+}
 
 // Middleware pour vérifier l'authentification
 const authenticateToken = (req: any, res: any, next: any) => {
@@ -173,8 +227,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { expiresIn: '1h' }
       );
 
-      // Simuler l'envoi d'email (dans un vrai projet, utilisez nodemailer)
-      console.log(`Lien de réinitialisation pour ${email}: ${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`);
+      // Envoyer l'email de réinitialisation
+      const emailSent = await sendResetEmail(email, resetToken, req);
+      
+      if (!emailSent) {
+        console.log(`Fallback - Lien de réinitialisation pour ${email}: ${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`);
+      }
 
       res.json({ message: "Si un compte avec cet email existe, un lien de réinitialisation a été envoyé" });
     } catch (error) {

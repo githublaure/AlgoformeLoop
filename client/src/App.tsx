@@ -8,12 +8,14 @@ import { CustomBanner } from "@/components/custom-banner";
 import Dashboard from "@/pages/dashboard";
 import Demo from "@/pages/demo";
 import NotFound from "@/pages/not-found";
+import ResetPassword from "@/pages/reset-password";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/demo" component={Demo} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route component={NotFound} />
     </Switch>
   );

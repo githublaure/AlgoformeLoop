@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from './auth-provider';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -15,6 +15,8 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   const [isLogin, setIsLogin] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isTalking, setIsTalking] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',

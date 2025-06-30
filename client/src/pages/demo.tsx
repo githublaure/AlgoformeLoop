@@ -28,25 +28,36 @@ export default function Demo() {
           <p className="text-xl text-gray-600 mb-8">
             "Comment être un pigeon... et s'en sortir"
           </p>
-          <Button 
-            onClick={() => setLocation('/')}
-            className="pigeon-button-primary px-6 py-3 text-lg"
-          >
-            Retour au tableau de bord
-          </Button>
+          <div className="flex gap-4 justify-center">
+            <Button 
+              onClick={() => setLocation('/')}
+              className="pigeon-button-primary px-6 py-3 text-lg"
+            >
+              Retour au tableau de bord
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 text-lg"
+            >
+              Se connecter
+            </Button>
+          </div>
         </div>
 
         {/* Galerie des pigeons */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {pigeonImages.map((pigeon, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow duration-300">
+            <Card key={index} className="hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer">
               <CardHeader className="text-center">
                 <div className="flex justify-center mb-4">
-                  <img 
-                    src={pigeon.src} 
-                    alt={pigeon.title}
-                    className="w-24 h-24 object-contain rounded-full border-4 border-purple-200"
-                  />
+                  <div className="w-32 h-32 rounded-full border-4 border-purple-200 overflow-hidden flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
+                    <img 
+                      src={pigeon.src} 
+                      alt={pigeon.title}
+                      className="w-28 h-28 object-contain hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
                 </div>
                 <CardTitle className="text-lg" style={{ color: 'hsl(258, 71%, 65%)' }}>
                   {pigeon.title}

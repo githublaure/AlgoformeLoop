@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { useLocation } from 'wouter';
 
 interface LoginGuardProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ interface LoginGuardProps {
 
 export function LoginGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, login, register, forgotPassword, error } = useAuth();
+  const [, setLocation] = useLocation();
   const [isLogin, setIsLogin] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -183,19 +185,22 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               <div className="mt-6 pt-6 border-t">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-sm font-medium text-gray-600">Démo avec les images pigeon :</h3>
-                  <a 
-                    href="#demo" 
-                    className="text-sm text-purple-600 hover:text-purple-800 underline"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLocation('/demo')}
+                    className="text-sm"
                   >
                     Voir la démo
-                  </a>
+                  </Button>
                 </div>
                 <div className="flex space-x-2 justify-center">
-                  <img src="/pigeon1.png" alt="Pigeon 1" className="w-12 h-12 object-contain" />
-                  <img src="/pigeon2.png" alt="Pigeon 2" className="w-12 h-12 object-contain" />
-                  <img src="/pigeon3.png" alt="Pigeon 3" className="w-12 h-12 object-contain" />
-                  <img src="/pigeon4.png" alt="Pigeon 4" className="w-12 h-12 object-contain" />
+                  <img src="/pigeon1.png" alt="Pigeon 1" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
+                  <img src="/pigeon2.png" alt="Pigeon 2" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
+                  <img src="/pigeon3.png" alt="Pigeon 3" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
+                  <img src="/pigeon4.png" alt="Pigeon 4" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
                 </div>
+                <p className="text-xs text-gray-500 text-center mt-2">Cliquez sur un pigeon pour voir la démo</p>
               </div>
             </CardContent>
           </Card>

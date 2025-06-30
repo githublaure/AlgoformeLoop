@@ -12,17 +12,31 @@ const users: Array<{ id: string; name: string; email: string; password: string }
 
 // Configuration email
 const emailTransporter = nodemailer.createTransport({
-  service: 'gmail', // ou votre service email préféré
+  service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER || 'your-email@gmail.com',
     pass: process.env.EMAIL_PASS || 'your-app-password'
+  },
+  tls: {
+    rejectUnauthorized: false
+  },
+  debug: true // Active les logs de debug
+});
+
+// Vérifier la configuration email au démarrage
+emailTransporter.verify((error, success) => {
+  if (error) {
+    console.log('❌ Erreur de configuration email:', error);
+    console.log('📧 Variables EMAIL_USER et EMAIL_PASS manquantes ou incorrectes');
+  } else {
+    console.log('✅ Configuration email OK');
   }
 });
 
 // Fonction pour envoyer un email
 async function sendResetEmail(email: string, resetToken: string, req: any) {
   const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
-  
+
   const mailOptions = {
     from: process.env.EMAIL_USER || 'noreply@pigeonsub.com',
     to: email,
@@ -99,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Hasher le mot de passe
       const hashedPassword = await bcrypt.hash(password, 10);
-      
+
       // Créer l'utilisateur
       const user = {
         id: Date.now().toString(),
@@ -107,7 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email,
         password: hashedPassword
       };
-      
+
       users.push(user);
 
       // Créer le token
@@ -229,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Envoyer l'email de réinitialisation
       const emailSent = await sendResetEmail(email, resetToken, req);
-      
+
       if (!emailSent) {
         console.log(`Fallback - Lien de réinitialisation pour ${email}: ${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`);
       }
@@ -347,13 +361,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/voice/generate", async (req, res) => {
     try {
       const { subscriptionId, reminderType, text } = req.body;
-      
+
       if (!subscriptionId || !reminderType || !text) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
       const audioUrl = await generateVoiceReminder(text);
-      
+
       const reminder = await storage.createVoiceReminder({
         subscriptionId,
         reminderType,
@@ -382,11 +396,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const subscriptions = await storage.getSubscriptions();
       const upcomingRenewals = await storage.getUpcomingRenewals(7);
       const trials = subscriptions.filter(sub => sub.isTrial);
-      
+
       const monthlyTotal = subscriptions
         .filter(sub => sub.frequency === 'monthly')
         .reduce((sum, sub) => sum + parseFloat(sub.price), 0);
-      
+
       const yearlyTotal = subscriptions
         .filter(sub => sub.frequency === 'yearly')
         .reduce((sum, sub) => sum + parseFloat(sub.price) / 12, 0);

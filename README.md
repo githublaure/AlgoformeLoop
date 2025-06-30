@@ -153,3 +153,9 @@ MIT - Fais ce que tu veux avec, mais cite ton pigeon gangsta ! 😉
 *Fait avec ❤️ par ton pigeon gangsta préféré*
 
 *Remember: "Être un pigeon, c'est pas une fatalité, c'est un choix... Alors choisis bien !"* 🐦✨
+
+---
+
+**Audio de présentation (15 secondes) :**
+
+*"Yo les pigeons ! C'est votre gangsta préféré qui parle ! Avec PigeonSub, fini de se faire plumer par les abonnements inutiles ! Gérez vos sous comme un boss et arrêtez d'être des pigeons... enfin, des pigeons intelligents quoi ! Téléchargez l'app, vos finances vous diront merci !"*

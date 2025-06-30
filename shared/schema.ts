@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -25,6 +26,17 @@ export const voiceReminders = pgTable("voice_reminders", {
   reminderType: text("reminder_type").notNull(), // renewal, review, trial_ending
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const subscriptionsRelations = relations(subscriptions, ({ many }) => ({
+  voiceReminders: many(voiceReminders),
+}));
+
+export const voiceRemindersRelations = relations(voiceReminders, ({ one }) => ({
+  subscription: one(subscriptions, {
+    fields: [voiceReminders.subscriptionId],
+    references: [subscriptions.id],
+  }),
+}));
 
 export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
   id: true,

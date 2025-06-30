@@ -1,4 +1,6 @@
 import { subscriptions, voiceReminders, type Subscription, type InsertSubscription, type VoiceReminder, type InsertVoiceReminder } from "@shared/schema";
+import { db } from "./db";
+import { eq, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Subscription methods
@@ -157,4 +159,68 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getSubscriptions(): Promise<Subscription[]> {
+    return await db.select().from(subscriptions);
+  }
+
+  async getSubscription(id: number): Promise<Subscription | undefined> {
+    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    return subscription || undefined;
+  }
+
+  async createSubscription(insertSubscription: InsertSubscription): Promise<Subscription> {
+    const [subscription] = await db
+      .insert(subscriptions)
+      .values(insertSubscription)
+      .returning();
+    return subscription;
+  }
+
+  async updateSubscription(id: number, updates: Partial<InsertSubscription>): Promise<Subscription | undefined> {
+    const [subscription] = await db
+      .update(subscriptions)
+      .set(updates)
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription || undefined;
+  }
+
+  async deleteSubscription(id: number): Promise<boolean> {
+    const result = await db.delete(subscriptions).where(eq(subscriptions.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getUpcomingRenewals(days: number): Promise<Subscription[]> {
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + days);
+    
+    return await db
+      .select()
+      .from(subscriptions)
+      .where(
+        lte(subscriptions.nextRenewal, endDate)
+      );
+  }
+
+  async getVoiceReminders(): Promise<VoiceReminder[]> {
+    return await db.select().from(voiceReminders);
+  }
+
+  async createVoiceReminder(insertReminder: InsertVoiceReminder): Promise<VoiceReminder> {
+    const [reminder] = await db
+      .insert(voiceReminders)
+      .values(insertReminder)
+      .returning();
+    return reminder;
+  }
+
+  async getVoiceRemindersBySubscription(subscriptionId: number): Promise<VoiceReminder[]> {
+    return await db
+      .select()
+      .from(voiceReminders)
+      .where(eq(voiceReminders.subscriptionId, subscriptionId));
+  }
+}
+
+export const storage = new DatabaseStorage();

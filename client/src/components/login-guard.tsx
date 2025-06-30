@@ -17,6 +17,8 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [isTalking, setIsTalking] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -56,20 +58,71 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const setupVideoProcessing = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+  };
+
+  const processFrame = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || video.paused || video.ended) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Dessiner la frame vidéo
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Obtenir les données d'image
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Rendre le fond noir transparent
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      
+      // Si le pixel est proche du noir (seuil ajustable)
+      if (r < 30 && g < 30 && b < 30) {
+        data[i + 3] = 0; // Rendre transparent
+      }
+    }
+
+    // Remettre les données modifiées
+    ctx.putImageData(imageData, 0, 0);
+    
+    // Programmer la prochaine frame
+    animationRef.current = requestAnimationFrame(processFrame);
+  };
+
   const toggleTalkingPigeon = () => {
     if (videoRef.current) {
       if (isTalking) {
         videoRef.current.pause();
         videoRef.current.currentTime = 0;
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
       } else {
         // Enlever le mode muet pour activer le son
         videoRef.current.muted = false;
         videoRef.current.volume = 0.7; // Volume à 70%
-        videoRef.current.play().catch(error => {
+        videoRef.current.play().then(() => {
+          // Commencer le traitement des frames
+          processFrame();
+        }).catch(error => {
           console.log("Erreur de lecture audio:", error);
           // Si l'audio échoue, jouer quand même la vidéo en muet
-          videoRef.current.muted = true;
-          videoRef.current.play();
+          videoRef.current!.muted = true;
+          videoRef.current!.play().then(() => {
+            processFrame();
+          });
         });
       }
       setIsTalking(!isTalking);
@@ -230,34 +283,71 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
 
         {/* Pigeon parlant en bas à droite */}
         <div className="fixed bottom-4 right-4 z-50">
-          <div 
-            className="cursor-pointer relative transition-transform hover:scale-105"
-            onClick={toggleTalkingPigeon}
-          >
+          <div className="relative">
+            {/* Canvas pour la transparence du fond noir */}
+            <canvas
+              ref={canvasRef}
+              className={`w-48 h-48 object-contain transition-transform duration-300 ${isTalking ? 'animate-pulse scale-110' : ''}`}
+              style={{ 
+                borderRadius: '20px',
+                boxShadow: '0 15px 35px rgba(0,0,0,0.15)',
+                display: isTalking ? 'block' : 'none'
+              }}
+            />
+            
+            {/* Vidéo cachée pour le traitement */}
             <video
               ref={videoRef}
-              className={`w-32 h-32 object-contain transition-transform duration-300 ${isTalking ? 'animate-pulse scale-110' : ''}`}
-              style={{ 
-                backgroundColor: 'white',
-                borderRadius: '16px',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-              }}
+              className="hidden"
               loop
               onEnded={() => setIsTalking(false)}
+              onLoadedData={setupVideoProcessing}
             >
               <source src="/pigeon_talking.mp4" type="video/mp4" />
-              <img src="/pigeongangsta.png" alt="PigeonSub mascot" className="w-32 h-32 object-contain" />
             </video>
+
+            {/* Image statique quand pas en lecture */}
+            {!isTalking && (
+              <img 
+                src="/pigeongangsta.png" 
+                alt="PigeonSub mascot" 
+                className="w-48 h-48 object-contain rounded-xl shadow-lg" 
+              />
+            )}
+
+            {/* Bouton de lecture et icône sonore */}
             {!isTalking && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-12 h-12 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                  <i className="fas fa-play text-white text-lg"></i>
+                <div 
+                  className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg"
+                  onClick={toggleTalkingPigeon}
+                >
+                  <i className="fas fa-play text-white text-xl ml-1"></i>
+                </div>
+              </div>
+            )}
+
+            {/* Icône sonore */}
+            <div className="absolute top-2 right-2 bg-green-500 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
+              <i className="fas fa-volume-up text-white text-sm"></i>
+            </div>
+
+            {/* Bouton pause pendant la lecture */}
+            {isTalking && (
+              <div className="absolute bottom-4 right-4">
+                <div 
+                  className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg"
+                  onClick={toggleTalkingPigeon}
+                >
+                  <i className="fas fa-pause text-white"></i>
                 </div>
               </div>
             )}
           </div>
-          <div className="text-center mt-2">
-            <p className="text-xs text-gray-500">Cliquez pour écouter !</p>
+          
+          <div className="text-center mt-3">
+            <p className="text-sm text-gray-600 font-medium">Cliquez pour écouter !</p>
+            <p className="text-xs text-gray-400">🎵 Audio inclus</p>
           </div>
         </div>
       </div>

@@ -1,4 +1,6 @@
+import React from 'react';
 import { useAuth } from './auth-provider';
+import { ProfileSettings } from './profile-settings';
 
 export function Header() {
   const { user, isAuthenticated, login, logout } = useAuth();

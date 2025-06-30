@@ -184,12 +184,11 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
 
               <div className="mt-6 pt-6 border-t">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-sm font-medium text-gray-600">Démo avec les images pigeon :</h3>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setLocation('/demo')}
-                    className="text-sm"
+                    className="text-sm w-full"
                   >
                     Voir la démo
                   </Button>

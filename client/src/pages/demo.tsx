@@ -37,7 +37,7 @@ export default function Demo() {
             </Button>
             <Button 
               variant="outline"
-              onClick={() => window.location.reload()}
+              onClick={() => setLocation('/')}
               className="px-6 py-3 text-lg"
             >
               Se connecter

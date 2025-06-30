@@ -12,10 +12,27 @@ export default function Test() {
 
   // Démarrer automatiquement la vidéo au chargement de la page
   useEffect(() => {
+    // Vérifier que les fichiers sont accessibles
+    const checkFiles = async () => {
+      try {
+        const videoResponse = await fetch('/test/ai_talking.mp4');
+        const audioResponse = await fetch('/test/fit-attention presentation.mp3');
+        
+        console.log("Vérification fichiers:", {
+          video: videoResponse.ok ? "OK" : "Manquant",
+          audio: audioResponse.ok ? "OK" : "Manquant"
+        });
+      } catch (error) {
+        console.log("Erreur vérification fichiers:", error);
+      }
+    };
+
+    checkFiles();
+
     // Petit délai pour s'assurer que les refs sont prêtes
     const timer = setTimeout(() => {
       startVideo();
-    }, 500);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -23,10 +40,20 @@ export default function Test() {
   const setupVideoProcessing = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    if (!video || !canvas) {
+      console.log("Video ou canvas manquant");
+      return;
+    }
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    console.log("Configuration vidéo:", {
+      videoWidth: video.videoWidth,
+      videoHeight: video.videoHeight,
+      readyState: video.readyState,
+      src: video.src
+    });
+
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
   };
 
   const processFrame = () => {
@@ -100,25 +127,41 @@ export default function Test() {
     const video = videoRef.current;
     const audio = audioRef.current;
 
-    if (video && audio && !isTalking) {
-      video.muted = true;
-      audio.volume = 0.8;
-
+    if (video && !isTalking) {
+      // Activer le son de la vidéo
+      video.muted = false;
+      video.volume = 0.8;
       video.currentTime = 0;
-      audio.currentTime = 0;
 
-      Promise.all([
-        video.play(),
-        audio.play()
-      ]).then(() => {
+      // Essayer de lire la vidéo avec son
+      video.play().then(() => {
         setIsTalking(true);
         processFrame();
+        console.log("Vidéo lancée avec succès");
       }).catch(error => {
-        console.log("Erreur de lecture:", error);
-        video.play().then(() => {
-          setIsTalking(true);
-          processFrame();
-        });
+        console.log("Erreur de lecture vidéo:", error);
+        // Fallback: essayer avec l'audio séparé
+        if (audio) {
+          video.muted = true;
+          audio.volume = 0.8;
+          audio.currentTime = 0;
+          
+          Promise.all([
+            video.play(),
+            audio.play()
+          ]).then(() => {
+            setIsTalking(true);
+            processFrame();
+            console.log("Fallback audio lancé");
+          }).catch(err => {
+            console.log("Erreur fallback:", err);
+            // Dernière tentative: vidéo muette seulement
+            video.play().then(() => {
+              setIsTalking(true);
+              processFrame();
+            });
+          });
+        }
       });
     }
   };
@@ -127,11 +170,13 @@ export default function Test() {
     const video = videoRef.current;
     const audio = audioRef.current;
 
-    if (video && audio) {
+    if (video) {
       video.pause();
-      audio.pause();
       video.currentTime = 0;
-      audio.currentTime = 0;
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
@@ -232,7 +277,7 @@ export default function Test() {
         </div>
       </div>
 
-      {/* Vidéo cachée pour le traitement */}
+      {/* Vidéo avec audio intégré */}
       <video
         ref={videoRef}
         className="hidden"
@@ -240,12 +285,14 @@ export default function Test() {
         onLoadedData={setupVideoProcessing}
         preload="metadata"
         playsInline
+        controls={false}
       >
         <source src="/test/ai_talking.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
       </video>
 
-      {/* Audio séparé */}
-      <audio ref={audioRef} preload="metadata" onEnded={handleVideoEnd}>
+      {/* Audio de backup si besoin */}
+      <audio ref={audioRef} preload="metadata" onEnded={handleVideoEnd} style={{ display: 'none' }}>
         <source src="/test/fit-attention presentation.mp3" type="audio/mpeg" />
       </audio>
     </div>

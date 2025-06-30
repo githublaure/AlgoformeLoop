@@ -4,9 +4,9 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-3">
-            {/* Cartoon pigeon mascot placeholder */}
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}>
-              <i className="fas fa-dove text-white"></i>
+            {/* Cartoon pigeon mascot */}
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center" style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}>
+              <img src="/pigeongangsta.png" alt="PigeonSub mascot" className="w-8 h-8 object-contain" />
             </div>
             <div>
               <h1 className="text-xl font-bold" style={{ color: 'hsl(258, 71%, 65%)' }}>PigeonSub</h1>

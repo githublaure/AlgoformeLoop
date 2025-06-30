@@ -62,7 +62,15 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
         videoRef.current.pause();
         videoRef.current.currentTime = 0;
       } else {
-        videoRef.current.play();
+        // Enlever le mode muet pour activer le son
+        videoRef.current.muted = false;
+        videoRef.current.volume = 0.7; // Volume à 70%
+        videoRef.current.play().catch(error => {
+          console.log("Erreur de lecture audio:", error);
+          // Si l'audio échoue, jouer quand même la vidéo en muet
+          videoRef.current.muted = true;
+          videoRef.current.play();
+        });
       }
       setIsTalking(!isTalking);
     }
@@ -73,26 +81,8 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'hsl(210, 17%, 98%)' }}>
         <div className="w-full max-w-md mx-auto p-8">
           <div className="text-center mb-8">
-            <div 
-              className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-6 cursor-pointer relative"
-              style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}
-              onClick={toggleTalkingPigeon}
-            >
-              <video
-                ref={videoRef}
-                className={`w-20 h-20 object-cover transition-transform duration-300 ${isTalking ? 'animate-pulse scale-110' : 'hover:scale-105'}`}
-                muted
-                loop
-                onEnded={() => setIsTalking(false)}
-              >
-                <source src="/pigeon_talking.mp4" type="video/mp4" />
-                <img src="/pigeongangsta.png" alt="PigeonSub mascot" className="w-20 h-20 object-contain" />
-              </video>
-              {!isTalking && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <i className="fas fa-play text-white text-sm opacity-70"></i>
-                </div>
-              )}
+            <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}>
+              <img src="/pigeongangsta.png" alt="PigeonSub mascot" className="w-20 h-20 object-contain" />
             </div>
             <h1 className="text-3xl font-bold mb-2" style={{ color: 'hsl(258, 71%, 65%)' }}>
               PigeonSub
@@ -100,9 +90,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             <p className="text-gray-600">
               "Comment être un pigeon... et s'en sortir"
             </p>
-            <p className="text-xs text-gray-500 mt-2">
-              Cliquez sur le pigeon pour l'entendre parler !
-            </p>
+            
           </div>
 
           <Card>
@@ -238,6 +226,33 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Pigeon parlant en bas à droite */}
+        <div className="fixed bottom-4 right-4 z-50">
+          <div 
+            className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center cursor-pointer relative shadow-lg transition-transform hover:scale-105"
+            style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}
+            onClick={toggleTalkingPigeon}
+          >
+            <video
+              ref={videoRef}
+              className={`w-16 h-16 object-cover transition-transform duration-300 ${isTalking ? 'animate-pulse scale-110' : ''}`}
+              loop
+              onEnded={() => setIsTalking(false)}
+            >
+              <source src="/pigeon_talking.mp4" type="video/mp4" />
+              <img src="/pigeongangsta.png" alt="PigeonSub mascot" className="w-16 h-16 object-contain" />
+            </video>
+            {!isTalking && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <i className="fas fa-play text-white text-sm opacity-70"></i>
+              </div>
+            )}
+          </div>
+          <div className="text-center mt-2">
+            <p className="text-xs text-gray-500">Cliquez pour écouter !</p>
+          </div>
         </div>
       </div>
     );

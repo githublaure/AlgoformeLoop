@@ -1,11 +1,12 @@
-import { Header } from "@/components/header";
-import { Sidebar } from "@/components/sidebar";
-import { StatsOverview } from "@/components/stats-overview";
-import { UpcomingRenewals } from "@/components/upcoming-renewals";
-import { SubscriptionCard } from "@/components/subscription-card";
-import { AddSubscriptionModal } from "@/components/add-subscription-modal";
-import { useQuery } from "@tanstack/react-query";
+import { Header } from "../components/header";
+import { Sidebar } from "../components/sidebar";
+import { StatsOverview } from "../components/stats-overview";
+import { UpcomingRenewals } from "../components/upcoming-renewals";
+import { SubscriptionCard } from "../components/subscription-card";
+import { AddSubscriptionModal } from "../components/add-subscription-modal";
+import { LoginGuard } from "../components/login-guard";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { Subscription } from "@shared/schema";
 
 export default function Dashboard() {
@@ -16,20 +17,21 @@ export default function Dashboard() {
   });
 
   return (
+    <LoginGuard>
     <div className="min-h-screen" style={{ backgroundColor: 'hsl(210, 17%, 98%)' }}>
       <Header />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <div className="lg:col-span-1">
             <Sidebar />
           </div>
-          
+
           <div className="lg:col-span-3">
             <StatsOverview />
-            
+
             <UpcomingRenewals />
-            
+
             {/* All Subscriptions */}
             <div className="pigeon-card">
               <div className="p-6 border-b border-gray-200">
@@ -73,11 +75,12 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      
+
       <AddSubscriptionModal 
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
       />
     </div>
+    </LoginGuard>
   );
 }

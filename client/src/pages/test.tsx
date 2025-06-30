@@ -1,6 +1,4 @@
-
-import React, { useState, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 
@@ -11,6 +9,16 @@ export default function Test() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
+
+  // Démarrer automatiquement la vidéo au chargement de la page
+  useEffect(() => {
+    // Petit délai pour s'assurer que les refs sont prêtes
+    const timer = setTimeout(() => {
+      startVideo();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const setupVideoProcessing = () => {
     const video = videoRef.current;
@@ -29,43 +37,37 @@ export default function Test() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Dessiner la frame vidéo
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Obtenir les données d'image
+
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     const width = canvas.width;
     const height = canvas.height;
 
-    // Fonction améliorée pour détecter les contours et éléments importants
     const shouldKeepPixel = (x: number, y: number) => {
       const index = (y * width + x) * 4;
       const r = data[index];
       const g = data[index + 1];
       const b = data[index + 2];
-      
-      // Garder tous les pixels qui ne sont pas du fond noir pur
+
       if (r > 25 || g > 25 || b > 25) {
         return true;
       }
-      
-      // Pour les pixels sombres, vérifier s'ils sont près d'éléments colorés
-      const checkRadius = 2; // Rayon de vérification élargi
+
+      const checkRadius = 2;
       for (let dy = -checkRadius; dy <= checkRadius; dy++) {
         for (let dx = -checkRadius; dx <= checkRadius; dx++) {
           if (dx === 0 && dy === 0) continue;
-          
+
           const nx = x + dx;
           const ny = y + dy;
-          
+
           if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
             const nIndex = (ny * width + nx) * 4;
             const nr = data[nIndex];
             const ng = data[nIndex + 1];
             const nb = data[nIndex + 2];
-            
-            // Si un voisin proche a de la couleur, garder le pixel (contour)
+
             if (nr > 40 || ng > 40 || nb > 40) {
               return true;
             }
@@ -75,269 +77,177 @@ export default function Test() {
       return false;
     };
 
-    // Rendre transparent uniquement le fond noir pur
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const i = (y * width + x) * 4;
         const r = data[i];
         const g = data[i + 1];
         const b = data[i + 2];
-        
-        // Si le pixel est très noir ET qu'il n'est pas un contour
+
         if (r < 15 && g < 15 && b < 15 && !shouldKeepPixel(x, y)) {
-          data[i + 3] = 0; // Rendre transparent
+          data[i + 3] = 0;
         } else if (r < 25 && g < 25 && b < 25) {
-          // Pour les pixels légèrement sombres, les garder mais avec plus d'opacité
           data[i + 3] = Math.max(data[i + 3], 200);
         }
       }
     }
 
-    // Remettre les données modifiées
     ctx.putImageData(imageData, 0, 0);
-    
-    // Programmer la prochaine frame
     animationRef.current = requestAnimationFrame(processFrame);
   };
 
-  const toggleAIVideo = () => {
+  const startVideo = () => {
     const video = videoRef.current;
     const audio = audioRef.current;
-    
-    if (video && audio) {
-      if (isTalking) {
-        video.pause();
-        audio.pause();
-        video.currentTime = 0;
-        audio.currentTime = 0;
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current);
-        }
-      } else {
-        // Synchroniser et démarrer la lecture
-        video.muted = true; // Garder la vidéo muette
-        audio.volume = 0.7; // Volume à 70% pour l'audio
-        
-        // Synchroniser les temps
-        video.currentTime = 0;
-        audio.currentTime = 0;
-        
-        // Démarrer les deux en même temps
-        Promise.all([
-          video.play(),
-          audio.play()
-        ]).then(() => {
+
+    if (video && audio && !isTalking) {
+      video.muted = true;
+      audio.volume = 0.8;
+
+      video.currentTime = 0;
+      audio.currentTime = 0;
+
+      Promise.all([
+        video.play(),
+        audio.play()
+      ]).then(() => {
+        setIsTalking(true);
+        processFrame();
+      }).catch(error => {
+        console.log("Erreur de lecture:", error);
+        video.play().then(() => {
+          setIsTalking(true);
           processFrame();
-        }).catch(error => {
-          console.log("Erreur de lecture:", error);
-          // Fallback: jouer seulement la vidéo
-          video.play().then(() => {
-            processFrame();
-          });
         });
+      });
+    }
+  };
+
+  const stopVideo = () => {
+    const video = videoRef.current;
+    const audio = audioRef.current;
+
+    if (video && audio) {
+      video.pause();
+      audio.pause();
+      video.currentTime = 0;
+      audio.currentTime = 0;
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
       }
-      setIsTalking(!isTalking);
+      setIsTalking(false);
+    }
+  };
+
+  const handleVideoEnd = () => {
+    setIsTalking(false);
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* En-tête de la page test */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center items-center mb-4">
-            <img src="/pigeongangsta.png" alt="PigeonSub" className="w-16 h-16 mr-4" />
-            <h1 className="text-4xl font-bold" style={{ color: 'hsl(258, 71%, 65%)' }}>
-              Page Test - Démo AI
-            </h1>
-          </div>
-          <p className="text-xl text-gray-600 mb-8">
-            Découvrez notre démo IA interactive (1m44s)
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Button 
-              onClick={() => setLocation('/')}
-              className="pigeon-button-primary px-6 py-3 text-lg"
-            >
-              Retour au dashboard
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => setLocation('/demo')}
-              className="px-6 py-3 text-lg"
-            >
-              Voir la démo
-            </Button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* Bouton retour en haut à gauche */}
+      <div className="absolute top-4 left-4 z-50">
+        <Button 
+          onClick={() => setLocation('/')}
+          variant="outline"
+          className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30"
+        >
+          <i className="fas fa-arrow-left mr-2"></i>
+          Retour
+        </Button>
+      </div>
 
-        {/* Contenu principal */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-          <Card>
-            <CardHeader>
-              <CardTitle>À propos de cette démo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Cette page de test présente une démonstration de notre technologie IA. 
-                La vidéo en bas à droite montre les capacités de notre système d'intelligence artificielle
-                intégré à PigeonSub pour une expérience utilisateur optimisée.
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Fonctionnalités démontrées</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                <li>• Interface utilisateur intuitive</li>
-                <li>• Gestion intelligente des abonnements</li>
-                <li>• Analyse prédictive des coûts</li>
-                <li>• Notifications personnalisées</li>
-                <li>• Intégration IA avancée</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Section informative */}
+      {/* Titre en haut au centre */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
         <div className="text-center">
-          <h2 className="text-3xl font-bold mb-8" style={{ color: 'hsl(258, 71%, 65%)' }}>
-            Innovation & Technologie
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="text-center">
-              <CardHeader>
-                <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4" 
-                     style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}>
-                  <i className="fas fa-robot text-white"></i>
-                </div>
-                <CardTitle>IA Intégrée</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Notre intelligence artificielle analyse vos habitudes de consommation pour optimiser vos abonnements.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center">
-              <CardHeader>
-                <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4" 
-                     style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}>
-                  <i className="fas fa-chart-line text-white"></i>
-                </div>
-                <CardTitle>Analyse Prédictive</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Prédiction des tendances de dépenses et recommandations personnalisées basées sur vos données.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center">
-              <CardHeader>
-                <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4" 
-                     style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}>
-                  <i className="fas fa-cog text-white"></i>
-                </div>
-                <CardTitle>Automatisation</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Gestion automatique des renouvellements et optimisation continue de votre portefeuille d'abonnements.
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </div>
+          <h1 className="text-2xl font-bold text-white mb-2">
+            Démo IA PigeonSub
+          </h1>
+          <p className="text-white/80 text-sm">
+            Présentation interactive (1m44s)
+          </p>
         </div>
       </div>
 
-      {/* Vidéo AI en bas à droite avec transparence */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <div className="relative">
-          {/* Canvas pour la transparence du fond noir */}
+      {/* Vidéo en plein écran */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        {isTalking ? (
           <canvas
             ref={canvasRef}
-            className={`w-80 h-64 object-contain transition-transform duration-300 ${isTalking ? 'animate-pulse scale-105' : ''}`}
+            className="max-w-full max-h-full object-contain"
             style={{ 
-              borderRadius: '20px',
-              boxShadow: '0 15px 35px rgba(0,0,0,0.15)',
-              display: isTalking ? 'block' : 'none'
+              filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.3))',
             }}
           />
-          
-          {/* Vidéo cachée pour le traitement */}
-          <video
-            ref={videoRef}
-            className="hidden"
-            onEnded={() => setIsTalking(false)}
-            onLoadedData={setupVideoProcessing}
-            preload="metadata"
-            playsInline
-          >
-            <source src="/test/ai_talking.mp4" type="video/mp4" />
-          </video>
-          
-          {/* Audio séparé pour la synchronisation */}
-          <audio ref={audioRef} preload="metadata">
-            <source src="/test/fit-attention presentation.mp3" type="audio/mpeg" />
-          </audio>
-
-          {/* Aperçu statique quand pas en lecture */}
-          {!isTalking && (
-            <div className="w-80 h-64 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl shadow-lg flex items-center justify-center border-2 border-purple-200">
-              <div className="text-center">
-                <i className="fas fa-robot text-6xl mb-4" style={{ color: 'hsl(258, 71%, 65%)' }}></i>
-                <p className="text-lg font-semibold text-gray-700">Démo IA</p>
-                <p className="text-sm text-gray-500">1m44s</p>
-              </div>
+        ) : (
+          <div className="text-center">
+            <div className="w-64 h-64 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-full flex items-center justify-center border-2 border-white/30 backdrop-blur-sm mb-8">
+              <i className="fas fa-robot text-8xl text-white/80"></i>
             </div>
-          )}
-
-          {/* Bouton de lecture */}
-          {!isTalking && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div 
-                className="w-20 h-20 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg"
-                onClick={toggleAIVideo}
-              >
-                <i className="fas fa-play text-white text-2xl ml-1"></i>
-              </div>
-            </div>
-          )}
-
-          {/* Icône sonore */}
-          <div className="absolute top-2 right-2 bg-blue-500 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
-            <i className="fas fa-volume-up text-white text-sm"></i>
+            <Button 
+              onClick={startVideo}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 text-lg font-semibold rounded-full shadow-2xl"
+            >
+              <i className="fas fa-play mr-3"></i>
+              Lancer la démo IA
+            </Button>
           </div>
+        )}
+      </div>
 
-          {/* Bouton pause pendant la lecture */}
-          {isTalking && (
-            <div className="absolute bottom-4 right-4">
-              <div 
-                className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg"
-                onClick={toggleAIVideo}
-              >
-                <i className="fas fa-pause text-white"></i>
-              </div>
-            </div>
-          )}
-
-          {/* Indicateur de durée */}
-          <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
-            1:44
+      {/* Contrôles vidéo */}
+      {isTalking && (
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+          <div className="flex items-center space-x-4 bg-black/50 backdrop-blur-sm rounded-full px-6 py-3">
+            <Button 
+              onClick={stopVideo}
+              variant="outline"
+              size="sm"
+              className="bg-red-500/80 border-red-400 text-white hover:bg-red-600/80 rounded-full"
+            >
+              <i className="fas fa-stop mr-2"></i>
+              Arrêter
+            </Button>
+            <Button 
+              onClick={startVideo}
+              variant="outline"
+              size="sm"
+              className="bg-green-500/80 border-green-400 text-white hover:bg-green-600/80 rounded-full"
+            >
+              <i className="fas fa-redo mr-2"></i>
+              Relancer
+            </Button>
           </div>
         </div>
-        
-        <div className="text-center mt-3">
-          <p className="text-sm text-gray-600 font-medium">Cliquez pour voir la démo !</p>
-          <p className="text-xs text-gray-400">🤖 Intelligence Artificielle</p>
+      )}
+
+      {/* Indicateur de durée */}
+      <div className="absolute bottom-4 right-4 z-50">
+        <div className="bg-black/50 backdrop-blur-sm text-white text-sm px-3 py-1 rounded-full">
+          <i className="fas fa-clock mr-2"></i>
+          1:44
         </div>
       </div>
+
+      {/* Vidéo cachée pour le traitement */}
+      <video
+        ref={videoRef}
+        className="hidden"
+        onEnded={handleVideoEnd}
+        onLoadedData={setupVideoProcessing}
+        preload="metadata"
+        playsInline
+      >
+        <source src="/test/ai_talking.mp4" type="video/mp4" />
+      </video>
+
+      {/* Audio séparé */}
+      <audio ref={audioRef} preload="metadata" onEnded={handleVideoEnd}>
+        <source src="/test/fit-attention presentation.mp3" type="audio/mpeg" />
+      </audio>
     </div>
   );
 }

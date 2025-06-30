@@ -264,7 +264,7 @@ export default function Test() {
             onEnded={() => setIsTalking(false)}
             onLoadedData={setupVideoProcessing}
           >
-            <source src="/test/ai_talking.mp4" type="video/mp4" />
+            <source src="/test/video1m44.mov" type="video/mp4" />
           </video>
 
           {/* Aperçu statique quand pas en lecture */}

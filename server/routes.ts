@@ -312,10 +312,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/subscriptions", async (req, res) => {
     try {
-      const validatedData = insertSubscriptionSchema.parse(req.body);
+      const body = {
+        ...req.body,
+        nextRenewal: req.body.nextRenewal ? new Date(req.body.nextRenewal) : undefined,
+        trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
+      };
+      const validatedData = insertSubscriptionSchema.parse(body);
       const subscription = await storage.createSubscription(validatedData);
       res.status(201).json(subscription);
     } catch (error) {
+      console.error("Subscription creation error:", error);
       res.status(400).json({ message: "Invalid subscription data", error });
     }
   });
@@ -323,7 +329,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/subscriptions/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const validatedData = insertSubscriptionSchema.partial().parse(req.body);
+      const body = {
+        ...req.body,
+        nextRenewal: req.body.nextRenewal ? new Date(req.body.nextRenewal) : undefined,
+        trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
+      };
+      const validatedData = insertSubscriptionSchema.partial().parse(body);
       const subscription = await storage.updateSubscription(id, validatedData);
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });

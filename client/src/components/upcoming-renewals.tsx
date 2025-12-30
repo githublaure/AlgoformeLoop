@@ -82,6 +82,8 @@ export function UpcomingRenewals() {
     return 'bg-blue-50 border-blue-200';
   };
 
+  const iconClass = 'fas fa-dove';
+
   const formatRenewalDate = (date: Date) => {
     const now = new Date();
     const renewal = new Date(date);
@@ -132,14 +134,22 @@ export function UpcomingRenewals() {
               return (
                 <div key={subscription.id} className={`flex items-center justify-between p-4 rounded-lg border ${getRenewalBgColor(daysUntil)}`}>
                   <div className="flex items-center space-x-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${subscription.bgColor || 'bg-gray-600'}`}>
-                      <i className={`${subscription.iconClass || 'fas fa-cube'} text-white`}></i>
+                    <div
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center ${subscription.categoryColor ? '' : 'bg-gray-600'}`}
+                      style={{ backgroundColor: subscription.categoryColor || subscription.bgColor || undefined }}
+                    >
+                      <i className={`${iconClass} text-white`}></i>
                     </div>
                     <div>
                       <h3 className="font-medium">{subscription.name}</h3>
                       <p className="text-sm text-gray-600">
                         {formatRenewalDate(subscription.nextRenewal)} • €{subscription.price}/{subscription.frequency === 'monthly' ? 'mois' : 'an'}
                       </p>
+                      {subscription.isTrial && (
+                        <span className="mt-1 inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs text-yellow-700">
+                          Essai gratuit
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">

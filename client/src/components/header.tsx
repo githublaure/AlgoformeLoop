@@ -53,7 +53,7 @@ export function Header() {
               </div>
             ) : (
               <button
-                onClick={login}
+                onClick={() => login()}
                 className="pigeon-button-primary px-4 py-2 rounded-lg text-sm"
               >
                 Se connecter

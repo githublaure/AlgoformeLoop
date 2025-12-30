@@ -280,7 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ message: "Mot de passe réinitialisé avec succès" });
     } catch (error) {
-      if (error.name === 'TokenExpiredError') {
+      if (error instanceof Error && error.name === 'TokenExpiredError') {
         return res.status(400).json({ message: "Le lien de réinitialisation a expiré" });
       }
       res.status(500).json({ message: "Erreur lors de la réinitialisation du mot de passe" });
@@ -411,21 +411,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const upcomingRenewals = await storage.getUpcomingRenewals(7);
       const trials = subscriptions.filter(sub => sub.isTrial);
 
+      const normalizeToMonthly = (sub: any) => {
+        const price = parseFloat(sub.price);
+        if (sub.frequency === 'yearly') return price / 12;
+        if (sub.frequency === 'weekly') return (price * 52) / 12;
+        return price;
+      };
+
       const monthlyTotal = subscriptions
-        .filter(sub => sub.frequency === 'monthly')
-        .reduce((sum, sub) => sum + parseFloat(sub.price), 0);
+        .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
 
-      const yearlyTotal = subscriptions
-        .filter(sub => sub.frequency === 'yearly')
-        .reduce((sum, sub) => sum + parseFloat(sub.price) / 12, 0);
+      const suspectTotal = subscriptions
+        .filter(sub => sub.isSuspect)
+        .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
 
-      const totalMonthlyCost = monthlyTotal + yearlyTotal;
+      const wastedEstimate = subscriptions
+        .filter(sub => sub.usageFrequency === 'rarely_used')
+        .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
+
+      const budgetCap = parseFloat(process.env.SUBSCRIPTION_BUDGET || '100');
+      const budgetGap = Math.max(monthlyTotal - budgetCap, 0);
 
       res.json({
-        totalMonthlyCost: totalMonthlyCost.toFixed(2),
+        totalMonthlyCost: monthlyTotal.toFixed(2),
         activeSubscriptions: subscriptions.length,
         upcomingRenewals: upcomingRenewals.length,
-        trialsEnding: trials.filter(t => t.trialEndsAt && t.trialEndsAt <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).length
+        trialsEnding: trials.filter(t => t.trialEndsAt && t.trialEndsAt <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).length,
+        trialCount: trials.length,
+        suspectMonthly: suspectTotal.toFixed(2),
+        wastedEstimate: wastedEstimate.toFixed(2),
+        budgetCap,
+        budgetGap: budgetGap.toFixed(2)
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch stats" });

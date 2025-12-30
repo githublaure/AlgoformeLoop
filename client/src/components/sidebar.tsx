@@ -20,7 +20,7 @@ export function Sidebar({ onAddSubscription }: SidebarProps) {
           <i className="fas fa-plus"></i>
           <span>Ajouter un abonnement</span>
         </button>
-        <a href="#" className="flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+        <a href="#essais-gratuits" className="flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
           <i className="fas fa-calendar-alt"></i>
           <span>Essais gratuits</span>
         </a>

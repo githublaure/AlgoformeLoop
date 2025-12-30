@@ -166,7 +166,8 @@ export function AddSubscriptionModal({
         ...data,
         iconClass: "fas fa-dove",
         bgColor: data.categoryColor || data.bgColor,
-        rating: data.rating ?? 0,
+        rating: Number(data.rating) || 0,
+        isSuspect: Boolean(data.isSuspect),
         nextRenewal: new Date(data.nextRenewal),
         trialEndsAt: data.trialEndsAt ? new Date(data.trialEndsAt) : null,
       };
@@ -179,6 +180,7 @@ export function AddSubscriptionModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/upcoming/7"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
         title: isEditing ? "Abonnement mis à jour" : "Abonnement ajouté!",

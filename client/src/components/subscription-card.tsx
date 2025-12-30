@@ -22,6 +22,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions/upcoming/7'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       toast({
         title: "Abonnement supprimé",
@@ -43,6 +44,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions/upcoming/7'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       toast({
         title: "Abonnement archivé",

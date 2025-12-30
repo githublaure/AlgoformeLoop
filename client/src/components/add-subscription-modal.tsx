@@ -60,6 +60,7 @@ const formSchema = insertSubscriptionSchema.extend({
   trialEndsAt: z.string().optional(),
   categoryColor: z.string().optional(),
   note: z.string().optional(),
+  rating: z.number().min(0).max(5).default(0),
   isSuspect: z.boolean().default(false),
   isTrial: z.boolean().default(false),
 });
@@ -80,6 +81,7 @@ const defaultValues: FormData = {
   isTrial: false,
   trialEndsAt: "",
   note: "",
+  rating: 0,
   isSuspect: false,
 };
 
@@ -101,6 +103,8 @@ export function AddSubscriptionModal({
     resolver: zodResolver(formSchema),
     defaultValues,
   });
+
+  const rating = form.watch("rating");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -140,6 +144,7 @@ export function AddSubscriptionModal({
         usageFrequency: subscription.usageFrequency,
         nextRenewal,
         trialEndsAt,
+        rating: subscription.rating ?? 0,
         isSuspect: subscription.isSuspect ?? false,
         isTrial: subscription.isTrial ?? false,
         note: subscription.note ?? "",
@@ -161,6 +166,7 @@ export function AddSubscriptionModal({
         ...data,
         iconClass: "fas fa-dove",
         bgColor: data.categoryColor || data.bgColor,
+        rating: data.rating ?? 0,
         nextRenewal: new Date(data.nextRenewal),
         trialEndsAt: data.trialEndsAt ? new Date(data.trialEndsAt) : null,
       };
@@ -218,6 +224,27 @@ export function AddSubscriptionModal({
       default:
         return baseClass;
     }
+  };
+
+  const renderStars = () => {
+    return (
+      <div className="flex items-center gap-2">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            type="button"
+            key={star}
+            onClick={() => form.setValue("rating", star)}
+            className="text-xl"
+            aria-label={`${star} étoile${star > 1 ? 's' : ''}`}
+          >
+            <i
+              className={`fas fa-star ${star <= (rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`}
+            ></i>
+          </button>
+        ))}
+        <span className="text-sm text-gray-600">{rating ? `${rating}/5` : "Aucune note"}</span>
+      </div>
+    );
   };
 
   const handleCategorySelect = (value: string) => {
@@ -460,6 +487,20 @@ export function AddSubscriptionModal({
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="rating"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Note en étoiles</FormLabel>
+                  <FormControl>
+                    {renderStars()}
+                  </FormControl>
+                  <p className="text-xs text-gray-600 mt-1">Aidez-vous à prioriser les abonnements suspects ou à surveiller.</p>
+                </FormItem>
+              )}
+            />
+
             <div className="grid grid-cols-1 gap-3">
               <FormField
                 control={form.control}
@@ -503,7 +544,7 @@ export function AddSubscriptionModal({
                       <p className="text-xs text-gray-600">Désactivez pour classer cet abonnement dans vos archives.</p>
                     </div>
                     <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      <Switch checked={!!field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                   </FormItem>
                 )}

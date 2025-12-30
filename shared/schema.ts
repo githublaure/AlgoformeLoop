@@ -15,6 +15,7 @@ export const subscriptions = pgTable("subscriptions", {
   iconClass: text("icon_class"), // Font Awesome class for the icon
   bgColor: text("bg_color"), // Background color for the icon
   note: text("note"),
+  rating: integer("rating").default(0),
   isSuspect: boolean("is_suspect").default(false),
   isActive: boolean("is_active").default(true),
   isTrial: boolean("is_trial").default(false),

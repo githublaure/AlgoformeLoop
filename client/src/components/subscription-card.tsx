@@ -124,6 +124,24 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
     }
   };
 
+  const renderRating = () => {
+    const rating = subscription.rating ?? 0;
+    if (!rating) return null;
+
+    return (
+      <div className="mt-2 flex items-center gap-1 text-sm">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <i
+            key={star}
+            className={`fas fa-star ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+            aria-hidden="true"
+          ></i>
+        ))}
+        <span className="ml-2 text-gray-600">{rating}/5</span>
+      </div>
+    );
+  };
+
   const getCategoryLabel = (category: string) => {
     const categories: Record<string, string> = {
       entertainment: "Divertissement",
@@ -258,6 +276,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
           </button>
         </div>
       </div>
+      {renderRating()}
       {subscription.note && (
         <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
           <span className="font-medium">Note :</span> {subscription.note}

@@ -5,10 +5,28 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { insertSubscriptionSchema } from "@shared/schema";
 
@@ -23,7 +41,10 @@ const formSchema = insertSubscriptionSchema.extend({
 
 type FormData = z.infer<typeof formSchema>;
 
-export function AddSubscriptionModal({ isOpen, onClose }: AddSubscriptionModalProps) {
+export function AddSubscriptionModal({
+  isOpen,
+  onClose,
+}: AddSubscriptionModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedUsage, setSelectedUsage] = useState<string>("");
@@ -50,12 +71,16 @@ export function AddSubscriptionModal({ isOpen, onClose }: AddSubscriptionModalPr
         ...data,
         nextRenewal: new Date(data.nextRenewal),
       };
-      const response = await apiRequest("POST", "/api/subscriptions", subscriptionData);
+      const response = await apiRequest(
+        "POST",
+        "/api/subscriptions",
+        subscriptionData,
+      );
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
         title: "Abonnement ajouté!",
         description: "Votre nouvel abonnement a été ajouté avec succès.",
@@ -70,7 +95,7 @@ export function AddSubscriptionModal({ isOpen, onClose }: AddSubscriptionModalPr
         description: "Impossible d'ajouter l'abonnement.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   const onSubmit = (data: FormData) => {
@@ -85,14 +110,14 @@ export function AddSubscriptionModal({ isOpen, onClose }: AddSubscriptionModalPr
   const getUsageButtonClass = (usage: string) => {
     const baseClass = "px-3 py-2 text-xs rounded-lg transition-colors";
     const isSelected = selectedUsage === usage;
-    
+
     switch (usage) {
-      case 'very_used':
-        return `${baseClass} ${isSelected ? 'ring-2 ring-offset-2 ring-gray-400' : ''} pigeon-button-secondary`;
-      case 'used':
-        return `${baseClass} ${isSelected ? 'ring-2 ring-offset-2 ring-gray-400' : ''} pigeon-button-secondary`;
-      case 'rarely_used':
-        return `${baseClass} ${isSelected ? 'ring-2 ring-offset-2 ring-gray-400' : ''} bg-red-500 hover:bg-red-600 text-white`;
+      case "very_used":
+        return `${baseClass} ${isSelected ? "ring-2 ring-offset-2 ring-gray-400" : ""} pigeon-button-secondary`;
+      case "used":
+        return `${baseClass} ${isSelected ? "ring-2 ring-offset-2 ring-gray-400" : ""} pigeon-button-secondary`;
+      case "rarely_used":
+        return `${baseClass} ${isSelected ? "ring-2 ring-offset-2 ring-gray-400" : ""} bg-red-500 hover:bg-red-600 text-white`;
       default:
         return baseClass;
     }
@@ -104,7 +129,7 @@ export function AddSubscriptionModal({ isOpen, onClose }: AddSubscriptionModalPr
         <DialogHeader>
           <DialogTitle>Ajouter un abonnement</DialogTitle>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -129,13 +154,15 @@ export function AddSubscriptionModal({ isOpen, onClose }: AddSubscriptionModalPr
                   <FormLabel>Prix</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-2 text-gray-500">€</span>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        className="pl-8" 
-                        placeholder="9.99" 
-                        {...field} 
+                      <span className="absolute left-3 top-2 text-gray-500">
+                        €
+                      </span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="pl-8"
+                        placeholder="9.99"
+                        {...field}
                       />
                     </div>
                   </FormControl>
@@ -150,7 +177,10 @@ export function AddSubscriptionModal({ isOpen, onClose }: AddSubscriptionModalPr
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Fréquence</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner la fréquence" />
@@ -173,18 +203,26 @@ export function AddSubscriptionModal({ isOpen, onClose }: AddSubscriptionModalPr
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Catégorie</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner la catégorie" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="entertainment">Divertissement</SelectItem>
+                      <SelectItem value="entertainment">
+                        Divertissement
+                      </SelectItem>
                       <SelectItem value="music">Musique</SelectItem>
                       <SelectItem value="productivity">Productivité</SelectItem>
                       <SelectItem value="design">Design</SelectItem>
                       <SelectItem value="cloud">Cloud</SelectItem>
+                      <SelectItem value="cloud">
+                        Développement personnel
+                      </SelectItem>
                       <SelectItem value="other">Autre</SelectItem>
                     </SelectContent>
                   </Select>
@@ -212,24 +250,24 @@ export function AddSubscriptionModal({ isOpen, onClose }: AddSubscriptionModalPr
                 Fréquence d'utilisation
               </label>
               <div className="grid grid-cols-3 gap-2">
-                <button 
-                  type="button" 
-                  onClick={() => handleUsageSelect('very_used')}
-                  className={getUsageButtonClass('very_used')}
+                <button
+                  type="button"
+                  onClick={() => handleUsageSelect("very_used")}
+                  className={getUsageButtonClass("very_used")}
                 >
                   Très utilisé
                 </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleUsageSelect('used')}
-                  className={getUsageButtonClass('used')}
+                <button
+                  type="button"
+                  onClick={() => handleUsageSelect("used")}
+                  className={getUsageButtonClass("used")}
                 >
                   Utilisé
                 </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleUsageSelect('rarely_used')}
-                  className={getUsageButtonClass('rarely_used')}
+                <button
+                  type="button"
+                  onClick={() => handleUsageSelect("rarely_used")}
+                  className={getUsageButtonClass("rarely_used")}
                 >
                   Rarement
                 </button>
@@ -237,11 +275,16 @@ export function AddSubscriptionModal({ isOpen, onClose }: AddSubscriptionModalPr
             </div>
 
             <div className="flex space-x-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="flex-1"
+              >
                 Annuler
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={createSubscription.isPending}
                 className="flex-1 pigeon-button-primary"
               >

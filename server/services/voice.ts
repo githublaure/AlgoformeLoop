@@ -1,7 +1,7 @@
-export async function generateVoiceReminder(text: string): Promise<string> {
-  const apiKey = process.env.ELEVEN_LABS_API_KEY || process.env.ELEVENLABS_API_KEY;
-  
-  if (!apiKey) {
+export async function generateVoiceReminder(text: string, apiKey?: string): Promise<string> {
+  const resolvedApiKey = apiKey || process.env.ELEVEN_LABS_API_KEY || process.env.ELEVENLABS_API_KEY;
+
+  if (!resolvedApiKey) {
     throw new Error("ElevenLabs API key not found in environment variables");
   }
 
@@ -11,7 +11,7 @@ export async function generateVoiceReminder(text: string): Promise<string> {
       headers: {
         "Accept": "audio/mpeg",
         "Content-Type": "application/json",
-        "xi-api-key": apiKey
+        "xi-api-key": resolvedApiKey
       },
       body: JSON.stringify({
         text: text,

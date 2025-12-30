@@ -133,7 +133,11 @@ export class MemStorage implements IStorage {
 
   async getUpcomingRenewals(days: number): Promise<Subscription[]> {
     const now = new Date();
-    const cutoffDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    now.setHours(0, 0, 0, 0);
+
+    const cutoffDate = new Date();
+    cutoffDate.setHours(23, 59, 59, 999);
+    cutoffDate.setDate(cutoffDate.getDate() + days);
     return Array.from(this.subscriptions.values())
       .filter(sub => sub.isActive && sub.nextRenewal >= now && sub.nextRenewal <= cutoffDate)
       .sort((a, b) => a.nextRenewal.getTime() - b.nextRenewal.getTime());
@@ -194,7 +198,10 @@ export class DatabaseStorage implements IStorage {
 
   async getUpcomingRenewals(days: number): Promise<Subscription[]> {
     const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+
     const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
     endDate.setDate(endDate.getDate() + days);
 
     return await db

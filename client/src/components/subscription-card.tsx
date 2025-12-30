@@ -37,6 +37,27 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
     }
   });
 
+  const archiveSubscription = useMutation({
+    mutationFn: async () => {
+      await apiRequest("PUT", `/api/subscriptions/${subscription.id}` , { isActive: false });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      toast({
+        title: "Abonnement archivé",
+        description: "L'abonnement a été classé dans vos abonnements passés.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'archiver l'abonnement.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const generateReview = useMutation({
     mutationFn: async () => {
       const usageText = subscription.usageFrequency === 'very_used' ? 'très utilisé' : 
@@ -209,6 +230,19 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
             onClick={() => onEdit?.(subscription)}
           >
             <i className="fas fa-edit"></i>
+          </button>
+          <button
+            onClick={() => archiveSubscription.mutate()}
+            disabled={archiveSubscription.isPending}
+            className="hover:opacity-70 transition-opacity disabled:opacity-50"
+            style={{ color: 'hsl(42, 96%, 70%)' }}
+            title="Marquer comme passé"
+          >
+            {archiveSubscription.isPending ? (
+              <i className="fas fa-spinner fa-spin"></i>
+            ) : (
+              <i className="fas fa-archive"></i>
+            )}
           </button>
           <button
             onClick={() => deleteSubscription.mutate(subscription.id)}

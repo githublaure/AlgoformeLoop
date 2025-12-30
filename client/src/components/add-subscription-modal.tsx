@@ -492,6 +492,22 @@ export function AddSubscriptionModal({
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <FormLabel>Abonnement actif</FormLabel>
+                      <p className="text-xs text-gray-600">Désactivez pour classer cet abonnement dans vos archives.</p>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             </div>
 
             {isTrial && (

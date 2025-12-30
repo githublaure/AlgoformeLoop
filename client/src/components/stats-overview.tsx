@@ -30,6 +30,9 @@ export function StatsOverview() {
     );
   }
 
+  const budgetCap = Number(stats?.budgetCap ?? 0);
+  const budgetGap = Number(stats?.budgetGap ?? 0);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
       <div className="pigeon-card p-6">
@@ -40,7 +43,7 @@ export function StatsOverview() {
               €{stats?.totalMonthlyCost || '0.00'}
             </p>
             <p className="text-xs text-gray-600 mt-1">
-              Budget cible: €{stats?.budgetCap.toFixed(0)} {Number(stats?.budgetGap || 0) > 0 ? `(-${stats?.budgetGap} à réduire)` : '(ok)'}
+              Budget cible: €{budgetCap.toFixed(0)} {budgetGap > 0 ? `(-${budgetGap.toFixed(2)} à réduire)` : '(ok)'}
             </p>
           </div>
           <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'hsl(258, 71%, 85%)' }}>

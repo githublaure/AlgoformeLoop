@@ -372,12 +372,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/voice/generate", async (req, res) => {
     try {
       const { subscriptionId, reminderType, text } = req.body;
+      const apiKey = (req.headers["x-elevenlabs-key"] as string | undefined)?.trim();
 
-      if (!subscriptionId || !reminderType || !text) {
+      if (!reminderType || !text) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      const audioUrl = await generateVoiceReminder(text);
+      const audioUrl = await generateVoiceReminder(text, apiKey);
 
       const reminder = await storage.createVoiceReminder({
         subscriptionId,
@@ -387,7 +388,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(reminder);
     } catch (error) {
-      res.status(500).json({ message: "Failed to generate voice reminder", error });
+      const message = error instanceof Error ? error.message : "Failed to generate voice reminder";
+      const status = message.includes("ElevenLabs API key") ? 400 : 500;
+      res.status(status).json({ message });
     }
   });
 

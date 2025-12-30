@@ -1,9 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/calendar";
 import type { Subscription } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { CalendarPlus } from "lucide-react";
 
 interface SubscriptionCardProps {
   subscription: Subscription;

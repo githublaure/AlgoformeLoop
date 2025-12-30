@@ -9,10 +9,13 @@ export const subscriptions = pgTable("subscriptions", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   frequency: text("frequency").notNull(), // monthly, yearly, weekly
   category: text("category").notNull(),
+  categoryColor: text("category_color").default("#7c3aed"),
   usageFrequency: text("usage_frequency").notNull(), // very_used, used, rarely_used
   nextRenewal: timestamp("next_renewal").notNull(),
   iconClass: text("icon_class"), // Font Awesome class for the icon
   bgColor: text("bg_color"), // Background color for the icon
+  note: text("note"),
+  isSuspect: boolean("is_suspect").default(false),
   isActive: boolean("is_active").default(true),
   isTrial: boolean("is_trial").default(false),
   trialEndsAt: timestamp("trial_ends_at"),

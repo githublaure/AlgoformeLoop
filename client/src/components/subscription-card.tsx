@@ -9,9 +9,10 @@ import { CalendarPlus } from "lucide-react";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
+  onEdit?: (subscription: Subscription) => void;
 }
 
-export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
+export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -136,19 +137,39 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
     }
   };
 
+  const iconColor = subscription.categoryColor || subscription.bgColor;
+  const iconClass = 'fas fa-dove';
+
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${subscription.bgColor || 'bg-gray-600'}`}>
-            <i className={`${subscription.iconClass || 'fas fa-cube'} text-white`}></i>
+          <div
+            className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconColor ? '' : 'bg-gray-600'}`}
+            style={{ backgroundColor: iconColor || undefined }}
+          >
+            <i className={`${iconClass} text-white`}></i>
           </div>
           <div>
             <h3 className="font-medium">{subscription.name}</h3>
             <p className="text-sm text-gray-600">{getCategoryLabel(subscription.category)}</p>
+            {(subscription.isTrial || subscription.isSuspect) && (
+              <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                {subscription.isTrial && (
+                  <span className="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700">
+                    Essai gratuit
+                  </span>
+                )}
+                {subscription.isSuspect && (
+                  <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
+                    Suspect
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
-        <button 
+        <button
           onClick={() => generateReview.mutate()}
           disabled={generateReview.isPending}
           className="text-gray-400 hover:opacity-70 transition-opacity disabled:opacity-50"
@@ -182,10 +203,14 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
           >
             <CalendarPlus className="h-5 w-5" aria-hidden="true" />
           </button>
-          <button className="hover:opacity-70 transition-opacity" style={{ color: 'hsl(258, 71%, 65%)' }}>
+          <button
+            className="hover:opacity-70 transition-opacity"
+            style={{ color: 'hsl(258, 71%, 65%)' }}
+            onClick={() => onEdit?.(subscription)}
+          >
             <i className="fas fa-edit"></i>
           </button>
-          <button 
+          <button
             onClick={() => deleteSubscription.mutate(subscription.id)}
             disabled={deleteSubscription.isPending}
             className="hover:opacity-70 transition-opacity disabled:opacity-50"
@@ -199,6 +224,11 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
           </button>
         </div>
       </div>
+      {subscription.note && (
+        <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+          <span className="font-medium">Note :</span> {subscription.note}
+        </div>
+      )}
     </div>
   );
 }

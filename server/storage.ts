@@ -40,10 +40,13 @@ export class MemStorage implements IStorage {
         price: "15.99",
         frequency: "monthly",
         category: "entertainment",
+        categoryColor: "#a855f7",
         usageFrequency: "very_used",
         nextRenewal: new Date(Date.now() + 24 * 60 * 60 * 1000), // tomorrow
-        iconClass: "fab fa-netflix",
-        bgColor: "bg-red-600",
+        iconClass: "fas fa-dove",
+        bgColor: "#a855f7",
+        note: "A partager avec la famille",
+        isSuspect: false,
         isActive: true,
         isTrial: false,
         trialEndsAt: null,
@@ -54,10 +57,13 @@ export class MemStorage implements IStorage {
         price: "9.99",
         frequency: "monthly",
         category: "music",
+        categoryColor: "#22c55e",
         usageFrequency: "very_used",
         nextRenewal: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days
-        iconClass: "fab fa-spotify",
-        bgColor: "bg-green-600",
+        iconClass: "fas fa-dove",
+        bgColor: "#22c55e",
+        note: "Indispensable au quotidien",
+        isSuspect: false,
         isActive: true,
         isTrial: false,
         trialEndsAt: null,
@@ -68,10 +74,13 @@ export class MemStorage implements IStorage {
         price: "9.99",
         frequency: "monthly",
         category: "cloud",
+        categoryColor: "#3b82f6",
         usageFrequency: "rarely_used",
         nextRenewal: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
-        iconClass: "fab fa-dropbox",
-        bgColor: "bg-blue-500",
+        iconClass: "fas fa-dove",
+        bgColor: "#3b82f6",
+        note: "A surveiller, peu utilisé",
+        isSuspect: true,
         isActive: true,
         isTrial: false,
         trialEndsAt: null,
@@ -82,13 +91,16 @@ export class MemStorage implements IStorage {
         price: "22.99",
         frequency: "monthly",
         category: "design",
+        categoryColor: "#f97316",
         usageFrequency: "very_used",
         nextRenewal: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days
-        iconClass: "fab fa-adobe",
-        bgColor: "bg-orange-600",
+        iconClass: "fas fa-dove",
+        bgColor: "#f97316",
+        note: "Essai en cours sur un nouveau pack",
+        isSuspect: false,
         isActive: true,
-        isTrial: false,
-        trialEndsAt: null,
+        isTrial: true,
+        trialEndsAt: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000),
         createdAt: new Date(),
       }
     ];
@@ -109,9 +121,17 @@ export class MemStorage implements IStorage {
 
   async createSubscription(insertSubscription: InsertSubscription): Promise<Subscription> {
     const id = this.currentSubscriptionId++;
-    const subscription: Subscription = { 
-      ...insertSubscription, 
+    const subscription: Subscription = {
+      ...insertSubscription,
       id,
+      note: insertSubscription.note ?? null,
+      categoryColor: insertSubscription.categoryColor ?? null,
+      iconClass: insertSubscription.iconClass ?? null,
+      bgColor: insertSubscription.bgColor ?? null,
+      trialEndsAt: insertSubscription.trialEndsAt ?? null,
+      isSuspect: insertSubscription.isSuspect ?? false,
+      isTrial: insertSubscription.isTrial ?? false,
+      isActive: insertSubscription.isActive ?? true,
       createdAt: new Date()
     };
     this.subscriptions.set(id, subscription);
@@ -121,8 +141,19 @@ export class MemStorage implements IStorage {
   async updateSubscription(id: number, updates: Partial<InsertSubscription>): Promise<Subscription | undefined> {
     const existing = this.subscriptions.get(id);
     if (!existing) return undefined;
-    
-    const updated = { ...existing, ...updates };
+
+    const updated: Subscription = {
+      ...existing,
+      ...updates,
+      note: updates.note ?? existing.note ?? null,
+      categoryColor: updates.categoryColor ?? existing.categoryColor ?? null,
+      iconClass: updates.iconClass ?? existing.iconClass ?? null,
+      bgColor: updates.bgColor ?? existing.bgColor ?? null,
+      trialEndsAt: updates.trialEndsAt ?? existing.trialEndsAt ?? null,
+      isSuspect: updates.isSuspect ?? existing.isSuspect ?? false,
+      isTrial: updates.isTrial ?? existing.isTrial ?? false,
+      isActive: updates.isActive ?? existing.isActive ?? true,
+    };
     this.subscriptions.set(id, updated);
     return updated;
   }
@@ -149,9 +180,11 @@ export class MemStorage implements IStorage {
 
   async createVoiceReminder(insertReminder: InsertVoiceReminder): Promise<VoiceReminder> {
     const id = this.currentVoiceReminderId++;
-    const reminder: VoiceReminder = { 
-      ...insertReminder, 
+    const reminder: VoiceReminder = {
+      ...insertReminder,
       id,
+      subscriptionId: insertReminder.subscriptionId ?? null,
+      audioUrl: insertReminder.audioUrl ?? null,
       createdAt: new Date()
     };
     this.voiceReminders.set(id, reminder);
@@ -193,7 +226,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSubscription(id: number): Promise<boolean> {
     const result = await db.delete(subscriptions).where(eq(subscriptions.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getUpcomingRenewals(days: number): Promise<Subscription[]> {

@@ -5,7 +5,11 @@ import type { Subscription } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-export function UpcomingRenewals() {
+interface UpcomingRenewalsProps {
+  onEdit?: (subscription: Subscription) => void;
+}
+
+export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -84,6 +88,28 @@ export function UpcomingRenewals() {
 
   const iconClass = 'fas fa-dove';
 
+  const deleteSubscription = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/subscriptions/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions/upcoming/7'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      toast({
+        title: "Abonnement supprimé",
+        description: "Le renouvellement a été retiré de la liste.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer l'abonnement.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const formatRenewalDate = (date: Date) => {
     const now = new Date();
     const renewal = new Date(date);
@@ -150,13 +176,18 @@ export function UpcomingRenewals() {
                           Essai gratuit
                         </span>
                       )}
+                      {subscription.isSuspect && (
+                        <span className="mt-1 ml-2 inline-block rounded-full bg-red-100 px-3 py-1 text-xs text-red-700">
+                          Risque d'arnaque
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className={getUsageBadgeClass(subscription.usageFrequency)}>
                       {getUsageLabel(subscription.usageFrequency)}
                     </span>
-                    <button 
+                    <button
                       onClick={() => generateRenewalAlert.mutate({ subscription })}
                       disabled={generateRenewalAlert.isPending}
                       className="hover:opacity-70 transition-opacity disabled:opacity-50"
@@ -167,6 +198,25 @@ export function UpcomingRenewals() {
                       ) : (
                         <i className="fas fa-volume-up"></i>
                       )}
+                    </button>
+                    {onEdit && (
+                      <button
+                        onClick={() => onEdit(subscription)}
+                        className="hover:opacity-70 transition-opacity"
+                        style={{ color: 'hsl(258, 71%, 65%)' }}
+                        aria-label={`Modifier ${subscription.name}`}
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteSubscription.mutate(subscription.id)}
+                      className="hover:opacity-70 transition-opacity disabled:opacity-50"
+                      style={{ color: 'hsl(10, 72%, 61%)' }}
+                      disabled={deleteSubscription.isPending}
+                      aria-label={`Supprimer ${subscription.name}`}
+                    >
+                      {deleteSubscription.isPending ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-trash"></i>}
                     </button>
                   </div>
                 </div>

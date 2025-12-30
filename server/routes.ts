@@ -404,6 +404,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/voice/reminders", async (_req, res) => {
+    try {
+      const reminders = await storage.getVoiceReminders();
+      res.json(reminders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch voice reminders" });
+    }
+  });
+
   // Stats endpoint
   app.get("/api/stats", async (req, res) => {
     try {
@@ -425,9 +434,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .filter(sub => sub.isSuspect)
         .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
 
+      const suspectCount = subscriptions.filter(sub => sub.isSuspect).length;
+
       const wastedEstimate = subscriptions
         .filter(sub => sub.usageFrequency === 'rarely_used')
         .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
+
+      const categoryTotals = subscriptions.reduce<Record<string, number>>((acc, sub) => {
+        const monthly = normalizeToMonthly(sub);
+        acc[sub.category] = (acc[sub.category] || 0) + monthly;
+        return acc;
+      }, {});
+
+      const usageBreakdown = subscriptions.reduce<Record<string, number>>((acc, sub) => {
+        acc[sub.usageFrequency] = (acc[sub.usageFrequency] || 0) + 1;
+        return acc;
+      }, { very_used: 0, used: 0, rarely_used: 0 });
 
       const budgetCap = parseFloat(process.env.SUBSCRIPTION_BUDGET || '100');
       const budgetGap = Math.max(monthlyTotal - budgetCap, 0);
@@ -441,7 +463,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         suspectMonthly: suspectTotal.toFixed(2),
         wastedEstimate: wastedEstimate.toFixed(2),
         budgetCap,
-        budgetGap: budgetGap.toFixed(2)
+        budgetGap: budgetGap.toFixed(2),
+        suspectCount,
+        categoryTotals,
+        usageBreakdown
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch stats" });

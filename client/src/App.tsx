@@ -10,6 +10,8 @@ import Demo from "@/pages/demo";
 import Test from "@/pages/test";
 import NotFound from "@/pages/not-found";
 import ResetPassword from "@/pages/reset-password";
+import StatsPage from "@/pages/stats";
+import VoiceRemindersPage from "@/pages/voice-reminders";
 
 function Router() {
   return (
@@ -17,6 +19,8 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/demo" component={Demo} />
       <Route path="/test" component={Test} />
+      <Route path="/stats" component={StatsPage} />
+      <Route path="/voice-reminders" component={VoiceRemindersPage} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route component={NotFound} />
     </Switch>

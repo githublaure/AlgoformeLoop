@@ -7,6 +7,13 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
 
+const normalizeBoolean = (value: any, fallback?: boolean) => {
+  if (value === undefined) return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  return Boolean(value);
+};
+
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
 const users: Array<{ id: string; name: string; email: string; password: string }> = [];
 
@@ -316,6 +323,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         nextRenewal: req.body.nextRenewal ? new Date(req.body.nextRenewal) : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
+        isSuspect: normalizeBoolean(req.body.isSuspect, false),
+        isTrial: normalizeBoolean(req.body.isTrial, false),
+        isActive: normalizeBoolean(req.body.isActive, true),
       };
       const validatedData = insertSubscriptionSchema.parse(body);
       const subscription = await storage.createSubscription(validatedData);
@@ -333,6 +343,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         nextRenewal: req.body.nextRenewal ? new Date(req.body.nextRenewal) : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
+        isSuspect: normalizeBoolean(req.body.isSuspect),
+        isTrial: normalizeBoolean(req.body.isTrial),
+        isActive: normalizeBoolean(req.body.isActive),
       };
       const validatedData = insertSubscriptionSchema.partial().parse(body);
       const subscription = await storage.updateSubscription(id, validatedData);

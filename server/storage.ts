@@ -199,7 +199,10 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getSubscriptions(): Promise<Subscription[]> {
-    return await db.select().from(subscriptions);
+    return await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.isActive, true));
   }
 
   async getSubscription(id: number): Promise<Subscription | undefined> {

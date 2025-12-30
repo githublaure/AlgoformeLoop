@@ -1,6 +1,6 @@
 import { subscriptions, voiceReminders, type Subscription, type InsertSubscription, type VoiceReminder, type InsertVoiceReminder } from "@shared/schema";
 import { db } from "./db";
-import { eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Subscription methods
@@ -132,9 +132,14 @@ export class MemStorage implements IStorage {
   }
 
   async getUpcomingRenewals(days: number): Promise<Subscription[]> {
-    const cutoffDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const cutoffDate = new Date();
+    cutoffDate.setHours(23, 59, 59, 999);
+    cutoffDate.setDate(cutoffDate.getDate() + days);
     return Array.from(this.subscriptions.values())
-      .filter(sub => sub.isActive && sub.nextRenewal <= cutoffDate)
+      .filter(sub => sub.isActive && sub.nextRenewal >= now && sub.nextRenewal <= cutoffDate)
       .sort((a, b) => a.nextRenewal.getTime() - b.nextRenewal.getTime());
   }
 
@@ -192,15 +197,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUpcomingRenewals(days: number): Promise<Subscription[]> {
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+
     const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
     endDate.setDate(endDate.getDate() + days);
-    
+
     return await db
       .select()
       .from(subscriptions)
       .where(
-        lte(subscriptions.nextRenewal, endDate)
-      );
+        and(
+          eq(subscriptions.isActive, true),
+          gte(subscriptions.nextRenewal, startDate),
+          lte(subscriptions.nextRenewal, endDate),
+        )
+      )
+      .orderBy(subscriptions.nextRenewal);
   }
 
   async getVoiceReminders(): Promise<VoiceReminder[]> {

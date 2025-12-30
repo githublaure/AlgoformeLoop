@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/calendar";
 import type { Subscription } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -113,6 +113,28 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
     return categories[category] || category;
   };
 
+  const handleAddToCalendar = () => {
+    try {
+      const icsContent = createSubscriptionCalendarEvent(subscription);
+      const formattedDate = format(new Date(subscription.nextRenewal), "d MMMM yyyy", { locale: fr });
+      const fileName = `pigeonsub-${subscription.name.toLowerCase().replace(/\s+/g, "-")}.ics`;
+
+      downloadCalendarEvent(fileName, icsContent);
+
+      toast({
+        title: "Ajouté au calendrier",
+        description: `Rappel créé pour le ${formattedDate}.`,
+      });
+    } catch (error) {
+      console.error("Calendar export error", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de générer l'événement calendrier.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-3">
@@ -152,6 +174,14 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
       <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
         <span>Prochain: {format(new Date(subscription.nextRenewal), "d MMM", { locale: fr })}</span>
         <div className="flex space-x-2">
+          <button
+            onClick={handleAddToCalendar}
+            className="hover:opacity-70 transition-opacity"
+            style={{ color: 'hsl(142, 71%, 45%)' }}
+            aria-label={`Ajouter ${subscription.name} au calendrier`}
+          >
+            <i className="fas fa-calendar-plus"></i>
+          </button>
           <button className="hover:opacity-70 transition-opacity" style={{ color: 'hsl(258, 71%, 65%)' }}>
             <i className="fas fa-edit"></i>
           </button>

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -8,9 +7,10 @@ import { fr } from "date-fns/locale";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
+  onEdit?: (subscription: Subscription) => void;
 }
 
-export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
+export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -37,11 +37,16 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
 
   const generateReview = useMutation({
     mutationFn: async () => {
-      const usageText = subscription.usageFrequency === 'very_used' ? 'très utilisé' : 
-                      subscription.usageFrequency === 'used' ? 'utilisé régulièrement' : 
+      const usageText = subscription.usageFrequency === 'very_used' ? 'très utilisé' :
+                      subscription.usageFrequency === 'used' ? 'utilisé régulièrement' :
                       'peu utilisé';
-      
-      const text = `${subscription.name} coûte ${subscription.price} euros par ${subscription.frequency === 'monthly' ? 'mois' : 'an'}. Ce service est ${usageText}. Le prochain renouvellement est prévu le ${format(new Date(subscription.nextRenewal), "d MMMM", { locale: fr })}.`;
+
+      const numericPrice = Number(subscription.price);
+      const priceDisplay = Number.isFinite(numericPrice)
+        ? numericPrice.toFixed(2)
+        : subscription.price;
+
+      const text = `${subscription.name} coûte ${priceDisplay} euros par ${subscription.frequency === 'monthly' ? 'mois' : 'an'}. Ce service est ${usageText}. Le prochain renouvellement est prévu le ${format(new Date(subscription.nextRenewal), "d MMMM yyyy", { locale: fr })}.`;
       
       const response = await apiRequest("POST", "/api/voice/generate", {
         subscriptionId: subscription.id,
@@ -113,12 +118,19 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
     return categories[category] || category;
   };
 
+  const isHexColor = subscription.bgColor?.startsWith('#');
+
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${subscription.bgColor || 'bg-gray-600'}`}>
-            <i className={`${subscription.iconClass || 'fas fa-cube'} text-white`}></i>
+          <div
+            className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+              isHexColor ? '' : subscription.bgColor || 'bg-gray-600'
+            }`}
+            style={isHexColor ? { backgroundColor: subscription.bgColor } : undefined}
+          >
+            <i className={`${subscription.iconClass || 'fas fa-dove'} text-white`}></i>
           </div>
           <div>
             <h3 className="font-medium">{subscription.name}</h3>
@@ -141,7 +153,11 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
       
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-lg font-semibold">€{subscription.price}</span>
+          <span className="text-lg font-semibold">
+            €{Number.isFinite(Number(subscription.price))
+              ? Number(subscription.price).toFixed(2)
+              : subscription.price}
+          </span>
           <span className="text-sm text-gray-600">/{subscription.frequency === 'monthly' ? 'mois' : 'an'}</span>
         </div>
         <span className={getUsageBadgeClass(subscription.usageFrequency)}>
@@ -152,7 +168,11 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
       <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
         <span>Prochain: {format(new Date(subscription.nextRenewal), "d MMM", { locale: fr })}</span>
         <div className="flex space-x-2">
-          <button className="hover:opacity-70 transition-opacity" style={{ color: 'hsl(258, 71%, 65%)' }}>
+          <button
+            onClick={() => onEdit?.(subscription)}
+            className="hover:opacity-70 transition-opacity"
+            style={{ color: 'hsl(258, 71%, 65%)' }}
+          >
             <i className="fas fa-edit"></i>
           </button>
           <button 

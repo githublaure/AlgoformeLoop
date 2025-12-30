@@ -11,6 +11,7 @@ import type { Subscription } from "@shared/schema";
 
 export default function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
 
   const { data: subscriptions = [], isLoading } = useQuery<Subscription[]>({
     queryKey: ['/api/subscriptions'],
@@ -66,7 +67,14 @@ export default function Dashboard() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {subscriptions.map((subscription) => (
-                      <SubscriptionCard key={subscription.id} subscription={subscription} />
+                      <SubscriptionCard
+                        key={subscription.id}
+                        subscription={subscription}
+                        onEdit={(sub) => {
+                          setEditingSubscription(sub);
+                          setIsAddModalOpen(true);
+                        }}
+                      />
                     ))}
                   </div>
                 )}
@@ -76,9 +84,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <AddSubscriptionModal 
-        isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
+      <AddSubscriptionModal
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingSubscription(null);
+        }}
+        subscription={editingSubscription || undefined}
       />
     </div>
     </LoginGuard>

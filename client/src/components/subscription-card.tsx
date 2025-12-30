@@ -5,6 +5,7 @@ import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/ca
 import type { Subscription } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { CalendarPlus } from "lucide-react";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
@@ -176,11 +177,10 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
         <div className="flex space-x-2">
           <button
             onClick={handleAddToCalendar}
-            className="hover:opacity-70 transition-opacity"
-            style={{ color: 'hsl(142, 71%, 45%)' }}
+            className="hover:opacity-80 transition-opacity text-green-600"
             aria-label={`Ajouter ${subscription.name} au calendrier`}
           >
-            <i className="fas fa-calendar-plus"></i>
+            <CalendarPlus className="h-5 w-5" aria-hidden="true" />
           </button>
           <button className="hover:opacity-70 transition-opacity" style={{ color: 'hsl(258, 71%, 65%)' }}>
             <i className="fas fa-edit"></i>

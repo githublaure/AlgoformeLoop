@@ -46,7 +46,9 @@ export default function Dashboard() {
           </div>
 
           <div className="lg:col-span-3">
-            <StatsOverview />
+            <div id="statistiques">
+              <StatsOverview />
+            </div>
 
             <UpcomingRenewals />
 

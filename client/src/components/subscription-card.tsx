@@ -5,7 +5,7 @@ import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/ca
 import type { Subscription } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarPlus } from "lucide-react";
+import { Archive, CalendarPlus, Pencil, Trash2 } from "lucide-react";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
@@ -243,35 +243,35 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
             <CalendarPlus className="h-5 w-5" aria-hidden="true" />
           </button>
           <button
-            className="hover:opacity-70 transition-opacity"
-            style={{ color: 'hsl(258, 71%, 65%)' }}
+            className="hover:opacity-70 transition-opacity text-purple-500"
             onClick={() => onEdit?.(subscription)}
+            aria-label={`Modifier ${subscription.name}`}
           >
-            <i className="fas fa-edit"></i>
+            <Pencil className="h-5 w-5" aria-hidden="true" />
           </button>
           <button
             onClick={() => archiveSubscription.mutate()}
             disabled={archiveSubscription.isPending}
-            className="hover:opacity-70 transition-opacity disabled:opacity-50"
-            style={{ color: 'hsl(42, 96%, 70%)' }}
+            className="hover:opacity-70 transition-opacity disabled:opacity-50 text-amber-500"
             title="Marquer comme passé"
+            aria-label={`Archiver ${subscription.name}`}
           >
             {archiveSubscription.isPending ? (
               <i className="fas fa-spinner fa-spin"></i>
             ) : (
-              <i className="fas fa-archive"></i>
+              <Archive className="h-5 w-5" aria-hidden="true" />
             )}
           </button>
           <button
             onClick={() => deleteSubscription.mutate(subscription.id)}
             disabled={deleteSubscription.isPending}
-            className="hover:opacity-70 transition-opacity disabled:opacity-50"
-            style={{ color: 'hsl(10, 72%, 61%)' }}
+            className="hover:opacity-70 transition-opacity disabled:opacity-50 text-red-500"
+            aria-label={`Supprimer ${subscription.name}`}
           >
             {deleteSubscription.isPending ? (
               <i className="fas fa-spinner fa-spin"></i>
             ) : (
-              <i className="fas fa-trash"></i>
+              <Trash2 className="h-5 w-5" aria-hidden="true" />
             )}
           </button>
         </div>

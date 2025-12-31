@@ -62,11 +62,16 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
 
   const generateReview = useMutation({
     mutationFn: async () => {
-      const usageText = subscription.usageFrequency === 'very_used' ? 'très utilisé' : 
-                      subscription.usageFrequency === 'used' ? 'utilisé régulièrement' : 
+      const usageText = subscription.usageFrequency === 'very_used' ? 'très utilisé' :
+                      subscription.usageFrequency === 'used' ? 'utilisé régulièrement' :
                       'peu utilisé';
-      
-      const text = `${subscription.name} coûte ${subscription.price} euros par ${subscription.frequency === 'monthly' ? 'mois' : 'an'}. Ce service est ${usageText}. Le prochain renouvellement est prévu le ${format(new Date(subscription.nextRenewal), "d MMMM", { locale: fr })}.`;
+
+      const numericPrice = Number(subscription.price);
+      const priceDisplay = Number.isFinite(numericPrice)
+        ? numericPrice.toFixed(2)
+        : subscription.price;
+
+      const text = `${subscription.name} coûte ${priceDisplay} euros par ${subscription.frequency === 'monthly' ? 'mois' : 'an'}. Ce service est ${usageText}. Le prochain renouvellement est prévu le ${format(new Date(subscription.nextRenewal), "d MMMM yyyy", { locale: fr })}.`;
       
       const response = await apiRequest("POST", "/api/voice/generate", {
         subscriptionId: subscription.id,
@@ -156,27 +161,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
     return categories[category] || category;
   };
 
-  const handleAddToCalendar = () => {
-    try {
-      const icsContent = createSubscriptionCalendarEvent(subscription);
-      const formattedDate = format(new Date(subscription.nextRenewal), "d MMMM yyyy", { locale: fr });
-      const fileName = `pigeonsub-${subscription.name.toLowerCase().replace(/\s+/g, "-")}.ics`;
-
-      downloadCalendarEvent(fileName, icsContent);
-
-      toast({
-        title: "Ajouté au calendrier",
-        description: `Rappel créé pour le ${formattedDate}.`,
-      });
-    } catch (error) {
-      console.error("Calendar export error", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de générer l'événement calendrier.",
-        variant: "destructive",
-      });
-    }
-  };
+  const isHexColor = subscription.bgColor?.startsWith('#');
 
   const iconColor = subscription.categoryColor || subscription.bgColor;
   const iconClass = 'fas fa-dove';
@@ -186,10 +171,12 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
           <div
-            className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconColor ? '' : 'bg-gray-600'}`}
-            style={{ backgroundColor: iconColor || undefined }}
+            className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+              isHexColor ? '' : subscription.bgColor || 'bg-gray-600'
+            }`}
+            style={isHexColor ? { backgroundColor: subscription.bgColor } : undefined}
           >
-            <i className={`${iconClass} text-white`}></i>
+            <i className={`${subscription.iconClass || 'fas fa-dove'} text-white`}></i>
           </div>
           <div>
             <h3 className="font-medium">{subscription.name}</h3>
@@ -226,7 +213,11 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
       
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-lg font-semibold">€{subscription.price}</span>
+          <span className="text-lg font-semibold">
+            €{Number.isFinite(Number(subscription.price))
+              ? Number(subscription.price).toFixed(2)
+              : subscription.price}
+          </span>
           <span className="text-sm text-gray-600">/{subscription.frequency === 'monthly' ? 'mois' : 'an'}</span>
         </div>
         <span className={getUsageBadgeClass(subscription.usageFrequency)}>
@@ -238,31 +229,11 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
         <span>Prochain: {format(new Date(subscription.nextRenewal), "d MMM", { locale: fr })}</span>
         <div className="flex space-x-2">
           <button
-            onClick={handleAddToCalendar}
-            className="hover:opacity-80 transition-opacity text-green-600"
-            aria-label={`Ajouter ${subscription.name} au calendrier`}
-          >
-            <CalendarPlus className="h-5 w-5" aria-hidden="true" />
-          </button>
-          <button
-            className="hover:opacity-70 transition-opacity text-purple-500"
             onClick={() => onEdit?.(subscription)}
-            aria-label={`Modifier ${subscription.name}`}
+            className="hover:opacity-70 transition-opacity"
+            style={{ color: 'hsl(258, 71%, 65%)' }}
           >
-            <Pencil className="h-5 w-5" aria-hidden="true" />
-          </button>
-          <button
-            onClick={() => archiveSubscription.mutate()}
-            disabled={archiveSubscription.isPending}
-            className="hover:opacity-70 transition-opacity disabled:opacity-50 text-amber-500"
-            title="Marquer comme passé"
-            aria-label={`Archiver ${subscription.name}`}
-          >
-            {archiveSubscription.isPending ? (
-              <i className="fas fa-spinner fa-spin"></i>
-            ) : (
-              <Archive className="h-5 w-5" aria-hidden="true" />
-            )}
+            <i className="fas fa-edit"></i>
           </button>
           <button
             onClick={() => deleteSubscription.mutate(subscription.id)}

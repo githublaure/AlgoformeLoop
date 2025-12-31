@@ -29,14 +29,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { insertSubscriptionSchema, type Subscription } from "@shared/schema";
+import { format } from "date-fns";
 
 interface AddSubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  subscription?: Subscription | null;
+  subscription?: Subscription;
 }
 
 type CategoryOption = {
@@ -72,22 +71,32 @@ const formSchema = insertSubscriptionSchema.extend({
 
 type FormData = z.infer<typeof formSchema>;
 
+type CategoryOption = {
+  value: string;
+  label: string;
+  color: string;
+};
+
+const DEFAULT_CATEGORIES: CategoryOption[] = [
+  { value: "entertainment", label: "Divertissement", color: "#7c3aed" },
+  { value: "music", label: "Musique", color: "#16a34a" },
+  { value: "productivity", label: "Productivité", color: "#0ea5e9" },
+  { value: "design", label: "Design", color: "#f97316" },
+  { value: "cloud", label: "Cloud", color: "#475569" },
+  { value: "other", label: "Autre", color: "#6b7280" },
+];
+
 const defaultValues: FormData = {
   name: "",
   price: "",
   frequency: "monthly",
   category: "",
-  categoryColor: "#7c3aed",
   usageFrequency: "used",
   nextRenewal: "",
   iconClass: "fas fa-dove",
-  bgColor: "#7c3aed",
+  bgColor: "#4b5563",
   isActive: true,
   isTrial: false,
-  trialEndsAt: "",
-  note: "",
-  rating: 0,
-  isSuspect: false,
 };
 
 export function AddSubscriptionModal({
@@ -98,74 +107,64 @@ export function AddSubscriptionModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedUsage, setSelectedUsage] = useState<string>(defaultValues.usageFrequency);
-  const [categories, setCategories] = useState<CategoryOption[]>(defaultCategories);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryColor, setNewCategoryColor] = useState("#8b5cf6");
-
-  const isEditing = Boolean(subscription);
+  const [categories, setCategories] = useState<CategoryOption[]>(DEFAULT_CATEGORIES);
+  const [customCategoryName, setCustomCategoryName] = useState("");
+  const [customCategoryColor, setCustomCategoryColor] = useState("#4b5563");
+  const [categoryColor, setCategoryColor] = useState<string>(defaultValues.bgColor);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues,
   });
 
-  const rating = form.watch("rating");
+  const isEditing = Boolean(subscription);
+
+  const resetForm = () => {
+    form.reset(defaultValues);
+    setSelectedUsage(defaultValues.usageFrequency);
+    setCategoryColor(defaultValues.bgColor);
+    setCustomCategoryName("");
+    setCustomCategoryColor("#4b5563");
+  };
+
+  const formatDateForInput = (date: string | Date) => {
+    return format(new Date(date), "yyyy-MM-dd");
+  };
 
   useEffect(() => {
     if (!isOpen) return;
-    const stored = localStorage.getItem("pigeonsub.categories");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as CategoryOption[];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setCategories(parsed);
+
+    if (subscription) {
+      setCategories((prev) => {
+        if (prev.some((cat) => cat.value === subscription.category)) {
+          return prev;
         }
-      } catch (error) {
-        console.warn("Unable to parse stored categories", error);
-      }
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (categories.length > 0) {
-      localStorage.setItem("pigeonsub.categories", JSON.stringify(categories));
-    }
-  }, [categories]);
-
-  useEffect(() => {
-    if (subscription && isOpen) {
-      const nextRenewal = subscription.nextRenewal
-        ? new Date(subscription.nextRenewal).toISOString().split("T")[0]
-        : "";
-      const trialEndsAt = subscription.trialEndsAt
-        ? new Date(subscription.trialEndsAt).toISOString().split("T")[0]
-        : "";
+        return [
+          ...prev,
+          {
+            value: subscription.category,
+            label: subscription.category,
+            color: subscription.bgColor || defaultValues.bgColor,
+          },
+        ];
+      });
 
       form.reset({
-        name: subscription.name,
-        price: subscription.price,
-        frequency: subscription.frequency,
-        category: subscription.category,
-        usageFrequency: subscription.usageFrequency,
-        nextRenewal,
-        trialEndsAt,
-        rating: subscription.rating ?? 0,
-        isSuspect: subscription.isSuspect ?? false,
-        isTrial: subscription.isTrial ?? false,
-        note: subscription.note ?? "",
-        categoryColor: subscription.categoryColor || subscription.bgColor || defaultValues.categoryColor,
-        bgColor: subscription.categoryColor || subscription.bgColor || defaultValues.bgColor,
-        iconClass: "fas fa-dove",
-        isActive: subscription.isActive ?? true,
+        ...subscription,
+        price: subscription.price?.toString() ?? "",
+        nextRenewal: formatDateForInput(subscription.nextRenewal),
+        bgColor: subscription.bgColor || defaultValues.bgColor,
+        iconClass: subscription.iconClass || defaultValues.iconClass,
       });
+
       setSelectedUsage(subscription.usageFrequency);
-    } else if (isOpen) {
-      form.reset(defaultValues);
-      setSelectedUsage(defaultValues.usageFrequency);
+      setCategoryColor(subscription.bgColor || defaultValues.bgColor);
+    } else {
+      resetForm();
     }
   }, [subscription, isOpen, form]);
 
-  const createOrUpdateSubscription = useMutation({
+  const createSubscription = useMutation({
     mutationFn: async (data: FormData) => {
       const payload = {
         ...data,
@@ -205,8 +204,7 @@ export function AddSubscriptionModal({
           ? "Les informations de l'abonnement ont été enregistrées."
           : "Votre nouvel abonnement a été ajouté avec succès.",
       });
-      form.reset(defaultValues);
-      setSelectedUsage(defaultValues.usageFrequency);
+      resetForm();
       onClose();
     },
     onError: () => {
@@ -220,14 +218,79 @@ export function AddSubscriptionModal({
     },
   });
 
+  const updateSubscription = useMutation({
+    mutationFn: async (data: FormData) => {
+      if (!subscription) return;
+      const subscriptionData = {
+        ...data,
+        nextRenewal: new Date(data.nextRenewal),
+      };
+      const response = await apiRequest(
+        "PUT",
+        `/api/subscriptions/${subscription.id}`,
+        subscriptionData,
+      );
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Abonnement mis à jour!",
+        description: "Les informations de l'abonnement ont été sauvegardées.",
+      });
+      resetForm();
+      onClose();
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour l'abonnement.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: FormData) => {
-    createOrUpdateSubscription.mutate(data);
+    if (isEditing) {
+      updateSubscription.mutate(data);
+    } else {
+      createSubscription.mutate(data);
+    }
   };
 
   const handleUsageSelect = (usage: string) => {
     setSelectedUsage(usage);
     form.setValue("usageFrequency", usage);
   };
+
+  const handleCategorySelect = (value: string, onChange: (value: string) => void) => {
+    onChange(value);
+    const selectedCategory = categories.find((cat) => cat.value === value);
+    const color = selectedCategory?.color || defaultValues.bgColor;
+    setCategoryColor(color);
+    form.setValue("bgColor", color);
+  };
+
+  const handleAddCategory = () => {
+    const name = customCategoryName.trim();
+    if (!name) return;
+
+    const normalized = name.toLowerCase();
+    const newCategory = { value: name, label: name, color: customCategoryColor };
+
+    setCategories((prev) => {
+      if (prev.some((cat) => cat.value.toLowerCase() === normalized)) return prev;
+      return [...prev, newCategory];
+    });
+
+    form.setValue("category", name);
+    form.setValue("bgColor", customCategoryColor);
+    setCategoryColor(customCategoryColor);
+    setCustomCategoryName("");
+  };
+
+  const isSaving = createSubscription.isPending || updateSubscription.isPending;
 
   const getUsageButtonClass = (usage: string) => {
     const baseClass = "px-3 py-2 text-xs rounded-lg transition-colors";
@@ -245,76 +308,13 @@ export function AddSubscriptionModal({
     }
   };
 
-  const renderStars = () => {
-    return (
-      <div className="flex items-center gap-2">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            type="button"
-            key={star}
-            onClick={() => form.setValue("rating", star, { shouldValidate: true })}
-            className="text-xl"
-            aria-label={`${star} étoile${star > 1 ? "s" : ""}`}
-          >
-            <Star
-              size={22}
-              className={
-                star <= (rating || 0)
-                  ? "fill-yellow-400 text-yellow-400"
-                  : "text-gray-300"
-              }
-            />
-            onClick={() => form.setValue("rating", star)}
-            className="text-xl"
-            aria-label={`${star} étoile${star > 1 ? 's' : ''}`}
-          >
-            <i
-              className={`fas fa-star ${star <= (rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`}
-            ></i>
-          </button>
-        ))}
-        <span className="text-sm text-gray-600">{rating ? `${rating}/5` : "Aucune note"}</span>
-      </div>
-    );
+  const handleClose = () => {
+    resetForm();
+    onClose();
   };
-
-  const handleCategorySelect = (value: string) => {
-    const selected = categories.find((cat) => cat.value === value);
-    form.setValue("category", value);
-    if (selected) {
-      form.setValue("categoryColor", selected.color);
-      form.setValue("bgColor", selected.color);
-    }
-  };
-
-  const slugify = (value: string) =>
-    value
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[^\w\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "-");
-
-  const handleAddCategory = () => {
-    if (!newCategoryName.trim()) return;
-    const value = slugify(newCategoryName);
-    const newCategory: CategoryOption = {
-      value,
-      label: newCategoryName.trim(),
-      color: newCategoryColor,
-    };
-    setCategories((prev) => {
-      const filtered = prev.filter((cat) => cat.value !== value);
-      return [...filtered, newCategory];
-    });
-    setNewCategoryName("");
-    setNewCategoryColor("#8b5cf6");
-  };
-
-  const isTrial = form.watch("isTrial");
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Modifier l'abonnement" : "Ajouter un abonnement"}</DialogTitle>
@@ -365,7 +365,10 @@ export function AddSubscriptionModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Fréquence</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner la fréquence" />
@@ -389,12 +392,8 @@ export function AddSubscriptionModal({
                 <FormItem>
                   <FormLabel>Catégorie</FormLabel>
                   <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      handleCategorySelect(value);
-                    }}
+                    onValueChange={(value) => handleCategorySelect(value, field.onChange)}
                     value={field.value}
-                    defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -404,54 +403,50 @@ export function AddSubscriptionModal({
                     <SelectContent>
                       {categories.map((category) => (
                         <SelectItem key={category.value} value={category.value}>
-                          <div className="flex items-center space-x-2">
-                            <span
-                              className="inline-block h-3 w-3 rounded-full"
-                              style={{ backgroundColor: category.color }}
-                            ></span>
+                          <div className="flex items-center justify-between w-full">
                             <span>{category.label}</span>
+                            <span
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: category.color }}
+                            />
                           </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <div className="mt-3 space-y-2 rounded-lg border p-3">
-                    <p className="text-sm text-gray-600">Ajouter une catégorie</p>
+                  <div className="mt-2 text-xs text-gray-600 flex items-center space-x-2">
+                    <span>Couleur associée :</span>
+                    <span
+                      className="w-4 h-4 rounded-full border"
+                      style={{ backgroundColor: categoryColor }}
+                    />
+                    <span className="flex items-center space-x-1">
+                      <i className="fas fa-dove" style={{ color: "white" }}></i>
+                    </span>
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    <p className="text-sm font-medium">Ajouter une catégorie personnalisée</p>
                     <div className="flex items-center space-x-2">
                       <Input
                         placeholder="Nom de la catégorie"
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        value={customCategoryName}
+                        onChange={(e) => setCustomCategoryName(e.target.value)}
                       />
                       <Input
                         type="color"
-                        className="h-10 w-16"
-                        value={newCategoryColor}
-                        onChange={(e) => setNewCategoryColor(e.target.value)}
+                        className="p-1 w-16"
+                        value={customCategoryColor}
+                        onChange={(e) => setCustomCategoryColor(e.target.value)}
                       />
-                      <Button type="button" variant="outline" onClick={handleAddCategory}>
-                        <i className="fas fa-plus mr-1" />
+                      <Button type="button" variant="secondary" onClick={handleAddCategory}>
                         Ajouter
                       </Button>
                     </div>
+                    <p className="text-xs text-gray-500">
+                      Choisissez une couleur : le pigeon sur la carte d'abonnement l'utilisera automatiquement.
+                    </p>
                   </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="categoryColor"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Couleur de la catégorie</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center space-x-3">
-                      <Input type="color" className="h-10 w-16" value={field.value} onChange={field.onChange} />
-                      <span className="text-sm text-gray-600">Le pigeon s'affichera avec cette couleur.</span>
-                    </div>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -602,20 +597,20 @@ export function AddSubscriptionModal({
               <Button
                 type="button"
                 variant="outline"
-                onClick={onClose}
+                onClick={handleClose}
                 className="flex-1"
               >
                 Annuler
               </Button>
               <Button
                 type="submit"
-                disabled={createOrUpdateSubscription.isPending}
+                disabled={isSaving}
                 className="flex-1 pigeon-button-primary"
               >
-                {createOrUpdateSubscription.isPending ? (
+                {isSaving ? (
                   <>
                     <i className="fas fa-spinner fa-spin mr-2"></i>
-                    {isEditing ? "Enregistrement..." : "Ajout..."}
+                    {isEditing ? "Mise à jour..." : "Ajout..."}
                   </>
                 ) : (
                   isEditing ? "Mettre à jour" : "Ajouter"

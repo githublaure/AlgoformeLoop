@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Star } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -30,8 +31,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { insertSubscriptionSchema } from "@shared/schema";
-import type { Subscription } from "@shared/schema";
+import { insertSubscriptionSchema, type Subscription } from "@shared/schema";
 
 interface AddSubscriptionModalProps {
   isOpen: boolean;
@@ -56,13 +56,18 @@ const defaultCategories: CategoryOption[] = [
 ];
 
 const formSchema = insertSubscriptionSchema.extend({
+  price: z.preprocess(
+    (value) =>
+      typeof value === "number" ? value.toString() : typeof value === "string" ? value.trim() : "",
+    z.string().min(1, "Le prix est requis"),
+  ),
   nextRenewal: z.string().min(1, "La date de renouvellement est requise"),
   trialEndsAt: z.string().optional(),
   categoryColor: z.string().optional(),
   note: z.string().optional(),
-  rating: z.number().min(0).max(5).default(0),
-  isSuspect: z.boolean().default(false),
-  isTrial: z.boolean().default(false),
+  rating: z.coerce.number().min(0).max(5).default(0),
+  isSuspect: z.coerce.boolean().default(false),
+  isTrial: z.coerce.boolean().default(false),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -164,6 +169,7 @@ export function AddSubscriptionModal({
     mutationFn: async (data: FormData) => {
       const payload = {
         ...data,
+        price: String(data.price ?? ""),
         iconClass: "fas fa-dove",
         bgColor: data.categoryColor || data.bgColor,
         rating: Number(data.rating) || 0,
@@ -176,9 +182,20 @@ export function AddSubscriptionModal({
         ? await apiRequest("PUT", `/api/subscriptions/${subscription.id}`, payload)
         : await apiRequest("POST", "/api/subscriptions", payload);
 
-      return response.json();
+      return response.json() as Promise<Subscription>;
     },
-    onSuccess: () => {
+    onSuccess: (savedSubscription) => {
+      queryClient.setQueryData<Subscription[]>(["/api/subscriptions"], (existing) => {
+        if (!existing) return [savedSubscription];
+
+        const updated = existing.map((current) =>
+          current.id === savedSubscription.id ? { ...current, ...savedSubscription } : current
+        );
+
+        const exists = updated.some((item) => item.id === savedSubscription.id);
+        return exists ? updated : [...updated, savedSubscription];
+      });
+
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/upcoming/7"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
@@ -235,6 +252,18 @@ export function AddSubscriptionModal({
           <button
             type="button"
             key={star}
+            onClick={() => form.setValue("rating", star, { shouldValidate: true })}
+            className="text-xl"
+            aria-label={`${star} étoile${star > 1 ? "s" : ""}`}
+          >
+            <Star
+              size={22}
+              className={
+                star <= (rating || 0)
+                  ? "fill-yellow-400 text-yellow-400"
+                  : "text-gray-300"
+              }
+            />
             onClick={() => form.setValue("rating", star)}
             className="text-xl"
             aria-label={`${star} étoile${star > 1 ? 's' : ''}`}

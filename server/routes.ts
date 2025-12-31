@@ -321,6 +321,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const body = {
         ...req.body,
+        price: req.body.price !== undefined ? String(req.body.price) : undefined,
+        rating: req.body.rating !== undefined ? Number(req.body.rating) : undefined,
         nextRenewal: req.body.nextRenewal ? new Date(req.body.nextRenewal) : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
         isSuspect: normalizeBoolean(req.body.isSuspect, false),
@@ -341,6 +343,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const body = {
         ...req.body,
+        price: req.body.price !== undefined ? String(req.body.price) : undefined,
+        rating: req.body.rating !== undefined ? Number(req.body.rating) : undefined,
         nextRenewal: req.body.nextRenewal ? new Date(req.body.nextRenewal) : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
         isSuspect: normalizeBoolean(req.body.isSuspect),

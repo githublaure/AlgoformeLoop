@@ -3,6 +3,14 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -56,6 +64,8 @@ export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertVoiceReminder = z.infer<typeof insertVoiceReminderSchema>;
 export type VoiceReminder = typeof voiceReminders.$inferSelect;
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
 
 // Usage frequency options
 export const USAGE_FREQUENCIES = {

@@ -264,6 +264,13 @@ export function AddSubscriptionModal({
                   : "text-gray-300"
               }
             />
+            onClick={() => form.setValue("rating", star)}
+            className="text-xl"
+            aria-label={`${star} étoile${star > 1 ? 's' : ''}`}
+          >
+            <i
+              className={`fas fa-star ${star <= (rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`}
+            ></i>
           </button>
         ))}
         <span className="text-sm text-gray-600">{rating ? `${rating}/5` : "Aucune note"}</span>

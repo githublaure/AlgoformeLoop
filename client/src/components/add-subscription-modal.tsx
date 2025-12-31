@@ -38,22 +38,6 @@ interface AddSubscriptionModalProps {
   subscription?: Subscription;
 }
 
-type CategoryOption = {
-  value: string;
-  label: string;
-  color: string;
-};
-
-const defaultCategories: CategoryOption[] = [
-  { value: "entertainment", label: "Divertissement", color: "#a855f7" },
-  { value: "music", label: "Musique", color: "#22c55e" },
-  { value: "productivity", label: "Productivité", color: "#06b6d4" },
-  { value: "design", label: "Design", color: "#f97316" },
-  { value: "cloud", label: "Cloud", color: "#3b82f6" },
-  { value: "self_growth", label: "Développement personnel", color: "#f59e0b" },
-  { value: "other", label: "Autre", color: "#6b7280" },
-];
-
 const formSchema = insertSubscriptionSchema.extend({
   price: z.preprocess(
     (value) =>

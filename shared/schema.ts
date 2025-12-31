@@ -13,6 +13,7 @@ export const users = pgTable("users", {
 
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
   name: text("name").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   frequency: text("frequency").notNull(), // monthly, yearly, weekly

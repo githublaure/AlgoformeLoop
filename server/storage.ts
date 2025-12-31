@@ -4,12 +4,16 @@ import { and, eq, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Subscription methods
-  getSubscriptions(): Promise<Subscription[]>;
-  getSubscription(id: number): Promise<Subscription | undefined>;
+  getSubscriptions(userId?: number): Promise<Subscription[]>;
+  getSubscription(id: number, userId?: number): Promise<Subscription | undefined>;
   createSubscription(subscription: InsertSubscription): Promise<Subscription>;
-  updateSubscription(id: number, subscription: Partial<InsertSubscription>): Promise<Subscription | undefined>;
-  deleteSubscription(id: number): Promise<boolean>;
-  getUpcomingRenewals(days: number): Promise<Subscription[]>;
+  updateSubscription(
+    id: number,
+    userId: number,
+    subscription: Partial<InsertSubscription>
+  ): Promise<Subscription | undefined>;
+  deleteSubscription(id: number, userId: number): Promise<boolean>;
+  getUpcomingRenewals(days: number, userId: number): Promise<Subscription[]>;
   
   // Voice reminder methods
   getVoiceReminders(): Promise<VoiceReminder[]>;
@@ -36,6 +40,7 @@ export class MemStorage implements IStorage {
   private initializeSampleData() {
     const sampleSubscriptions = [
       {
+        userId: 1,
         name: "Netflix Premium",
         price: "15.99",
         frequency: "monthly",
@@ -54,6 +59,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
       },
       {
+        userId: 1,
         name: "Spotify Premium",
         price: "9.99",
         frequency: "monthly",
@@ -72,6 +78,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
       },
       {
+        userId: 1,
         name: "Dropbox Plus",
         price: "9.99",
         frequency: "monthly",
@@ -90,6 +97,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
       },
       {
+        userId: 1,
         name: "Adobe Creative Cloud",
         price: "22.99",
         frequency: "monthly",
@@ -115,12 +123,19 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async getSubscriptions(): Promise<Subscription[]> {
-    return Array.from(this.subscriptions.values()).filter(sub => sub.isActive);
+  async getSubscriptions(userId?: number): Promise<Subscription[]> {
+    return Array.from(this.subscriptions.values()).filter(sub => {
+      if (!sub.isActive) return false;
+      if (userId === undefined) return true;
+      return sub.userId === userId || sub.userId === null;
+    });
   }
 
-  async getSubscription(id: number): Promise<Subscription | undefined> {
-    return this.subscriptions.get(id);
+  async getSubscription(id: number, userId?: number): Promise<Subscription | undefined> {
+    const subscription = this.subscriptions.get(id);
+    if (!subscription) return undefined;
+    if (userId === undefined) return subscription;
+    return subscription.userId === userId ? subscription : undefined;
   }
 
   async createSubscription(insertSubscription: InsertSubscription): Promise<Subscription> {
@@ -128,6 +143,7 @@ export class MemStorage implements IStorage {
     const subscription: Subscription = {
       ...insertSubscription,
       id,
+      userId: insertSubscription.userId ?? null,
       note: insertSubscription.note ?? null,
       categoryColor: insertSubscription.categoryColor ?? null,
       iconClass: insertSubscription.iconClass ?? null,
@@ -143,9 +159,13 @@ export class MemStorage implements IStorage {
     return subscription;
   }
 
-  async updateSubscription(id: number, updates: Partial<InsertSubscription>): Promise<Subscription | undefined> {
+  async updateSubscription(
+    id: number,
+    userId: number,
+    updates: Partial<InsertSubscription>
+  ): Promise<Subscription | undefined> {
     const existing = this.subscriptions.get(id);
-    if (!existing) return undefined;
+    if (!existing || existing.userId !== userId) return undefined;
 
     const updated: Subscription = {
       ...existing,
@@ -164,11 +184,13 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async deleteSubscription(id: number): Promise<boolean> {
+  async deleteSubscription(id: number, userId: number): Promise<boolean> {
+    const existing = this.subscriptions.get(id);
+    if (!existing || existing.userId !== userId) return false;
     return this.subscriptions.delete(id);
   }
 
-  async getUpcomingRenewals(days: number): Promise<Subscription[]> {
+  async getUpcomingRenewals(days: number, userId: number): Promise<Subscription[]> {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
@@ -176,7 +198,12 @@ export class MemStorage implements IStorage {
     cutoffDate.setHours(23, 59, 59, 999);
     cutoffDate.setDate(cutoffDate.getDate() + days);
     return Array.from(this.subscriptions.values())
-      .filter(sub => sub.isActive && sub.nextRenewal >= now && sub.nextRenewal <= cutoffDate)
+      .filter(sub =>
+        sub.isActive &&
+        sub.userId === userId &&
+        sub.nextRenewal >= now &&
+        sub.nextRenewal <= cutoffDate
+      )
       .sort((a, b) => a.nextRenewal.getTime() - b.nextRenewal.getTime());
   }
 
@@ -204,15 +231,28 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getSubscriptions(): Promise<Subscription[]> {
+  async getSubscriptions(userId?: number): Promise<Subscription[]> {
+    const conditions = [eq(subscriptions.isActive, true)];
+    if (userId !== undefined) {
+      conditions.push(eq(subscriptions.userId, userId));
+    }
+
     return await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.isActive, true));
+      .where(conditions.length > 1 ? and(...conditions) : conditions[0]);
   }
 
-  async getSubscription(id: number): Promise<Subscription | undefined> {
-    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+  async getSubscription(id: number, userId?: number): Promise<Subscription | undefined> {
+    const filters = [eq(subscriptions.id, id)];
+    if (userId !== undefined) {
+      filters.push(eq(subscriptions.userId, userId));
+    }
+
+    const [subscription] = await db
+      .select()
+      .from(subscriptions)
+      .where(filters.length > 1 ? and(...filters) : filters[0]);
     return subscription || undefined;
   }
 
@@ -224,21 +264,27 @@ export class DatabaseStorage implements IStorage {
     return subscription;
   }
 
-  async updateSubscription(id: number, updates: Partial<InsertSubscription>): Promise<Subscription | undefined> {
+  async updateSubscription(
+    id: number,
+    userId: number,
+    updates: Partial<InsertSubscription>
+  ): Promise<Subscription | undefined> {
     const [subscription] = await db
       .update(subscriptions)
       .set(updates)
-      .where(eq(subscriptions.id, id))
+      .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, userId)))
       .returning();
     return subscription || undefined;
   }
 
-  async deleteSubscription(id: number): Promise<boolean> {
-    const result = await db.delete(subscriptions).where(eq(subscriptions.id, id));
+  async deleteSubscription(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(subscriptions)
+      .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, userId)));
     return (result.rowCount ?? 0) > 0;
   }
 
-  async getUpcomingRenewals(days: number): Promise<Subscription[]> {
+  async getUpcomingRenewals(days: number, userId: number): Promise<Subscription[]> {
     const startDate = new Date();
     startDate.setHours(0, 0, 0, 0);
 
@@ -252,6 +298,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(subscriptions.isActive, true),
+          eq(subscriptions.userId, userId),
           gte(subscriptions.nextRenewal, startDate),
           lte(subscriptions.nextRenewal, endDate),
         )

@@ -20,34 +20,47 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
 type DbUser = typeof users.$inferSelect;
 
 // Configuration email
-const emailTransporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || 'your-email@gmail.com',
-    pass: process.env.EMAIL_PASS || 'your-app-password'
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
-  debug: true // Active les logs de debug
-});
+const hasEmailConfig = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+
+const emailTransporter = hasEmailConfig
+  ? nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+      debug: true, // Active les logs de debug
+    })
+  : null;
 
 // Vérifier la configuration email au démarrage
-emailTransporter.verify((error, success) => {
-  if (error) {
-    console.log('❌ Erreur de configuration email:', error);
-    console.log('📧 Variables EMAIL_USER et EMAIL_PASS manquantes ou incorrectes');
-  } else {
-    console.log('✅ Configuration email OK');
-  }
-});
+if (emailTransporter) {
+  emailTransporter.verify((error) => {
+    if (error) {
+      console.log("❌ Erreur de configuration email:", error);
+      console.log("📧 Variables EMAIL_USER et EMAIL_PASS manquantes ou incorrectes");
+    } else {
+      console.log("✅ Configuration email OK");
+    }
+  });
+} else {
+  console.log("📧 Configuration email désactivée - variables manquantes");
+}
 
 // Fonction pour envoyer un email
 async function sendResetEmail(email: string, resetToken: string, req: any) {
   const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
 
+  if (!emailTransporter) {
+    console.log("📧 Impossible d'envoyer l'email de réinitialisation: configuration manquante");
+    return false;
+  }
+
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'noreply@pigeonsub.com',
+    from: process.env.EMAIL_USER || "noreply@pigeonsub.com",
     to: email,
     subject: 'PigeonSub - Réinitialisation de votre mot de passe',
     html: `
@@ -293,19 +306,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Subscription routes
-  app.get("/api/subscriptions", async (req, res) => {
+  app.get("/api/subscriptions", authenticateToken, async (req: any, res) => {
     try {
-      const subscriptions = await storage.getSubscriptions();
+      const subscriptions = await storage.getSubscriptions(req.user.id);
       res.json(subscriptions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch subscriptions" });
     }
   });
 
-  app.get("/api/subscriptions/:id", async (req, res) => {
+  app.get("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const subscription = await storage.getSubscription(id);
+      const subscription = await storage.getSubscription(id, req.user.id);
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });
       }
@@ -315,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/subscriptions", async (req, res) => {
+  app.post("/api/subscriptions", authenticateToken, async (req: any, res) => {
     try {
       const body = {
         ...req.body,
@@ -327,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isTrial: normalizeBoolean(req.body.isTrial, false),
         isActive: normalizeBoolean(req.body.isActive, true),
       };
-      const validatedData = insertSubscriptionSchema.parse(body);
+      const validatedData = insertSubscriptionSchema.parse({ ...body, userId: req.user.id });
       const subscription = await storage.createSubscription(validatedData);
       res.status(201).json(subscription);
     } catch (error) {
@@ -336,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/subscriptions/:id", async (req, res) => {
+  app.put("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const body = {
@@ -350,7 +363,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: normalizeBoolean(req.body.isActive),
       };
       const validatedData = insertSubscriptionSchema.partial().parse(body);
-      const subscription = await storage.updateSubscription(id, validatedData);
+      delete (validatedData as any).userId;
+      const subscription = await storage.updateSubscription(id, req.user.id, validatedData);
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });
       }
@@ -360,10 +374,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/subscriptions/:id", async (req, res) => {
+  app.delete("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteSubscription(id);
+      const deleted = await storage.deleteSubscription(id, req.user.id);
       if (!deleted) {
         return res.status(404).json({ message: "Subscription not found" });
       }
@@ -373,10 +387,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/subscriptions/upcoming/:days", async (req, res) => {
+  app.get("/api/subscriptions/upcoming/:days", authenticateToken, async (req: any, res) => {
     try {
       const days = parseInt(req.params.days) || 7;
-      const subscriptions = await storage.getUpcomingRenewals(days);
+      const subscriptions = await storage.getUpcomingRenewals(days, req.user.id);
       res.json(subscriptions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch upcoming renewals" });
@@ -429,10 +443,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stats endpoint
-  app.get("/api/stats", async (req, res) => {
+  app.get("/api/stats", authenticateToken, async (req: any, res) => {
     try {
-      const subscriptions = await storage.getSubscriptions();
-      const upcomingRenewals = await storage.getUpcomingRenewals(7);
+      const subscriptions = await storage.getSubscriptions(req.user.id);
+      const upcomingRenewals = await storage.getUpcomingRenewals(7, req.user.id);
       const trials = subscriptions.filter(sub => sub.isTrial);
 
       const normalizeToMonthly = (sub: any) => {

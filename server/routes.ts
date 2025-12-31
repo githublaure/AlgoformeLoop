@@ -1,14 +1,23 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSubscriptionSchema, insertVoiceReminderSchema } from "@shared/schema";
+import { insertSubscriptionSchema, insertVoiceReminderSchema, users } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { generateVoiceReminder } from "./services/voice";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
 
+const normalizeBoolean = (value: any, fallback?: boolean) => {
+  if (value === undefined) return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  return Boolean(value);
+};
+
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
-const users: Array<{ id: string; name: string; email: string; password: string }> = [];
+type DbUser = typeof users.$inferSelect;
 
 // Configuration email
 const emailTransporter = nodemailer.createTransport({
@@ -105,35 +114,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Tous les champs sont requis" });
       }
 
-      // Vérifier si l'utilisateur existe déjà
-      const existingUser = users.find(user => user.email === email);
+      const [existingUser] = await db.select().from(users).where(eq(users.email, email));
       if (existingUser) {
         return res.status(409).json({ message: "Un compte avec cet email existe déjà" });
       }
 
-      // Hasher le mot de passe
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Créer l'utilisateur
-      const user = {
-        id: Date.now().toString(),
-        name,
-        email,
-        password: hashedPassword
-      };
+      const [created] = await db
+        .insert(users)
+        .values({ name, email, password: hashedPassword })
+        .returning();
 
-      users.push(user);
-
-      // Créer le token
       const token = jwt.sign(
-        { id: user.id, email: user.email },
+        { id: created.id, email: created.email },
         JWT_SECRET,
         { expiresIn: '24h' }
       );
 
       res.status(201).json({
         token,
-        user: { id: user.id, name: user.name, email: user.email }
+        user: { id: created.id, name: created.name, email: created.email }
       });
     } catch (error) {
       res.status(500).json({ message: "Erreur lors de l'inscription" });
@@ -148,13 +149,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email et mot de passe requis" });
       }
 
-      // Trouver l'utilisateur
-      const user = users.find(u => u.email === email);
+      const [user] = await db.select().from(users).where(eq(users.email, email));
       if (!user) {
         return res.status(401).json({ message: "Email ou mot de passe incorrect" });
       }
 
-      // Vérifier le mot de passe
       const validPassword = await bcrypt.compare(password, user.password);
       if (!validPassword) {
         return res.status(401).json({ message: "Email ou mot de passe incorrect" });
@@ -178,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/me", authenticateToken, async (req: any, res) => {
     try {
-      const user = users.find(u => u.id === req.user.id);
+      const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
       if (!user) {
         return res.status(404).json({ message: "Utilisateur non trouvé" });
       }
@@ -198,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Mot de passe actuel et nouveau mot de passe requis" });
       }
 
-      const user = users.find(u => u.id === req.user.id);
+      const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
       if (!user) {
         return res.status(404).json({ message: "Utilisateur non trouvé" });
       }
@@ -211,7 +210,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Hasher le nouveau mot de passe
       const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-      user.password = hashedNewPassword;
+      await db
+        .update(users)
+        .set({ password: hashedNewPassword })
+        .where(eq(users.id, user.id));
 
       res.json({ message: "Mot de passe modifié avec succès" });
     } catch (error) {
@@ -228,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email requis" });
       }
 
-      const user = users.find(u => u.email === email);
+      const [user] = await db.select().from(users).where(eq(users.email, email));
       if (!user) {
         // Pour des raisons de sécurité, on retourne toujours le même message
         return res.json({ message: "Si un compte avec cet email existe, un lien de réinitialisation a été envoyé" });
@@ -269,18 +271,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Token invalide" });
       }
 
-      const user = users.find(u => u.id === decoded.id);
+      const [user] = await db.select().from(users).where(eq(users.id, decoded.id));
       if (!user) {
         return res.status(404).json({ message: "Utilisateur non trouvé" });
       }
 
       // Hasher le nouveau mot de passe
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      user.password = hashedPassword;
+      await db
+        .update(users)
+        .set({ password: hashedPassword })
+        .where(eq(users.id, user.id));
 
       res.json({ message: "Mot de passe réinitialisé avec succès" });
     } catch (error) {
-      if (error.name === 'TokenExpiredError') {
+      if (error instanceof Error && error.name === 'TokenExpiredError') {
         return res.status(400).json({ message: "Le lien de réinitialisation a expiré" });
       }
       res.status(500).json({ message: "Erreur lors de la réinitialisation du mot de passe" });
@@ -314,8 +319,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const body = {
         ...req.body,
+        price: req.body.price !== undefined ? String(req.body.price) : undefined,
+        rating: req.body.rating !== undefined ? Number(req.body.rating) : undefined,
         nextRenewal: req.body.nextRenewal ? new Date(req.body.nextRenewal) : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
+        isSuspect: normalizeBoolean(req.body.isSuspect, false),
+        isTrial: normalizeBoolean(req.body.isTrial, false),
+        isActive: normalizeBoolean(req.body.isActive, true),
       };
       const validatedData = insertSubscriptionSchema.parse(body);
       const subscription = await storage.createSubscription(validatedData);
@@ -331,8 +341,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const body = {
         ...req.body,
+        price: req.body.price !== undefined ? String(req.body.price) : undefined,
+        rating: req.body.rating !== undefined ? Number(req.body.rating) : undefined,
         nextRenewal: req.body.nextRenewal ? new Date(req.body.nextRenewal) : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
+        isSuspect: normalizeBoolean(req.body.isSuspect),
+        isTrial: normalizeBoolean(req.body.isTrial),
+        isActive: normalizeBoolean(req.body.isActive),
       };
       const validatedData = insertSubscriptionSchema.partial().parse(body);
       const subscription = await storage.updateSubscription(id, validatedData);
@@ -404,6 +419,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/voice/reminders", async (_req, res) => {
+    try {
+      const reminders = await storage.getVoiceReminders();
+      res.json(reminders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch voice reminders" });
+    }
+  });
+
   // Stats endpoint
   app.get("/api/stats", async (req, res) => {
     try {
@@ -411,21 +435,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const upcomingRenewals = await storage.getUpcomingRenewals(7);
       const trials = subscriptions.filter(sub => sub.isTrial);
 
+      const normalizeToMonthly = (sub: any) => {
+        const price = parseFloat(sub.price);
+        if (sub.frequency === 'yearly') return price / 12;
+        if (sub.frequency === 'weekly') return (price * 52) / 12;
+        return price;
+      };
+
       const monthlyTotal = subscriptions
-        .filter(sub => sub.frequency === 'monthly')
-        .reduce((sum, sub) => sum + parseFloat(sub.price), 0);
+        .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
 
-      const yearlyTotal = subscriptions
-        .filter(sub => sub.frequency === 'yearly')
-        .reduce((sum, sub) => sum + parseFloat(sub.price) / 12, 0);
+      const suspectTotal = subscriptions
+        .filter(sub => sub.isSuspect)
+        .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
 
-      const totalMonthlyCost = monthlyTotal + yearlyTotal;
+      const suspectCount = subscriptions.filter(sub => sub.isSuspect).length;
+
+      const wastedEstimate = subscriptions
+        .filter(sub => sub.usageFrequency === 'rarely_used')
+        .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
+
+      const categoryTotals = subscriptions.reduce<Record<string, number>>((acc, sub) => {
+        const monthly = normalizeToMonthly(sub);
+        acc[sub.category] = (acc[sub.category] || 0) + monthly;
+        return acc;
+      }, {});
+
+      const usageBreakdown = subscriptions.reduce<Record<string, number>>((acc, sub) => {
+        acc[sub.usageFrequency] = (acc[sub.usageFrequency] || 0) + 1;
+        return acc;
+      }, { very_used: 0, used: 0, rarely_used: 0 });
+
+      const budgetCap = parseFloat(process.env.SUBSCRIPTION_BUDGET || '100');
+      const budgetGap = Math.max(monthlyTotal - budgetCap, 0);
 
       res.json({
-        totalMonthlyCost: totalMonthlyCost.toFixed(2),
+        totalMonthlyCost: monthlyTotal.toFixed(2),
         activeSubscriptions: subscriptions.length,
         upcomingRenewals: upcomingRenewals.length,
-        trialsEnding: trials.filter(t => t.trialEndsAt && t.trialEndsAt <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).length
+        trialsEnding: trials.filter(t => t.trialEndsAt && t.trialEndsAt <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).length,
+        trialCount: trials.length,
+        suspectMonthly: suspectTotal.toFixed(2),
+        wastedEstimate: wastedEstimate.toFixed(2),
+        budgetCap,
+        budgetGap: budgetGap.toFixed(2),
+        suspectCount,
+        categoryTotals,
+        usageBreakdown
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch stats" });

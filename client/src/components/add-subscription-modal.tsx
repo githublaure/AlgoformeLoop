@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Star } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -37,8 +38,35 @@ interface AddSubscriptionModalProps {
   subscription?: Subscription;
 }
 
+type CategoryOption = {
+  value: string;
+  label: string;
+  color: string;
+};
+
+const defaultCategories: CategoryOption[] = [
+  { value: "entertainment", label: "Divertissement", color: "#a855f7" },
+  { value: "music", label: "Musique", color: "#22c55e" },
+  { value: "productivity", label: "Productivité", color: "#06b6d4" },
+  { value: "design", label: "Design", color: "#f97316" },
+  { value: "cloud", label: "Cloud", color: "#3b82f6" },
+  { value: "self_growth", label: "Développement personnel", color: "#f59e0b" },
+  { value: "other", label: "Autre", color: "#6b7280" },
+];
+
 const formSchema = insertSubscriptionSchema.extend({
+  price: z.preprocess(
+    (value) =>
+      typeof value === "number" ? value.toString() : typeof value === "string" ? value.trim() : "",
+    z.string().min(1, "Le prix est requis"),
+  ),
   nextRenewal: z.string().min(1, "La date de renouvellement est requise"),
+  trialEndsAt: z.string().optional(),
+  categoryColor: z.string().optional(),
+  note: z.string().optional(),
+  rating: z.coerce.number().min(0).max(5).default(0),
+  isSuspect: z.coerce.boolean().default(false),
+  isTrial: z.coerce.boolean().default(false),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -138,23 +166,43 @@ export function AddSubscriptionModal({
 
   const createSubscription = useMutation({
     mutationFn: async (data: FormData) => {
-      const subscriptionData = {
+      const payload = {
         ...data,
+        price: String(data.price ?? ""),
+        iconClass: "fas fa-dove",
+        bgColor: data.categoryColor || data.bgColor,
+        rating: Number(data.rating) || 0,
+        isSuspect: Boolean(data.isSuspect),
         nextRenewal: new Date(data.nextRenewal),
+        trialEndsAt: data.trialEndsAt ? new Date(data.trialEndsAt) : null,
       };
-      const response = await apiRequest(
-        "POST",
-        "/api/subscriptions",
-        subscriptionData,
-      );
-      return response.json();
+
+      const response = subscription
+        ? await apiRequest("PUT", `/api/subscriptions/${subscription.id}`, payload)
+        : await apiRequest("POST", "/api/subscriptions", payload);
+
+      return response.json() as Promise<Subscription>;
     },
-    onSuccess: () => {
+    onSuccess: (savedSubscription) => {
+      queryClient.setQueryData<Subscription[]>(["/api/subscriptions"], (existing) => {
+        if (!existing) return [savedSubscription];
+
+        const updated = existing.map((current) =>
+          current.id === savedSubscription.id ? { ...current, ...savedSubscription } : current
+        );
+
+        const exists = updated.some((item) => item.id === savedSubscription.id);
+        return exists ? updated : [...updated, savedSubscription];
+      });
+
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/upcoming/7"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
-        title: "Abonnement ajouté!",
-        description: "Votre nouvel abonnement a été ajouté avec succès.",
+        title: isEditing ? "Abonnement mis à jour" : "Abonnement ajouté!",
+        description: isEditing
+          ? "Les informations de l'abonnement ont été enregistrées."
+          : "Votre nouvel abonnement a été ajouté avec succès.",
       });
       resetForm();
       onClose();
@@ -162,7 +210,9 @@ export function AddSubscriptionModal({
     onError: () => {
       toast({
         title: "Erreur",
-        description: "Impossible d'ajouter l'abonnement.",
+        description: isEditing
+          ? "Impossible de mettre à jour l'abonnement."
+          : "Impossible d'ajouter l'abonnement.",
         variant: "destructive",
       });
     },
@@ -294,9 +344,7 @@ export function AddSubscriptionModal({
                   <FormLabel>Prix</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-2 text-gray-500">
-                        €
-                      </span>
+                      <span className="absolute left-3 top-2 text-gray-500">€</span>
                       <Input
                         type="number"
                         step="0.01"
@@ -446,6 +494,104 @@ export function AddSubscriptionModal({
                 </button>
               </div>
             </div>
+
+            <FormField
+              control={form.control}
+              name="note"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Note</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Ajoutez une note sur l'abonnement (utilité, rappel de résiliation, etc.)"
+                      rows={3}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="rating"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Note en étoiles</FormLabel>
+                  <FormControl>
+                    {renderStars()}
+                  </FormControl>
+                  <p className="text-xs text-gray-600 mt-1">Aidez-vous à prioriser les abonnements suspects ou à surveiller.</p>
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-1 gap-3">
+              <FormField
+                control={form.control}
+                name="isSuspect"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <FormLabel>Marquer comme suspect</FormLabel>
+                      <p className="text-xs text-gray-600">Utile pour les abonnements douteux ou à surveiller.</p>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="isTrial"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <FormLabel>Essai gratuit</FormLabel>
+                      <p className="text-xs text-gray-600">Affichera l'abonnement dans l'onglet "Essais gratuits".</p>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <FormLabel>Abonnement actif</FormLabel>
+                      <p className="text-xs text-gray-600">Désactivez pour classer cet abonnement dans vos archives.</p>
+                    </div>
+                    <FormControl>
+                      <Switch checked={!!field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {isTrial && (
+              <FormField
+                control={form.control}
+                name="trialEndsAt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fin de l'essai gratuit</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="flex space-x-3 pt-4">
               <Button

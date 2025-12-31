@@ -53,7 +53,7 @@ export function Header() {
               </div>
             ) : (
               <button
-                onClick={login}
+                onClick={() => login()}
                 className="pigeon-button-primary px-4 py-2 rounded-lg text-sm"
               >
                 Se connecter
@@ -65,8 +65,14 @@ export function Header() {
 
       {/* Modal pour les paramètres du profil */}
       {showProfile && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowProfile(false)}
+        >
+          <div
+            className="bg-white p-6 rounded-lg max-w-md w-full mx-4"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Paramètres</h2>
               <button

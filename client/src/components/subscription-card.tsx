@@ -5,7 +5,7 @@ import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/ca
 import type { Subscription } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarPlus } from "lucide-react";
+import { Archive, CalendarPlus, Pencil, Trash2 } from "lucide-react";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
@@ -22,6 +22,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions/upcoming/7'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       toast({
         title: "Abonnement supprimé",
@@ -32,6 +33,28 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
       toast({
         title: "Erreur",
         description: "Impossible de supprimer l'abonnement.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const archiveSubscription = useMutation({
+    mutationFn: async () => {
+      await apiRequest("PUT", `/api/subscriptions/${subscription.id}` , { isActive: false });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions/upcoming/7'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      toast({
+        title: "Abonnement archivé",
+        description: "L'abonnement a été classé dans vos abonnements passés.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'archiver l'abonnement.",
         variant: "destructive",
       });
     }
@@ -108,6 +131,24 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
     }
   };
 
+  const renderRating = () => {
+    const rating = subscription.rating ?? 0;
+    if (!rating) return null;
+
+    return (
+      <div className="mt-2 flex items-center gap-1 text-sm">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <i
+            key={star}
+            className={`fas fa-star ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+            aria-hidden="true"
+          ></i>
+        ))}
+        <span className="ml-2 text-gray-600">{rating}/5</span>
+      </div>
+    );
+  };
+
   const getCategoryLabel = (category: string) => {
     const categories: Record<string, string> = {
       entertainment: "Divertissement",
@@ -121,6 +162,9 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
   };
 
   const isHexColor = subscription.bgColor?.startsWith('#');
+
+  const iconColor = subscription.categoryColor || subscription.bgColor;
+  const iconClass = 'fas fa-dove';
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -137,9 +181,23 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
           <div>
             <h3 className="font-medium">{subscription.name}</h3>
             <p className="text-sm text-gray-600">{getCategoryLabel(subscription.category)}</p>
+            {(subscription.isTrial || subscription.isSuspect) && (
+              <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                {subscription.isTrial && (
+                  <span className="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700">
+                    Essai gratuit
+                  </span>
+                )}
+                {subscription.isSuspect && (
+                  <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
+                    Risque d'arnaque
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
-        <button 
+        <button
           onClick={() => generateReview.mutate()}
           disabled={generateReview.isPending}
           className="text-gray-400 hover:opacity-70 transition-opacity disabled:opacity-50"
@@ -177,20 +235,26 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
           >
             <i className="fas fa-edit"></i>
           </button>
-          <button 
+          <button
             onClick={() => deleteSubscription.mutate(subscription.id)}
             disabled={deleteSubscription.isPending}
-            className="hover:opacity-70 transition-opacity disabled:opacity-50"
-            style={{ color: 'hsl(10, 72%, 61%)' }}
+            className="hover:opacity-70 transition-opacity disabled:opacity-50 text-red-500"
+            aria-label={`Supprimer ${subscription.name}`}
           >
             {deleteSubscription.isPending ? (
               <i className="fas fa-spinner fa-spin"></i>
             ) : (
-              <i className="fas fa-trash"></i>
+              <Trash2 className="h-5 w-5" aria-hidden="true" />
             )}
           </button>
         </div>
       </div>
+      {renderRating()}
+      {subscription.note && (
+        <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+          <span className="font-medium">Note :</span> {subscription.note}
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertSubscriptionSchema, insertVoiceReminderSchema, users } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { generateVoiceReminder } from "./services/voice";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -18,6 +18,73 @@ const normalizeBoolean = (value: any, fallback?: boolean) => {
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
 type DbUser = typeof users.$inferSelect;
+
+let schemaReady = false;
+
+async function ensureSchema() {
+  if (schemaReady) return;
+
+  // Users table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS "users" (
+      "id" serial PRIMARY KEY,
+      "name" text NOT NULL,
+      "email" text NOT NULL UNIQUE,
+      "password" text NOT NULL,
+      "created_at" timestamp DEFAULT now()
+    );
+  `);
+
+  // Subscriptions table with user relation
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS "subscriptions" (
+      "id" serial PRIMARY KEY,
+      "user_id" integer REFERENCES "users"("id"),
+      "name" text NOT NULL,
+      "price" numeric(10, 2) NOT NULL,
+      "frequency" text NOT NULL,
+      "category" text NOT NULL,
+      "category_color" text DEFAULT '#7c3aed',
+      "usage_frequency" text NOT NULL,
+      "next_renewal" timestamp NOT NULL,
+      "icon_class" text,
+      "bg_color" text,
+      "note" text,
+      "rating" integer DEFAULT 0,
+      "is_suspect" boolean DEFAULT false,
+      "is_active" boolean DEFAULT true,
+      "is_trial" boolean DEFAULT false,
+      "trial_ends_at" timestamp,
+      "created_at" timestamp DEFAULT now()
+    );
+  `);
+
+  // Ensure user_id column exists when table already present without migration
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'user_id'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "user_id" integer REFERENCES "users"("id");
+      END IF;
+    END $$;
+  `);
+
+  // Voice reminders table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS "voice_reminders" (
+      "id" serial PRIMARY KEY,
+      "subscription_id" integer REFERENCES "subscriptions"("id"),
+      "audio_url" text,
+      "reminder_type" text NOT NULL,
+      "created_at" timestamp DEFAULT now()
+    );
+  `);
+
+  schemaReady = true;
+}
 
 // Configuration email
 const hasEmailConfig = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
@@ -118,6 +185,8 @@ const authenticateToken = (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  await ensureSchema();
+
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
     try {

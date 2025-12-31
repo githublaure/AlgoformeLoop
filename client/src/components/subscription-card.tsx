@@ -203,7 +203,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
                 )}
                 {subscription.isSuspect && (
                   <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
-                    Suspect
+                    Risque d'arnaque
                   </span>
                 )}
               </div>

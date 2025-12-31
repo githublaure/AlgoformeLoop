@@ -50,7 +50,10 @@ export default function Dashboard() {
               <StatsOverview />
             </div>
 
-            <UpcomingRenewals />
+            <UpcomingRenewals onEdit={(selected) => {
+              setEditingSubscription(selected);
+              setIsAddModalOpen(true);
+            }} />
 
             <div id="essais-gratuits" className="pigeon-card mb-6">
               <div className="p-6 border-b border-gray-200">

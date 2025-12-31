@@ -1,19 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-
-interface Stats {
-  totalMonthlyCost: string;
-  activeSubscriptions: number;
-  upcomingRenewals: number;
-  trialsEnding: number;
-  trialCount: number;
-  suspectMonthly: string;
-  wastedEstimate: string;
-  budgetCap: number;
-  budgetGap: string;
-}
+import type { StatsResponse } from "@/types/stats";
 
 export function StatsOverview() {
-  const { data: stats, isLoading } = useQuery<Stats>({
+  const { data: stats, isLoading } = useQuery<StatsResponse>({
     queryKey: ['/api/stats'],
   });
 
@@ -90,6 +79,7 @@ export function StatsOverview() {
               €{stats?.suspectMonthly || '0.00'}
             </p>
             <p className="text-xs text-gray-600 mt-1">Perte estimée (peu utilisé): €{stats?.wastedEstimate || '0.00'}</p>
+            <p className="text-xs text-gray-600">{stats?.suspectCount || 0} abonnements suspects</p>
           </div>
           <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'hsl(10, 72%, 90%)' }}>
             <i className="fas fa-skull-crossbones" style={{ color: 'hsl(10, 72%, 61%)' }}></i>

@@ -80,12 +80,6 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
     }
   };
 
-  const getRenewalBgColor = (daysUntil: number) => {
-    if (daysUntil <= 1) return 'bg-red-50 border-red-200';
-    if (daysUntil <= 3) return 'bg-yellow-50 border-yellow-200';
-    return 'bg-blue-50 border-blue-200';
-  };
-
   const iconClass = 'fas fa-dove';
 
   const deleteSubscription = useMutation({
@@ -156,9 +150,14 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
           <div className="space-y-4">
             {renewals.map((subscription) => {
               const daysUntil = Math.ceil((new Date(subscription.nextRenewal).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-              
+              const { backgroundColor, borderColor, urgencyBadge } = getRenewalStyles(subscription, daysUntil);
+
               return (
-                <div key={subscription.id} className={`flex items-center justify-between p-4 rounded-lg border ${getRenewalBgColor(daysUntil)}`}>
+                <div
+                  key={subscription.id}
+                  className="flex items-center justify-between p-4 rounded-lg border"
+                  style={{ backgroundColor, borderColor }}
+                >
                   <div className="flex items-center space-x-4">
                     <div
                       className={`w-10 h-10 rounded-lg flex items-center justify-center ${subscription.categoryColor ? '' : 'bg-gray-600'}`}
@@ -171,16 +170,19 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
                       <p className="text-sm text-gray-600">
                         {formatRenewalDate(subscription.nextRenewal)} • €{subscription.price}/{subscription.frequency === 'monthly' ? 'mois' : 'an'}
                       </p>
-                      {subscription.isTrial && (
-                        <span className="mt-1 inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs text-yellow-700">
-                          Essai gratuit
+                      <div className="mt-1 flex flex-wrap gap-2 text-xs items-center">
+                        <span className={`inline-flex items-center rounded-full px-3 py-1 ${urgencyBadge.className}`}>
+                          {urgencyBadge.text}
                         </span>
-                      )}
-                      {subscription.isSuspect && (
-                        <span className="mt-1 ml-2 inline-block rounded-full bg-red-100 px-3 py-1 text-xs text-red-700">
-                          Risque d'arnaque
-                        </span>
-                      )}
+                        {subscription.isSuspect && (
+                          <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">Suspect</span>
+                        )}
+                        {subscription.isTrial && (
+                          <span className="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700">
+                            Essai gratuit
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">

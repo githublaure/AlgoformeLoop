@@ -231,7 +231,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
         className="min-h-screen flex items-center justify-center"
         style={{ backgroundColor: "hsl(210, 17%, 98%)" }}
       >
-        <div className="w-full max-w-md mx-auto p-8">
+        <div className="w-full max-w-4xl mx-auto p-8">
           <div className="text-center mb-8">
             <div
               className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-6"
@@ -270,8 +270,8 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            <div className="w-full">
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            <div className="flex-1">
               <Card>
               <CardHeader>
                 <CardTitle>{isLogin ? "Connexion" : "Inscription"}</CardTitle>
@@ -435,7 +435,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Pigeon interactive area placed next to card */}
-            <div className="relative flex-shrink-0 login-pigeon self-start md:mt-12 mt-4">
+            <div className="relative flex-shrink-0 login-pigeon md:w-72 self-start mt-4 md:mt-0 md:border-l md:border-gray-200 md:border-opacity-20 md:pl-6">
               <canvas
                 ref={canvasRef}
                 className={`w-64 h-64 object-contain transition-opacity duration-300 pointer-events-none ${isTalking ? "opacity-100 pigeon-talk" : "opacity-0"}`}

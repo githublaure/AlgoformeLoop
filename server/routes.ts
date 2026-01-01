@@ -21,6 +21,15 @@ type DbUser = typeof users.$inferSelect;
 
 let schemaReady = false;
 
+async function backfillOrphanSubscriptions(userId: number) {
+  // Ré-associe les abonnements historiques sans user_id à l'utilisateur courant
+  await db.execute(sql`
+    UPDATE "subscriptions"
+    SET "user_id" = ${userId}
+    WHERE "user_id" IS NULL
+  `);
+}
+
 async function ensureSchema() {
   if (schemaReady) return;
 
@@ -446,6 +455,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Subscription routes
   app.get("/api/subscriptions", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
+      await backfillOrphanSubscriptions(req.user.id);
       const subscriptions = await storage.getSubscriptions(req.user.id);
       res.json(subscriptions);
     } catch (error) {
@@ -455,6 +466,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
+      await backfillOrphanSubscriptions(req.user.id);
       const id = parseInt(req.params.id);
       const subscription = await storage.getSubscription(id, req.user.id);
       if (!subscription) {
@@ -467,7 +480,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/subscriptions", authenticateToken, async (req: any, res) => {
-    try {
+    const createOnce = async () => {
+      await ensureSchema();
       const body = {
         ...req.body,
         price: req.body.price !== undefined ? String(req.body.price) : undefined,
@@ -487,7 +501,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sécurise la réponse afin que le client récupère bien l'association utilisateur
       // nécessaire à l'affichage.
       res.status(201).json({ ...subscription, userId: req.user.id });
-    } catch (error) {
+    };
+
+    try {
+      await createOnce();
+    } catch (error: any) {
+      // Si la base est en retard sur la création de colonnes, on re-synchronise le schéma
+      // puis on retente l'insertion une seule fois pour éviter une boucle infinie.
+      if (error?.code === "42703") {
+        console.warn("Column missing during insert, re-running schema sync...");
+        schemaReady = false;
+        await ensureSchema();
+        await createOnce();
+        return;
+      }
+
       console.error("Subscription creation error:", error);
       res.status(400).json({ message: "Invalid subscription data", error });
     }
@@ -495,6 +523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
       const id = parseInt(req.params.id);
       const body = {
         ...req.body,
@@ -520,6 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteSubscription(id, req.user.id);
       if (!deleted) {
@@ -533,6 +563,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/subscriptions/upcoming/:days", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
       const days = parseInt(req.params.days) || 7;
       const subscriptions = await storage.getUpcomingRenewals(days, req.user.id);
       res.json(subscriptions);
@@ -589,6 +620,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stats endpoint
   app.get("/api/stats", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
+      await backfillOrphanSubscriptions(req.user.id);
       const subscriptions = await storage.getSubscriptions(req.user.id);
       const upcomingRenewals = await storage.getUpcomingRenewals(7, req.user.id);
       const trials = subscriptions.filter(sub => sub.isTrial);

@@ -44,8 +44,8 @@ describe('LoginGuard', () => {
     const pause = await screen.findByLabelText('pause-pigeon')
     expect(pause).toBeInTheDocument()
 
-    // Canvas should have pigeon-talk class (animation active)
-    expect(canvas.className).toContain('pigeon-talk')
+    // Canvas should be visible (opacity-100)
+    expect(canvas.className).toContain('opacity-100')
 
     // Play button should be hidden/disabled
     expect(playButton.className).toContain('opacity-0')
@@ -53,8 +53,8 @@ describe('LoginGuard', () => {
     // Click pause to stop animation
     await userEvent.click(pause)
 
-    // Pause should be hidden and canvas should stop animating
-    expect(canvas.className).not.toContain('pigeon-talk')
+    // Pause should be hidden and canvas should be hidden again
+    expect(canvas.className).toContain('opacity-0')
     expect(playButton.className).not.toContain('opacity-0')
   })
 })

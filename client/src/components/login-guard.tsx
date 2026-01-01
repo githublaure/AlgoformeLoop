@@ -232,205 +232,192 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{isLogin ? 'Connexion' : 'Inscription'}</CardTitle>
-              <CardDescription>
-                {isLogin 
-                  ? 'Connectez-vous pour gérer vos abonnements' 
-                  : 'Créez votre compte pour commencer'
-                }
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {!isLogin && !showForgotPassword && (
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nom</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      placeholder="Votre nom"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      required={!isLogin}
-                    />
-                  </div>
-                )}
+          <div className="relative flex items-start justify-center gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>{isLogin ? 'Connexion' : 'Inscription'}</CardTitle>
+                <CardDescription>
+                  {isLogin 
+                    ? 'Connectez-vous pour gérer vos abonnements' 
+                    : 'Créez votre compte pour commencer'
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {!isLogin && !showForgotPassword && (
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nom</Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        type="text"
+                        placeholder="Votre nom"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        required={!isLogin}
+                      />
+                    </div>
+                  )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="votre.email@exemple.com"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                {!showForgotPassword && (
                   <div className="space-y-2">
-                    <Label htmlFor="password">Mot de passe</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={formData.password}
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="votre.email@exemple.com"
+                      value={formData.email}
                       onChange={handleInputChange}
                       required
                     />
                   </div>
-                )}
 
-                {error && (
-                  <div className="text-red-600 text-sm text-center">
-                    {error}
-                  </div>
-                )}
-
-                <Button 
-                  type="submit" 
-                  disabled={isLoading}
-                  className="w-full pigeon-button-primary"
-                >
-                  {isLoading ? 'Chargement...' : 
-                   (showForgotPassword ? 'Envoyer le lien' :
-                    (isLogin ? 'Se connecter' : 'S\'inscrire'))}
-                </Button>
-
-                <div className="text-center space-y-2">
                   {!showForgotPassword && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setIsLogin(!isLogin)}
-                        className="text-sm underline block mx-auto"
-                        style={{ color: 'hsl(258, 71%, 65%)' }}
-                      >
-                        {isLogin ? 'Créer un compte' : 'Déjà un compte ? Se connecter'}
-                      </button>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Mot de passe</Label>
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  )}
 
-                      {isLogin && (
+                  {error && (
+                    <div className="text-red-600 text-sm text-center">
+                      {error}
+                    </div>
+                  )}
+
+                  <Button 
+                    type="submit" 
+                    disabled={isLoading}
+                    className="w-full pigeon-button-primary"
+                  >
+                    {isLoading ? 'Chargement...' : 
+                     (showForgotPassword ? 'Envoyer le lien' :
+                      (isLogin ? 'Se connecter' : 'S\'inscrire'))}
+                  </Button>
+
+                  <div className="text-center space-y-2">
+                    {!showForgotPassword && (
+                      <>
                         <button
                           type="button"
-                          onClick={() => setShowForgotPassword(true)}
+                          onClick={() => setIsLogin(!isLogin)}
                           className="text-sm underline block mx-auto"
                           style={{ color: 'hsl(258, 71%, 65%)' }}
                         >
-                          Mot de passe oublié ?
+                          {isLogin ? 'Créer un compte' : 'Déjà un compte ? Se connecter'}
                         </button>
-                      )}
-                    </>
-                  )}
 
-                  {showForgotPassword && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowForgotPassword(false);
-                        setFormData({ name: '', email: '', password: '' });
-                      }}
-                      className="text-sm underline"
-                      style={{ color: 'hsl(258, 71%, 65%)' }}
+                        {isLogin && (
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotPassword(true)}
+                            className="text-sm underline block mx-auto"
+                            style={{ color: 'hsl(258, 71%, 65%)' }}
+                          >
+                            Mot de passe oublié ?
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {showForgotPassword && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowForgotPassword(false);
+                          setFormData({ name: '', email: '', password: '' });
+                        }}
+                        className="text-sm underline"
+                        style={{ color: 'hsl(258, 71%, 65%)' }}
+                      >
+                        Retour à la connexion
+                      </button>
+                    )}
+                  </div>
+                </form>
+
+                <div className="mt-6 pt-6 border-t">
+                  <div className="flex justify-between items-center mb-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLocation('/demo')}
+                      className="text-sm w-full"
                     >
-                      Retour à la connexion
-                    </button>
-                  )}
+                      Voir la démo
+                    </Button>
+                  </div>
+                  <div className="flex space-x-2 justify-center">
+                    <img src="/pigeon1.png" alt="Pigeon 1" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
+                    <img src="/pigeon2.png" alt="Pigeon 2" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
+                    <img src="/pigeon3.png" alt="Pigeon 3" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
+                    <img src="/pigeon4.png" alt="Pigeon 4" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
+                  </div>
+                  <p className="text-xs text-gray-500 text-center mt-2">Cliquez sur un pigeon pour voir la démo</p>
                 </div>
-              </form>
+              </CardContent>
+            </Card>
 
-              <div className="mt-6 pt-6 border-t">
-                <div className="flex justify-between items-center mb-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setLocation('/demo')}
-                    className="text-sm w-full"
-                  >
-                    Voir la démo
-                  </Button>
-                </div>
-                <div className="flex space-x-2 justify-center">
-                  <img src="/pigeon1.png" alt="Pigeon 1" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
-                  <img src="/pigeon2.png" alt="Pigeon 2" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
-                  <img src="/pigeon3.png" alt="Pigeon 3" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
-                  <img src="/pigeon4.png" alt="Pigeon 4" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
-                </div>
-                <p className="text-xs text-gray-500 text-center mt-2">Cliquez sur un pigeon pour voir la démo</p>
+            {/* Pigeon interactive area placed next to card */}
+            <div className="relative flex-shrink-0" style={{ width: 176 }}>
+              <canvas
+                ref={canvasRef}
+                className={`w-44 h-44 object-contain transition-opacity duration-300 pointer-events-none ${isTalking ? 'opacity-100' : 'opacity-0'}`}
+                style={{
+                  display: 'block'
+                }}
+              />
+
+              <video
+                ref={videoRef}
+                className="hidden"
+                loop
+                onEnded={() => setIsTalking(false)}
+                onLoadedData={setupVideoProcessing}
+              >
+                <source src="/pigeon_talking.mp4" type="video/mp4" />
+              </video>
+
+              <img
+                src="/pigeongangsta.png"
+                alt="PigeonSub mascot"
+                className={`w-44 h-44 object-contain transition-opacity duration-300 ${isTalking ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+              />
+
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <button
+                  type="button"
+                  aria-label="play-pigeon"
+                  className={`w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg pointer-events-auto ${isTalking ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                  onClick={startTalkingPigeon}
+                >
+                  <i className="fas fa-play text-white text-xl ml-1"></i>
+                </button>
               </div>
-            </CardContent>
-          </Card>
+
+              <div className={`absolute bottom-2 right-2 ${isTalking ? '' : 'pointer-events-none opacity-0'}`}>
+                <button
+                  type="button"
+                  aria-label="pause-pigeon"
+                  className={`w-12 h-12 bg-red-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg ${isTalking ? 'opacity-100' : ''}`}
+                  onClick={stopTalkingPigeon}
+                >
+                  <i className="fas fa-pause text-white"></i>
+                </button>
+              </div>
+            </div>
         </div>
 
-        {/* Pigeon parlant en bas à droite */}
-        <div className="fixed bottom-4 right-4 z-50">
-          <div className="relative">
-            {/* Canvas pour la transparence du fond noir: toujours rendu pour éviter le clignotement */}
-            <canvas
-              ref={canvasRef}
-              className={`w-64 h-64 object-contain transition-opacity duration-300 ${isTalking ? 'pigeon-talk opacity-100' : 'opacity-0 pointer-events-none'}`}
-              style={{ 
-                borderRadius: '20px',
-                boxShadow: '0 15px 35px rgba(0,0,0,0.15)',
-                display: 'block'
-              }}
-            />
-            
-            {/* Vidéo cachée pour le traitement */}
-            <video
-              ref={videoRef}
-              className="hidden"
-              loop
-              onEnded={() => setIsTalking(false)}
-              onLoadedData={setupVideoProcessing}
-            >
-              <source src="/pigeon_talking.mp4" type="video/mp4" />
-            </video>
 
-            {/* Image statique (toujours rendu) : masquer par opacité pendant la lecture pour éviter clignotement */}
-            <img 
-              src="/pigeongangsta.png" 
-              alt="PigeonSub mascot" 
-              className={`w-64 h-64 object-contain rounded-xl shadow-lg transition-opacity duration-300 ${isTalking ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-            />
-
-            {/* Bouton de lecture et icône sonore (rendered as accessible buttons, visibility toggled) */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button
-                type="button"
-                aria-label="play-pigeon"
-                className={`w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg ${isTalking ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                onClick={startTalkingPigeon}
-              >
-                <i className="fas fa-play text-white text-xl ml-1"></i>
-              </button>
-            </div>
-
-
-
-            {/* Bouton pause pendant la lecture */}
-            <div className={`absolute bottom-4 right-4 ${isTalking ? '' : 'pointer-events-none opacity-0'}`}>
-              <button
-                type="button"
-                aria-label="pause-pigeon"
-                className={`w-12 h-12 bg-red-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg ${isTalking ? 'opacity-100' : ''}`}
-                onClick={stopTalkingPigeon}
-              >
-                <i className="fas fa-pause text-white"></i>
-              </button>
-            </div>
-          </div>
-          
-          <div className="text-center mt-3">
-            <p className="text-sm text-gray-600 font-medium">Cliquez pour écouter !</p>
-            <p className="text-xs text-gray-400">🎵 Audio inclus</p>
-          </div>
-        </div>
       </div>
     );
   }

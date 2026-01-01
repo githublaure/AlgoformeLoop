@@ -5,7 +5,7 @@ import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/ca
 import type { Subscription } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Archive, CalendarPlus, Pencil, Trash2 } from "lucide-react";
+import { CalendarPlus, Pencil, Trash2 } from "lucide-react";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
@@ -166,6 +166,15 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
   const iconColor = subscription.categoryColor || subscription.bgColor;
   const iconClass = 'fas fa-dove';
 
+  const handleAddToCalendar = () => {
+    const icsContent = createSubscriptionCalendarEvent(subscription);
+    downloadCalendarEvent(`renouvellement-${subscription.name}.ics`, icsContent);
+    toast({
+      title: "Rappel ajouté au calendrier",
+      description: `Le renouvellement de ${subscription.name} a été exporté en événement .ics`,
+    });
+  };
+
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-3">
@@ -229,11 +238,20 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
         <span>Prochain: {format(new Date(subscription.nextRenewal), "d MMM", { locale: fr })}</span>
         <div className="flex space-x-2">
           <button
+            onClick={handleAddToCalendar}
+            className="hover:opacity-70 transition-opacity"
+            style={{ color: 'hsl(42, 96%, 70%)' }}
+            aria-label={`Ajouter ${subscription.name} au calendrier`}
+          >
+            <CalendarPlus className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <button
             onClick={() => onEdit?.(subscription)}
             className="hover:opacity-70 transition-opacity"
             style={{ color: 'hsl(258, 71%, 65%)' }}
+            aria-label={`Modifier ${subscription.name}`}
           >
-            <i className="fas fa-edit"></i>
+            <Pencil className="h-5 w-5" aria-hidden="true" />
           </button>
           <button
             onClick={() => deleteSubscription.mutate(subscription.id)}

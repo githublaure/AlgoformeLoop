@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Subscription } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/calendar";
 
 interface UpcomingRenewalsProps {
   onEdit?: (subscription: Subscription) => void;
@@ -81,6 +82,15 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
   };
 
   const iconClass = 'fas fa-dove';
+
+  const handleAddToCalendar = (subscription: Subscription) => {
+    const icsContent = createSubscriptionCalendarEvent(subscription);
+    downloadCalendarEvent(`renouvellement-${subscription.name}.ics`, icsContent);
+    toast({
+      title: "Rappel ajouté au calendrier",
+      description: `${subscription.name} a été exporté en événement .ics`,
+    });
+  };
 
   const getRenewalStyles = (subscription: Subscription, daysUntil: number) => {
     const baseColor = subscription.categoryColor || subscription.bgColor || '#f8fafc';
@@ -212,6 +222,14 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
                     <span className={getUsageBadgeClass(subscription.usageFrequency)}>
                       {getUsageLabel(subscription.usageFrequency)}
                     </span>
+                    <button
+                      onClick={() => handleAddToCalendar(subscription)}
+                      className="hover:opacity-70 transition-opacity"
+                      style={{ color: 'hsl(42, 96%, 70%)' }}
+                      aria-label={`Ajouter ${subscription.name} au calendrier`}
+                    >
+                      <i className="fas fa-calendar-plus"></i>
+                    </button>
                     <button
                       onClick={() => generateRenewalAlert.mutate({ subscription })}
                       disabled={generateRenewalAlert.isPending}

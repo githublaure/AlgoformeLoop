@@ -456,7 +456,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/subscriptions", authenticateToken, async (req: any, res) => {
     try {
       await ensureSchema();
-      await backfillOrphanSubscriptions(req.user.id);
       const subscriptions = await storage.getSubscriptions(req.user.id);
       res.json(subscriptions);
     } catch (error) {
@@ -467,7 +466,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
       await ensureSchema();
-      await backfillOrphanSubscriptions(req.user.id);
       const id = parseInt(req.params.id);
       const subscription = await storage.getSubscription(id, req.user.id);
       if (!subscription) {
@@ -621,7 +619,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stats", authenticateToken, async (req: any, res) => {
     try {
       await ensureSchema();
-      await backfillOrphanSubscriptions(req.user.id);
       const subscriptions = await storage.getSubscriptions(req.user.id);
       const upcomingRenewals = await storage.getUpcomingRenewals(7, req.user.id);
       const trials = subscriptions.filter(sub => sub.isTrial);

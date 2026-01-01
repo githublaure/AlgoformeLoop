@@ -1,6 +1,8 @@
 import { subscriptions, voiceReminders, type Subscription, type InsertSubscription, type VoiceReminder, type InsertVoiceReminder } from "@shared/schema";
-import { db } from "./db";
 import { and, eq, gte, lte } from "drizzle-orm";
+// Note: avoid importing `db` at module import time so tests that only
+// exercise `MemStorage` don't require DATABASE_URL to be set.
+
 
 export interface IStorage {
   // Subscription methods
@@ -127,7 +129,8 @@ export class MemStorage implements IStorage {
     return Array.from(this.subscriptions.values()).filter(sub => {
       if (!sub.isActive) return false;
       if (userId === undefined) return true;
-      return sub.userId === userId || sub.userId === null;
+      // Only return subscriptions belonging to the requested user
+      return sub.userId === userId;
     });
   }
 
@@ -232,6 +235,7 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getSubscriptions(userId?: number): Promise<Subscription[]> {
+    const { db } = await import('./db');
     const conditions = [eq(subscriptions.isActive, true)];
     if (userId !== undefined) {
       conditions.push(eq(subscriptions.userId, userId));
@@ -244,6 +248,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSubscription(id: number, userId?: number): Promise<Subscription | undefined> {
+    const { db } = await import('./db');
     const filters = [eq(subscriptions.id, id)];
     if (userId !== undefined) {
       filters.push(eq(subscriptions.userId, userId));
@@ -257,6 +262,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSubscription(insertSubscription: InsertSubscription): Promise<Subscription> {
+    const { db } = await import('./db');
     const [subscription] = await db
       .insert(subscriptions)
       .values(insertSubscription)
@@ -269,6 +275,7 @@ export class DatabaseStorage implements IStorage {
     userId: number,
     updates: Partial<InsertSubscription>
   ): Promise<Subscription | undefined> {
+    const { db } = await import('./db');
     const [subscription] = await db
       .update(subscriptions)
       .set(updates)
@@ -278,6 +285,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteSubscription(id: number, userId: number): Promise<boolean> {
+    const { db } = await import('./db');
     const result = await db
       .delete(subscriptions)
       .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, userId)));
@@ -285,6 +293,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUpcomingRenewals(days: number, userId: number): Promise<Subscription[]> {
+    const { db } = await import('./db');
     const startDate = new Date();
     startDate.setHours(0, 0, 0, 0);
 
@@ -326,4 +335,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage: IStorage = process.env.NODE_ENV === 'test' ? new MemStorage() : new DatabaseStorage();

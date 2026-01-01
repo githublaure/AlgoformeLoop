@@ -10,11 +10,13 @@ export function Sidebar({ onAddSubscription }: SidebarProps) {
 
   const linkClass = (path: string) =>
     `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-      location === path ? "text-white pigeon-button-primary" : "text-gray-600 hover:bg-gray-100"
+      location === path
+        ? "text-white pigeon-button-primary"
+        : "text-gray-600 hover:bg-gray-100"
     }`;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative z-20">
       <nav className="space-y-2">
         <Link href="/">
           <a className={linkClass("/")}>

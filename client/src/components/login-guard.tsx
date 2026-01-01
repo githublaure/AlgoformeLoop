@@ -1,17 +1,24 @@
-import React, { useState, useRef } from 'react';
-import { useAuth } from './auth-provider';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { useLocation } from 'wouter';
+import React, { useState, useRef } from "react";
+import { useAuth } from "./auth-provider";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { useLocation } from "wouter";
 
 interface LoginGuardProps {
   children: React.ReactNode;
 }
 
 export function LoginGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, login, register, forgotPassword, error } = useAuth();
+  const { isAuthenticated, isLoading, login, register, forgotPassword, error } =
+    useAuth();
   const [, setLocation] = useLocation();
   const [isLogin, setIsLogin] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -20,19 +27,32 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: ''
+    name: "",
+    email: "",
+    password: "",
   });
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'hsl(210, 17%, 98%)' }}>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "hsl(210, 17%, 98%)" }}
+      >
         <div className="text-center">
-          <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}>
-            <img src="/pigeongangsta.png" alt="PigeonSub mascot" className="w-16 h-16 object-contain" />
+          <div
+            className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-4"
+            style={{ backgroundColor: "hsl(258, 71%, 65%)" }}
+          >
+            <img
+              src="/pigeongangsta.png"
+              alt="PigeonSub mascot"
+              className="w-16 h-16 object-contain"
+            />
           </div>
-          <i className="fas fa-spinner fa-spin text-2xl mb-4" style={{ color: 'hsl(258, 71%, 65%)' }}></i>
+          <i
+            className="fas fa-spinner fa-spin text-2xl mb-4"
+            style={{ color: "hsl(258, 71%, 65%)" }}
+          ></i>
           <p className="text-gray-600">Chargement...</p>
         </div>
       </div>
@@ -54,7 +74,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -72,12 +92,12 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
     const canvas = canvasRef.current;
     if (!video || !canvas || video.paused || video.ended) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     // Dessiner la frame vidéo
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     // Obtenir les données d'image
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
@@ -90,27 +110,27 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
       const r = data[index];
       const g = data[index + 1];
       const b = data[index + 2];
-      
+
       // Garder tous les pixels qui ne sont pas du fond noir pur
       if (r > 25 || g > 25 || b > 25) {
         return true;
       }
-      
+
       // Pour les pixels sombres, vérifier s'ils sont près d'éléments colorés
       const checkRadius = 2; // Rayon de vérification élargi
       for (let dy = -checkRadius; dy <= checkRadius; dy++) {
         for (let dx = -checkRadius; dx <= checkRadius; dx++) {
           if (dx === 0 && dy === 0) continue;
-          
+
           const nx = x + dx;
           const ny = y + dy;
-          
+
           if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
             const nIndex = (ny * width + nx) * 4;
             const nr = data[nIndex];
             const ng = data[nIndex + 1];
             const nb = data[nIndex + 2];
-            
+
             // Si un voisin proche a de la couleur, garder le pixel (contour)
             if (nr > 40 || ng > 40 || nb > 40) {
               return true;
@@ -128,7 +148,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
         const r = data[i];
         const g = data[i + 1];
         const b = data[i + 2];
-        
+
         // Si le pixel est très noir ET qu'il n'est pas un contour
         if (r < 15 && g < 15 && b < 15 && !shouldKeepPixel(x, y)) {
           data[i + 3] = 0; // Rendre transparent
@@ -141,7 +161,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
 
     // Remettre les données modifiées
     ctx.putImageData(imageData, 0, 0);
-    
+
     // Programmer la prochaine frame
     animationRef.current = requestAnimationFrame(processFrame);
   };
@@ -165,23 +185,27 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             // fallback: try playing muted
             console.log("Erreur de lecture audio:", error);
             videoRef.current!.muted = true;
-            Promise.resolve(videoRef.current!.play()).then(() => {
-              processFrame();
-            }).catch(() => {});
+            Promise.resolve(videoRef.current!.play())
+              .then(() => {
+                processFrame();
+              })
+              .catch(() => {});
           });
       } catch (error) {
         // synchronous throw - fallback
         videoRef.current.muted = true;
         try {
-          Promise.resolve(videoRef.current.play()).then(() => {
-            processFrame();
-          }).catch(() => {});
+          Promise.resolve(videoRef.current.play())
+            .then(() => {
+              processFrame();
+            })
+            .catch(() => {});
         } catch (e) {
           // ignore
         }
       }
     }
-  }
+  };
 
   const stopTalkingPigeon = () => {
     if (videoRef.current && isTalking) {
@@ -203,13 +227,26 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'hsl(210, 17%, 98%)' }}>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "hsl(210, 17%, 98%)" }}
+      >
         <div className="w-full max-w-md mx-auto p-8">
           <div className="text-center mb-8">
-            <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}>
-              <img src="/pigeongangsta.png" alt="PigeonSub mascot" className={`w-20 h-20 object-contain transition-opacity duration-300 ${isTalking ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} />
+            <div
+              className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-6"
+              style={{ backgroundColor: "hsl(258, 71%, 65%)" }}
+            >
+              <img
+                src="/pigeongangsta.png"
+                alt="PigeonSub mascot"
+                className={`w-20 h-20 object-contain transition-opacity duration-300 ${isTalking ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+              />
             </div>
-            <h1 className="text-3xl font-bold mb-2" style={{ color: 'hsl(258, 71%, 65%)' }}>
+            <h1
+              className="text-3xl font-bold mb-2"
+              style={{ color: "hsl(258, 71%, 65%)" }}
+            >
               PigeonSub
             </h1>
             <p className="text-gray-600">
@@ -217,30 +254,30 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             </p>
             <div className="mt-4 space-y-2">
               <button
-                onClick={() => setLocation('/test')}
+                onClick={() => setLocation("/test")}
                 className="text-sm text-purple-600 hover:text-purple-800 underline transition-colors block"
               >
                 🎬 Voir la démo IA (test)
               </button>
               <button
-                onClick={() => window.open('/test', '_blank', 'width=1200,height=800')}
+                onClick={() =>
+                  window.open("/test", "_blank", "width=1200,height=800")
+                }
                 className="text-sm text-blue-600 hover:text-blue-800 underline transition-colors block"
               >
                 🔗 test
               </button>
             </div>
-            
           </div>
 
           <div className="relative flex items-start justify-center gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>{isLogin ? 'Connexion' : 'Inscription'}</CardTitle>
+                <CardTitle>{isLogin ? "Connexion" : "Inscription"}</CardTitle>
                 <CardDescription>
-                  {isLogin 
-                    ? 'Connectez-vous pour gérer vos abonnements' 
-                    : 'Créez votre compte pour commencer'
-                  }
+                  {isLogin
+                    ? "Connectez-vous pour gérer vos abonnements"
+                    : "Créez votre compte pour commencer"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -294,14 +331,18 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
                     </div>
                   )}
 
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={isLoading}
                     className="w-full pigeon-button-primary"
                   >
-                    {isLoading ? 'Chargement...' : 
-                     (showForgotPassword ? 'Envoyer le lien' :
-                      (isLogin ? 'Se connecter' : 'S\'inscrire'))}
+                    {isLoading
+                      ? "Chargement..."
+                      : showForgotPassword
+                        ? "Envoyer le lien"
+                        : isLogin
+                          ? "Se connecter"
+                          : "S'inscrire"}
                   </Button>
 
                   <div className="text-center space-y-2">
@@ -311,9 +352,11 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
                           type="button"
                           onClick={() => setIsLogin(!isLogin)}
                           className="text-sm underline block mx-auto"
-                          style={{ color: 'hsl(258, 71%, 65%)' }}
+                          style={{ color: "hsl(258, 71%, 65%)" }}
                         >
-                          {isLogin ? 'Créer un compte' : 'Déjà un compte ? Se connecter'}
+                          {isLogin
+                            ? "Créer un compte"
+                            : "Déjà un compte ? Se connecter"}
                         </button>
 
                         {isLogin && (
@@ -321,7 +364,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
                             type="button"
                             onClick={() => setShowForgotPassword(true)}
                             className="text-sm underline block mx-auto"
-                            style={{ color: 'hsl(258, 71%, 65%)' }}
+                            style={{ color: "hsl(258, 71%, 65%)" }}
                           >
                             Mot de passe oublié ?
                           </button>
@@ -334,10 +377,10 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
                         type="button"
                         onClick={() => {
                           setShowForgotPassword(false);
-                          setFormData({ name: '', email: '', password: '' });
+                          setFormData({ name: "", email: "", password: "" });
                         }}
                         className="text-sm underline"
-                        style={{ color: 'hsl(258, 71%, 65%)' }}
+                        style={{ color: "hsl(258, 71%, 65%)" }}
                       >
                         Retour à la connexion
                       </button>
@@ -350,30 +393,53 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setLocation('/demo')}
+                      onClick={() => setLocation("/demo")}
                       className="text-sm w-full"
                     >
                       Voir la démo
                     </Button>
                   </div>
                   <div className="flex space-x-2 justify-center">
-                    <img src="/pigeon1.png" alt="Pigeon 1" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
-                    <img src="/pigeon2.png" alt="Pigeon 2" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
-                    <img src="/pigeon3.png" alt="Pigeon 3" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
-                    <img src="/pigeon4.png" alt="Pigeon 4" className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer" onClick={() => setLocation('/demo')} />
+                    <img
+                      src="/pigeon1.png"
+                      alt="Pigeon 1"
+                      className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
+                      onClick={() => setLocation("/demo")}
+                    />
+                    <img
+                      src="/pigeon2.png"
+                      alt="Pigeon 2"
+                      className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
+                      onClick={() => setLocation("/demo")}
+                    />
+                    <img
+                      src="/pigeon3.png"
+                      alt="Pigeon 3"
+                      className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
+                      onClick={() => setLocation("/demo")}
+                    />
+                    <img
+                      src="/pigeon4.png"
+                      alt="Pigeon 4"
+                      className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
+                      onClick={() => setLocation("/demo")}
+                    />
                   </div>
-                  <p className="text-xs text-gray-500 text-center mt-2">Cliquez sur un pigeon pour voir la démo</p>
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    Cliquez sur un pigeon pour voir la démo
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
             {/* Pigeon interactive area placed next to card */}
-            <div className="relative flex-shrink-0" style={{ width: 176 }}>
+            <div className="relative flex-shrink-0 login-pigeon">
               <canvas
                 ref={canvasRef}
-                className={`w-44 h-44 object-contain transition-opacity duration-300 pointer-events-none ${isTalking ? 'opacity-100' : 'opacity-0'}`}
+                className={`w-64 h-64 object-contain transition-opacity duration-300 pointer-events-none ${isTalking ? "opacity-100 pigeon-talk" : "opacity-0"}`}
                 style={{
-                  display: 'block'
+                  display: "block",
+                  borderRadius: "16px",
                 }}
               />
 
@@ -390,34 +456,35 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               <img
                 src="/pigeongangsta.png"
                 alt="PigeonSub mascot"
-                className={`w-44 h-44 object-contain transition-opacity duration-300 ${isTalking ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                className={`w-64 h-64 object-contain transition-opacity duration-300 ${isTalking ? "opacity-0 pointer-events-none" : "opacity-100"}`}
               />
 
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <button
                   type="button"
                   aria-label="play-pigeon"
-                  className={`w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg pointer-events-auto ${isTalking ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                  className={`w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg pointer-events-auto ${isTalking ? "opacity-0 pointer-events-none" : "opacity-100"}`}
                   onClick={startTalkingPigeon}
                 >
                   <i className="fas fa-play text-white text-xl ml-1"></i>
                 </button>
               </div>
 
-              <div className={`absolute bottom-2 right-2 ${isTalking ? '' : 'pointer-events-none opacity-0'}`}>
+              <div
+                className={`absolute bottom-2 right-2 ${isTalking ? "" : "pointer-events-none opacity-0"}`}
+              >
                 <button
                   type="button"
                   aria-label="pause-pigeon"
-                  className={`w-12 h-12 bg-red-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg ${isTalking ? 'opacity-100' : ''}`}
+                  className={`w-12 h-12 bg-red-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg ${isTalking ? "opacity-100" : ""}`}
                   onClick={stopTalkingPigeon}
                 >
                   <i className="fas fa-pause text-white"></i>
                 </button>
               </div>
             </div>
+          </div>
         </div>
-
-
       </div>
     );
   }

@@ -596,6 +596,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoint to assign orphan subscriptions to a target user (protected)
+  app.post('/api/admin/assign-orphans', async (req: any, res) => {
+    try {
+      const adminSecret = req.headers['x-admin-secret'] as string | undefined;
+      if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+
+      const targetEmail = (req.body?.email as string | undefined) || 'yoopiyo@example.com';
+      const targetName = (req.body?.name as string | undefined) || 'yoopiyo';
+
+      const { db } = await import('./db');
+
+      // Ensure the target user exists
+      const [existing] = await db.select().from(users).where(eq(users.email, targetEmail));
+      let user = existing;
+      if (!user) {
+        const hashed = await bcrypt.hash('changeme', 10);
+        const [created] = await db.insert(users).values({ name: targetName, email: targetEmail, password: hashed }).returning();
+        user = created;
+      }
+
+      // Assign orphan subscriptions
+      const result = await db.execute(sql`UPDATE "subscriptions" SET "user_id" = ${user.id} WHERE "user_id" IS NULL`);
+
+      res.json({ message: 'Assigned orphan subscriptions', assignedTo: user.id, affectedRows: result.rowCount ?? null });
+    } catch (err) {
+      console.error('Admin assign error:', err);
+      res.status(500).json({ message: 'Failed to assign orphans', error: String(err) });
+    }
+  });
+
   app.get("/api/voice/reminders/:subscriptionId", async (req, res) => {
     try {
       const subscriptionId = parseInt(req.params.subscriptionId);

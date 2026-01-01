@@ -9,6 +9,8 @@
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
     "db:push": "drizzle-kit push",
+    "assign-orphans": "tsx server/scripts/assign-orphans-to-yoopiyo.ts",
+    "assign-orphans-sql": "cat migrations/0005_assign_orphans_to_yoopiyo.sql",
     "test": "vitest"
   },
   "dependencies": {

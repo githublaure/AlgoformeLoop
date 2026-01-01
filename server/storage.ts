@@ -316,10 +316,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getVoiceReminders(): Promise<VoiceReminder[]> {
+    const { db } = await import('./db');
     return await db.select().from(voiceReminders);
   }
 
   async createVoiceReminder(insertReminder: InsertVoiceReminder): Promise<VoiceReminder> {
+    const { db } = await import('./db');
     const [reminder] = await db
       .insert(voiceReminders)
       .values(insertReminder)
@@ -328,6 +330,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getVoiceRemindersBySubscription(subscriptionId: number): Promise<VoiceReminder[]> {
+    const { db } = await import('./db');
     return await db
       .select()
       .from(voiceReminders)

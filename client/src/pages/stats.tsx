@@ -18,7 +18,8 @@ export default function StatsPage() {
   const { data: subscriptions = [] } = useQuery<Subscription[]>({ queryKey: ["/api/subscriptions"] });
 
   const trialSubscriptions = subscriptions.filter((sub) => sub.isTrial);
-  const suspectSubscriptions = subscriptions.filter((sub) => sub.isSuspect);
+  // Exclude subscriptions that are marked as 'very_used' from the suspect list
+  const suspectSubscriptions = subscriptions.filter((sub) => sub.isSuspect && sub.usageFrequency !== 'very_used');
 
   const categoryEntries = Object.entries(stats?.categoryTotals || {}).sort(([, a], [, b]) => b - a);
 

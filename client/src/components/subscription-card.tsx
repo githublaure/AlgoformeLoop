@@ -198,7 +198,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
                     Essai gratuit
                   </span>
                 )}
-                {subscription.isSuspect && (
+                {subscription.isSuspect && subscription.usageFrequency !== 'very_used' && (
                   <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
                     Risque d'arnaque
                   </span>

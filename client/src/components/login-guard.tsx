@@ -149,28 +149,53 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
   const toggleTalkingPigeon = () => {
     if (videoRef.current) {
       if (isTalking) {
-        videoRef.current.pause();
-        videoRef.current.currentTime = 0;
+        // stop playback and processing
+        try {
+          videoRef.current.pause();
+        } catch (e) {
+          // ignore in tests
+        }
+        try {
+          videoRef.current.currentTime = 0;
+        } catch (e) {}
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
         }
+        setIsTalking(false);
       } else {
+        // start playback and processing; set state immediately so UI reflects play
+        setIsTalking(true);
         // Enlever le mode muet pour activer le son
         videoRef.current.muted = false;
         videoRef.current.volume = 0.7; // Volume à 70%
-        videoRef.current.play().then(() => {
-          // Commencer le traitement des frames
-          processFrame();
-        }).catch(error => {
-          console.log("Erreur de lecture audio:", error);
-          // Si l'audio échoue, jouer quand même la vidéo en muet
-          videoRef.current!.muted = true;
-          videoRef.current!.play().then(() => {
-            processFrame();
-          });
-        });
+
+        // play() may not return a promise in some environments; wrap in Promise.resolve
+        try {
+          const res = videoRef.current.play();
+          Promise.resolve(res)
+            .then(() => {
+              processFrame();
+            })
+            .catch((error) => {
+              // fallback: try playing muted
+              console.log("Erreur de lecture audio:", error);
+              videoRef.current!.muted = true;
+              Promise.resolve(videoRef.current!.play()).then(() => {
+                processFrame();
+              }).catch(() => {});
+            });
+        } catch (error) {
+          // synchronous throw - fallback
+          videoRef.current.muted = true;
+          try {
+            Promise.resolve(videoRef.current.play()).then(() => {
+              processFrame();
+            }).catch(() => {});
+          } catch (e) {
+            // ignore
+          }
+        }
       }
-      setIsTalking(!isTalking);
     }
   };
 

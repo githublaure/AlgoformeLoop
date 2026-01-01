@@ -22,4 +22,13 @@ if (typeof Element !== 'undefined') {
   // polyfill scrollIntoView used by Radix
   // @ts-ignore
   Element.prototype.scrollIntoView = Element.prototype.scrollIntoView || function () {}
+
+  // Polyfill for HTMLMediaElement.play/pause used in tests
+  // Some environments (jsdom) don't implement play(), so we return a resolved promise
+  if (typeof HTMLMediaElement !== 'undefined') {
+    // @ts-ignore
+    HTMLMediaElement.prototype.play = HTMLMediaElement.prototype.play || function () { return Promise.resolve() }
+    // @ts-ignore
+    HTMLMediaElement.prototype.pause = HTMLMediaElement.prototype.pause || function () {}
+  }
 }

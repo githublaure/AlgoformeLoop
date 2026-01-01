@@ -69,6 +69,66 @@ async function ensureSchema() {
       ) THEN
         ALTER TABLE "subscriptions" ADD COLUMN "user_id" integer REFERENCES "users"("id");
       END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'category_color'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "category_color" text DEFAULT '#7c3aed';
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'icon_class'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "icon_class" text;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'bg_color'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "bg_color" text;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'note'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "note" text;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'rating'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "rating" integer DEFAULT 0;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'is_suspect'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "is_suspect" boolean DEFAULT false;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'is_active'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "is_active" boolean DEFAULT true;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'is_trial'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "is_trial" boolean DEFAULT false;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'trial_ends_at'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "trial_ends_at" timestamp;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'created_at'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "created_at" timestamp DEFAULT now();
+      END IF;
     END $$;
   `);
 

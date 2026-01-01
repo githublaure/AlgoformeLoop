@@ -253,16 +253,28 @@ export function AddSubscriptionModal({
   });
 
   const onSubmit = (data: FormData) => {
+    const normalizedData: FormData = {
+      ...data,
+      usageFrequency: data.usageFrequency || selectedUsage || defaultValues.usageFrequency,
+      category: data.category || "other",
+      price: (data.price ?? "").toString(),
+      rating: data.rating ?? 0,
+      categoryColor: data.categoryColor || data.bgColor || DEFAULT_BG_COLOR,
+      bgColor: data.categoryColor || data.bgColor || DEFAULT_BG_COLOR,
+      note: data.note?.trim() ?? "",
+      trialEndsAt: data.isTrial ? data.trialEndsAt : undefined,
+    };
+
     if (isEditing) {
-      updateSubscription.mutate(data);
+      updateSubscription.mutate(normalizedData);
     } else {
-      createSubscription.mutate(data);
+      createSubscription.mutate(normalizedData);
     }
   };
 
   const handleUsageSelect = (usage: string) => {
     setSelectedUsage(usage);
-    form.setValue("usageFrequency", usage);
+    form.setValue("usageFrequency", usage, { shouldValidate: true, shouldDirty: true });
   };
 
   const handleCategorySelect = (value: string, onChange: (value: string) => void) => {
@@ -352,6 +364,10 @@ export function AddSubscriptionModal({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <input type="hidden" {...form.register("usageFrequency")} />
+            <input type="hidden" {...form.register("bgColor")} />
+            <input type="hidden" {...form.register("categoryColor")} />
+            <input type="hidden" {...form.register("iconClass")} />
             <FormField
               control={form.control}
               name="name"

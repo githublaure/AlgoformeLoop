@@ -64,6 +64,7 @@ type CategoryOption = {
 };
 
 const DEFAULT_BG_COLOR = "#4b5563";
+const DEFAULT_CATEGORY = "other";
 
 const DEFAULT_CATEGORIES: CategoryOption[] = [
   { value: "entertainment", label: "Divertissement", color: "#7c3aed" },
@@ -78,7 +79,7 @@ const defaultValues: FormData = {
   name: "",
   price: "",
   frequency: "monthly",
-  category: "",
+  category: DEFAULT_CATEGORY,
   usageFrequency: "used",
   nextRenewal: "",
   iconClass: "fas fa-dove",
@@ -119,6 +120,23 @@ export function AddSubscriptionModal({
     setCategoryColor(defaultValues.bgColor ?? DEFAULT_BG_COLOR);
     setCustomCategoryName("");
     setCustomCategoryColor("#4b5563");
+  };
+
+  const normalizePrice = (value: string | number | undefined | null) => {
+    const asString =
+      typeof value === "number"
+        ? value.toString()
+        : typeof value === "string"
+          ? value
+          : "";
+
+    const cleaned = asString.replace(",", ".").replace(/[^0-9.]/g, "");
+    if (!cleaned) return null;
+
+    const numeric = Number.parseFloat(cleaned);
+    if (!Number.isFinite(numeric)) return null;
+
+    return numeric.toFixed(2);
   };
 
   const formatDateForInput = (date: string | Date) => {
@@ -253,11 +271,17 @@ export function AddSubscriptionModal({
   });
 
   const onSubmit = (data: FormData) => {
+    const normalizedPrice = normalizePrice(data.price);
+    if (!normalizedPrice) {
+      form.setError("price", { message: "Le prix doit être un nombre valide" });
+      return;
+    }
+
     const normalizedData: FormData = {
       ...data,
       usageFrequency: data.usageFrequency || selectedUsage || defaultValues.usageFrequency,
-      category: data.category || "other",
-      price: (data.price ?? "").toString(),
+      category: data.category || DEFAULT_CATEGORY,
+      price: normalizedPrice,
       rating: data.rating ?? 0,
       categoryColor: data.categoryColor || data.bgColor || DEFAULT_BG_COLOR,
       bgColor: data.categoryColor || data.bgColor || DEFAULT_BG_COLOR,

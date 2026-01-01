@@ -180,7 +180,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
         <div className="w-full max-w-md mx-auto p-8">
           <div className="text-center mb-8">
             <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}>
-              <img src="/pigeongangsta.png" alt="PigeonSub mascot" className="w-20 h-20 object-contain" />
+              <img src="/pigeongangsta.png" alt="PigeonSub mascot" className={`w-20 h-20 object-contain transition-opacity duration-300 ${isTalking ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} />
             </div>
             <h1 className="text-3xl font-bold mb-2" style={{ color: 'hsl(258, 71%, 65%)' }}>
               PigeonSub
@@ -343,14 +343,14 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
         {/* Pigeon parlant en bas à droite */}
         <div className="fixed bottom-4 right-4 z-50">
           <div className="relative">
-            {/* Canvas pour la transparence du fond noir */}
+            {/* Canvas pour la transparence du fond noir: toujours rendu pour éviter le clignotement */}
             <canvas
               ref={canvasRef}
-              className={`w-64 h-64 object-contain transition-transform duration-300 ${isTalking ? 'animate-pulse scale-105' : ''}`}
+              className={`w-64 h-64 object-contain transition-transform duration-300 ${isTalking ? 'pigeon-talk scale-105 opacity-100' : 'opacity-0 pointer-events-none scale-100'}`}
               style={{ 
                 borderRadius: '20px',
                 boxShadow: '0 15px 35px rgba(0,0,0,0.15)',
-                display: isTalking ? 'block' : 'none'
+                display: 'block'
               }}
             />
             
@@ -365,43 +365,43 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               <source src="/pigeon_talking.mp4" type="video/mp4" />
             </video>
 
-            {/* Image statique quand pas en lecture */}
-            {!isTalking && (
-              <img 
-                src="/pigeongangsta.png" 
-                alt="PigeonSub mascot" 
-                className="w-64 h-64 object-contain rounded-xl shadow-lg" 
-              />
-            )}
+            {/* Image statique (toujours rendu) : masquer par opacité pendant la lecture pour éviter clignotement */}
+            <img 
+              src="/pigeongangsta.png" 
+              alt="PigeonSub mascot" 
+              className={`w-64 h-64 object-contain rounded-xl shadow-lg transition-opacity duration-300 ${isTalking ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            />
 
-            {/* Bouton de lecture et icône sonore */}
-            {!isTalking && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div 
-                  className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg"
-                  onClick={toggleTalkingPigeon}
-                >
-                  <i className="fas fa-play text-white text-xl ml-1"></i>
-                </div>
-              </div>
-            )}
-
-            {/* Icône sonore */}
-            <div className="absolute top-2 right-2 bg-green-500 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
-              <i className="fas fa-volume-up text-white text-sm"></i>
+            {/* Bouton de lecture et icône sonore (rendered as accessible buttons, visibility toggled) */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <button
+                type="button"
+                aria-label="play-pigeon"
+                className={`w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer transition-transform shadow-lg ${isTalking ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 hover:scale-110'}`}
+                onClick={toggleTalkingPigeon}
+              >
+                <i className="fas fa-play text-white text-xl ml-1"></i>
+              </button>
             </div>
 
-            {/* Bouton pause pendant la lecture */}
+            {/* Icône sonore: visible seulement pendant la lecture */}
             {isTalking && (
-              <div className="absolute bottom-4 right-4">
-                <div 
-                  className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg"
-                  onClick={toggleTalkingPigeon}
-                >
-                  <i className="fas fa-pause text-white"></i>
-                </div>
+              <div aria-hidden={false} aria-label="sound-indicator" className="absolute top-2 right-2 bg-green-500 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
+                <i className="fas fa-volume-up text-white text-sm"></i>
               </div>
             )}
+
+            {/* Bouton pause pendant la lecture */}
+            <div className={`absolute bottom-4 right-4 ${isTalking ? '' : 'pointer-events-none opacity-0'}`}>
+              <button
+                type="button"
+                aria-label="pause-pigeon"
+                className={`w-12 h-12 bg-red-500 rounded-full flex items-center justify-center cursor-pointer transition-transform shadow-lg ${isTalking ? 'opacity-100 hover:scale-110' : ''}`}
+                onClick={toggleTalkingPigeon}
+              >
+                <i className="fas fa-pause text-white"></i>
+              </button>
+            </div>
           </div>
           
           <div className="text-center mt-3">

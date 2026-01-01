@@ -69,6 +69,66 @@ async function ensureSchema() {
       ) THEN
         ALTER TABLE "subscriptions" ADD COLUMN "user_id" integer REFERENCES "users"("id");
       END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'category_color'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "category_color" text DEFAULT '#7c3aed';
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'icon_class'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "icon_class" text;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'bg_color'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "bg_color" text;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'note'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "note" text;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'rating'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "rating" integer DEFAULT 0;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'is_suspect'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "is_suspect" boolean DEFAULT false;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'is_active'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "is_active" boolean DEFAULT true;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'is_trial'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "is_trial" boolean DEFAULT false;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'trial_ends_at'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "trial_ends_at" timestamp;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'created_at'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "created_at" timestamp DEFAULT now();
+      END IF;
     END $$;
   `);
 
@@ -418,9 +478,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isTrial: normalizeBoolean(req.body.isTrial, false),
         isActive: normalizeBoolean(req.body.isActive, true),
       };
+      // Toujours associer l'abonnement à l'utilisateur authentifié, même si le client
+      // n'envoie pas explicitement l'identifiant. Sans cela, l'abonnement resterait
+      // orphelin et ne remonterait pas dans le dashboard filtré par userId.
       const validatedData = insertSubscriptionSchema.parse({ ...body, userId: req.user.id });
       const subscription = await storage.createSubscription(validatedData);
-      res.status(201).json(subscription);
+
+      // Sécurise la réponse afin que le client récupère bien l'association utilisateur
+      // nécessaire à l'affichage.
+      res.status(201).json({ ...subscription, userId: req.user.id });
     } catch (error) {
       console.error("Subscription creation error:", error);
       res.status(400).json({ message: "Invalid subscription data", error });
@@ -446,7 +512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });
       }
-      res.json(subscription);
+      res.json({ ...subscription, userId: req.user.id });
     } catch (error) {
       res.status(400).json({ message: "Invalid subscription data", error });
     }

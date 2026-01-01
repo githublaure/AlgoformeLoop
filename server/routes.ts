@@ -21,6 +21,15 @@ type DbUser = typeof users.$inferSelect;
 
 let schemaReady = false;
 
+async function backfillOrphanSubscriptions(userId: number) {
+  // Ré-associe les abonnements historiques sans user_id à l'utilisateur courant
+  await db.execute(sql`
+    UPDATE "subscriptions"
+    SET "user_id" = ${userId}
+    WHERE "user_id" IS NULL
+  `);
+}
+
 async function ensureSchema() {
   if (schemaReady) return;
 
@@ -68,6 +77,66 @@ async function ensureSchema() {
         WHERE table_name = 'subscriptions' AND column_name = 'user_id'
       ) THEN
         ALTER TABLE "subscriptions" ADD COLUMN "user_id" integer REFERENCES "users"("id");
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'category_color'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "category_color" text DEFAULT '#7c3aed';
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'icon_class'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "icon_class" text;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'bg_color'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "bg_color" text;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'note'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "note" text;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'rating'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "rating" integer DEFAULT 0;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'is_suspect'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "is_suspect" boolean DEFAULT false;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'is_active'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "is_active" boolean DEFAULT true;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'is_trial'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "is_trial" boolean DEFAULT false;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'trial_ends_at'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "trial_ends_at" timestamp;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'created_at'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "created_at" timestamp DEFAULT now();
       END IF;
     END $$;
   `);
@@ -386,6 +455,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Subscription routes
   app.get("/api/subscriptions", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
+      await backfillOrphanSubscriptions(req.user.id);
       const subscriptions = await storage.getSubscriptions(req.user.id);
       res.json(subscriptions);
     } catch (error) {
@@ -395,6 +466,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
+      await backfillOrphanSubscriptions(req.user.id);
       const id = parseInt(req.params.id);
       const subscription = await storage.getSubscription(id, req.user.id);
       if (!subscription) {
@@ -407,7 +480,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/subscriptions", authenticateToken, async (req: any, res) => {
-    try {
+    const createOnce = async () => {
+      await ensureSchema();
       const body = {
         ...req.body,
         price: req.body.price !== undefined ? String(req.body.price) : undefined,
@@ -418,10 +492,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isTrial: normalizeBoolean(req.body.isTrial, false),
         isActive: normalizeBoolean(req.body.isActive, true),
       };
+      // Toujours associer l'abonnement à l'utilisateur authentifié, même si le client
+      // n'envoie pas explicitement l'identifiant. Sans cela, l'abonnement resterait
+      // orphelin et ne remonterait pas dans le dashboard filtré par userId.
       const validatedData = insertSubscriptionSchema.parse({ ...body, userId: req.user.id });
       const subscription = await storage.createSubscription(validatedData);
-      res.status(201).json(subscription);
-    } catch (error) {
+
+      // Sécurise la réponse afin que le client récupère bien l'association utilisateur
+      // nécessaire à l'affichage.
+      res.status(201).json({ ...subscription, userId: req.user.id });
+    };
+
+    try {
+      await createOnce();
+    } catch (error: any) {
+      // Si la base est en retard sur la création de colonnes, on re-synchronise le schéma
+      // puis on retente l'insertion une seule fois pour éviter une boucle infinie.
+      if (error?.code === "42703") {
+        console.warn("Column missing during insert, re-running schema sync...");
+        schemaReady = false;
+        await ensureSchema();
+        await createOnce();
+        return;
+      }
+
       console.error("Subscription creation error:", error);
       res.status(400).json({ message: "Invalid subscription data", error });
     }
@@ -429,6 +523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
       const id = parseInt(req.params.id);
       const body = {
         ...req.body,
@@ -446,7 +541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });
       }
-      res.json(subscription);
+      res.json({ ...subscription, userId: req.user.id });
     } catch (error) {
       res.status(400).json({ message: "Invalid subscription data", error });
     }
@@ -454,6 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteSubscription(id, req.user.id);
       if (!deleted) {
@@ -467,6 +563,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/subscriptions/upcoming/:days", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
       const days = parseInt(req.params.days) || 7;
       const subscriptions = await storage.getUpcomingRenewals(days, req.user.id);
       res.json(subscriptions);
@@ -523,6 +620,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stats endpoint
   app.get("/api/stats", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
+      await backfillOrphanSubscriptions(req.user.id);
       const subscriptions = await storage.getSubscriptions(req.user.id);
       const upcomingRenewals = await storage.getUpcomingRenewals(7, req.user.id);
       const trials = subscriptions.filter(sub => sub.isTrial);

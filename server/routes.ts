@@ -190,6 +190,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
     try {
+      await ensureSchema();
+
       const { name, email, password } = req.body;
 
       if (!name || !email || !password) {
@@ -219,12 +221,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: { id: created.id, name: created.name, email: created.email }
       });
     } catch (error) {
+      console.error("Erreur lors de l'inscription:", error);
       res.status(500).json({ message: "Erreur lors de l'inscription" });
     }
   });
 
   app.post("/api/auth/login", async (req, res) => {
     try {
+      await ensureSchema();
+
       const { email, password } = req.body;
 
       if (!email || !password) {
@@ -253,12 +258,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: { id: user.id, name: user.name, email: user.email }
       });
     } catch (error) {
+      console.error("Erreur lors de la connexion:", error);
       res.status(500).json({ message: "Erreur lors de la connexion" });
     }
   });
 
   app.get("/api/auth/me", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
+
       const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
       if (!user) {
         return res.status(404).json({ message: "Utilisateur non trouvé" });
@@ -266,6 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ id: user.id, name: user.name, email: user.email });
     } catch (error) {
+      console.error("Erreur lors de la récupération du profil:", error);
       res.status(500).json({ message: "Erreur lors de la récupération du profil" });
     }
   });

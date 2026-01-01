@@ -101,6 +101,8 @@ export function AddSubscriptionModal({
     defaultValues,
   });
 
+  const isTrial = form.watch("isTrial");
+
   const isEditing = Boolean(subscription);
 
   const resetForm = () => {

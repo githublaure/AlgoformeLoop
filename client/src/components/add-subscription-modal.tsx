@@ -193,7 +193,7 @@ export function AddSubscriptionModal({
         rating: Number(data.rating) || 0,
         isSuspect: Boolean(data.isSuspect),
         nextRenewal: new Date(data.nextRenewal),
-        trialEndsAt: data.trialEndsAt ? new Date(data.trialEndsAt) : null,
+        trialEndsAt: data.isTrial && data.trialEndsAt ? new Date(data.trialEndsAt) : undefined,
       };
 
       const response = subscription

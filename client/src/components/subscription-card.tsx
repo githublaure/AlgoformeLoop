@@ -174,7 +174,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
             className={`w-10 h-10 rounded-lg flex items-center justify-center ${
               isHexColor ? '' : subscription.bgColor || 'bg-gray-600'
             }`}
-            style={isHexColor ? { backgroundColor: subscription.bgColor } : undefined}
+            style={isHexColor && subscription.bgColor ? { backgroundColor: subscription.bgColor } : undefined}
           >
             <i className={`${subscription.iconClass || 'fas fa-dove'} text-white`}></i>
           </div>

@@ -40,11 +40,21 @@ describe('LoginGuard', () => {
     // Click play
     await userEvent.click(playButton)
 
-    // Now sound indicator should appear
-    const sound = await screen.findByLabelText('sound-indicator')
-    expect(sound).toBeInTheDocument()
+      // Pause button should appear (play -> pause)
+    const pause = await screen.findByLabelText('pause-pigeon')
+    expect(pause).toBeInTheDocument()
 
     // Canvas should have pigeon-talk class (animation active)
     expect(canvas.className).toContain('pigeon-talk')
+
+    // Play button should be hidden/disabled
+    expect(playButton.className).toContain('opacity-0')
+
+    // Click pause to stop animation
+    await userEvent.click(pause)
+
+    // Pause should be hidden and canvas should stop animating
+    expect(canvas.className).not.toContain('pigeon-talk')
+    expect(playButton.className).not.toContain('opacity-0')
   })
 })

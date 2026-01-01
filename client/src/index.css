@@ -109,15 +109,15 @@
     @apply text-white text-xs px-2 py-1 rounded-full;
   }
 
-  /* Pigeon talking subtle continuous animation */
+  /* Pigeon talking blink animation (opacity pulse) */
   @keyframes pigeon-talk {
-    0% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-4px) scale(1.02); }
-    100% { transform: translateY(0) scale(1); }
+    0% { opacity: 1; }
+    50% { opacity: 0.35; }
+    100% { opacity: 1; }
   }
 
   .pigeon-talk {
-    animation: pigeon-talk 1.2s ease-in-out infinite;
+    animation: pigeon-talk 0.9s linear infinite;
   }
 }
 

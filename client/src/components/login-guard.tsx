@@ -146,56 +146,58 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
     animationRef.current = requestAnimationFrame(processFrame);
   };
 
-  const toggleTalkingPigeon = () => {
-    if (videoRef.current) {
-      if (isTalking) {
-        // stop playback and processing
-        try {
-          videoRef.current.pause();
-        } catch (e) {
-          // ignore in tests
-        }
-        try {
-          videoRef.current.currentTime = 0;
-        } catch (e) {}
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current);
-        }
-        setIsTalking(false);
-      } else {
-        // start playback and processing; set state immediately so UI reflects play
-        setIsTalking(true);
-        // Enlever le mode muet pour activer le son
-        videoRef.current.muted = false;
-        videoRef.current.volume = 0.7; // Volume à 70%
+  const startTalkingPigeon = () => {
+    if (videoRef.current && !isTalking) {
+      // set state immediately so UI reflects play
+      setIsTalking(true);
+      // Enlever le mode muet pour activer le son
+      videoRef.current.muted = false;
+      videoRef.current.volume = 0.7; // Volume à 70%
 
-        // play() may not return a promise in some environments; wrap in Promise.resolve
-        try {
-          const res = videoRef.current.play();
-          Promise.resolve(res)
-            .then(() => {
-              processFrame();
-            })
-            .catch((error) => {
-              // fallback: try playing muted
-              console.log("Erreur de lecture audio:", error);
-              videoRef.current!.muted = true;
-              Promise.resolve(videoRef.current!.play()).then(() => {
-                processFrame();
-              }).catch(() => {});
-            });
-        } catch (error) {
-          // synchronous throw - fallback
-          videoRef.current.muted = true;
-          try {
-            Promise.resolve(videoRef.current.play()).then(() => {
+      // play() may not return a promise in some environments; wrap in Promise.resolve
+      try {
+        const res = videoRef.current.play();
+        Promise.resolve(res)
+          .then(() => {
+            processFrame();
+          })
+          .catch((error) => {
+            // fallback: try playing muted
+            console.log("Erreur de lecture audio:", error);
+            videoRef.current!.muted = true;
+            Promise.resolve(videoRef.current!.play()).then(() => {
               processFrame();
             }).catch(() => {});
-          } catch (e) {
-            // ignore
-          }
+          });
+      } catch (error) {
+        // synchronous throw - fallback
+        videoRef.current.muted = true;
+        try {
+          Promise.resolve(videoRef.current.play()).then(() => {
+            processFrame();
+          }).catch(() => {});
+        } catch (e) {
+          // ignore
         }
       }
+    }
+  }
+
+  const stopTalkingPigeon = () => {
+    if (videoRef.current && isTalking) {
+      // stop playback and processing
+      try {
+        videoRef.current.pause();
+      } catch (e) {
+        // ignore in tests
+      }
+      try {
+        videoRef.current.currentTime = 0;
+      } catch (e) {}
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      setIsTalking(false);
     }
   };
 
@@ -371,7 +373,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             {/* Canvas pour la transparence du fond noir: toujours rendu pour éviter le clignotement */}
             <canvas
               ref={canvasRef}
-              className={`w-64 h-64 object-contain transition-transform duration-300 ${isTalking ? 'pigeon-talk scale-105 opacity-100' : 'opacity-0 pointer-events-none scale-100'}`}
+              className={`w-64 h-64 object-contain transition-opacity duration-300 ${isTalking ? 'pigeon-talk opacity-100' : 'opacity-0 pointer-events-none'}`}
               style={{ 
                 borderRadius: '20px',
                 boxShadow: '0 15px 35px rgba(0,0,0,0.15)',
@@ -402,27 +404,22 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 aria-label="play-pigeon"
-                className={`w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer transition-transform shadow-lg ${isTalking ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 hover:scale-110'}`}
-                onClick={toggleTalkingPigeon}
+                className={`w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg ${isTalking ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                onClick={startTalkingPigeon}
               >
                 <i className="fas fa-play text-white text-xl ml-1"></i>
               </button>
             </div>
 
-            {/* Icône sonore: visible seulement pendant la lecture */}
-            {isTalking && (
-              <div aria-hidden={false} aria-label="sound-indicator" className="absolute top-2 right-2 bg-green-500 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
-                <i className="fas fa-volume-up text-white text-sm"></i>
-              </div>
-            )}
+
 
             {/* Bouton pause pendant la lecture */}
             <div className={`absolute bottom-4 right-4 ${isTalking ? '' : 'pointer-events-none opacity-0'}`}>
               <button
                 type="button"
                 aria-label="pause-pigeon"
-                className={`w-12 h-12 bg-red-500 rounded-full flex items-center justify-center cursor-pointer transition-transform shadow-lg ${isTalking ? 'opacity-100 hover:scale-110' : ''}`}
-                onClick={toggleTalkingPigeon}
+                className={`w-12 h-12 bg-red-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg ${isTalking ? 'opacity-100' : ''}`}
+                onClick={stopTalkingPigeon}
               >
                 <i className="fas fa-pause text-white"></i>
               </button>

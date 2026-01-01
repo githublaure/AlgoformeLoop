@@ -418,9 +418,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isTrial: normalizeBoolean(req.body.isTrial, false),
         isActive: normalizeBoolean(req.body.isActive, true),
       };
+      // Toujours associer l'abonnement à l'utilisateur authentifié, même si le client
+      // n'envoie pas explicitement l'identifiant. Sans cela, l'abonnement resterait
+      // orphelin et ne remonterait pas dans le dashboard filtré par userId.
       const validatedData = insertSubscriptionSchema.parse({ ...body, userId: req.user.id });
       const subscription = await storage.createSubscription(validatedData);
-      res.status(201).json(subscription);
+
+      // Sécurise la réponse afin que le client récupère bien l'association utilisateur
+      // nécessaire à l'affichage.
+      res.status(201).json({ ...subscription, userId: req.user.id });
     } catch (error) {
       console.error("Subscription creation error:", error);
       res.status(400).json({ message: "Invalid subscription data", error });
@@ -446,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });
       }
-      res.json(subscription);
+      res.json({ ...subscription, userId: req.user.id });
     } catch (error) {
       res.status(400).json({ message: "Invalid subscription data", error });
     }

@@ -21,6 +21,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -61,6 +63,8 @@ type CategoryOption = {
   color: string;
 };
 
+const DEFAULT_BG_COLOR = "#4b5563";
+
 const DEFAULT_CATEGORIES: CategoryOption[] = [
   { value: "entertainment", label: "Divertissement", color: "#7c3aed" },
   { value: "music", label: "Musique", color: "#16a34a" },
@@ -78,9 +82,13 @@ const defaultValues: FormData = {
   usageFrequency: "used",
   nextRenewal: "",
   iconClass: "fas fa-dove",
-  bgColor: "#4b5563",
+  bgColor: DEFAULT_BG_COLOR,
+  categoryColor: DEFAULT_BG_COLOR,
   isActive: true,
   isTrial: false,
+  isSuspect: false,
+  rating: 0,
+  note: "",
 };
 
 export function AddSubscriptionModal({
@@ -94,7 +102,7 @@ export function AddSubscriptionModal({
   const [categories, setCategories] = useState<CategoryOption[]>(DEFAULT_CATEGORIES);
   const [customCategoryName, setCustomCategoryName] = useState("");
   const [customCategoryColor, setCustomCategoryColor] = useState("#4b5563");
-  const [categoryColor, setCategoryColor] = useState<string>(defaultValues.bgColor);
+  const [categoryColor, setCategoryColor] = useState<string>(defaultValues.bgColor ?? DEFAULT_BG_COLOR);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -108,7 +116,7 @@ export function AddSubscriptionModal({
   const resetForm = () => {
     form.reset(defaultValues);
     setSelectedUsage(defaultValues.usageFrequency);
-    setCategoryColor(defaultValues.bgColor);
+    setCategoryColor(defaultValues.bgColor ?? DEFAULT_BG_COLOR);
     setCustomCategoryName("");
     setCustomCategoryColor("#4b5563");
   };
@@ -125,12 +133,13 @@ export function AddSubscriptionModal({
         if (prev.some((cat) => cat.value === subscription.category)) {
           return prev;
         }
+        const color = subscription.bgColor ?? DEFAULT_BG_COLOR;
         return [
           ...prev,
           {
             value: subscription.category,
             label: subscription.category,
-            color: subscription.bgColor || defaultValues.bgColor,
+            color,
           },
         ];
       });
@@ -139,12 +148,18 @@ export function AddSubscriptionModal({
         ...subscription,
         price: subscription.price?.toString() ?? "",
         nextRenewal: formatDateForInput(subscription.nextRenewal),
-        bgColor: subscription.bgColor || defaultValues.bgColor,
+        bgColor: subscription.bgColor ?? DEFAULT_BG_COLOR,
         iconClass: subscription.iconClass || defaultValues.iconClass,
+        rating: subscription.rating ?? 0,
+        isSuspect: subscription.isSuspect ?? false,
+        note: subscription.note ?? "",
+        categoryColor: subscription.categoryColor ?? subscription.bgColor ?? DEFAULT_BG_COLOR,
+        trialEndsAt: subscription.trialEndsAt ? formatDateForInput(subscription.trialEndsAt) : undefined,
+        isTrial: subscription.isTrial ?? false,
       });
 
       setSelectedUsage(subscription.usageFrequency);
-      setCategoryColor(subscription.bgColor || defaultValues.bgColor);
+      setCategoryColor(subscription.bgColor ?? DEFAULT_BG_COLOR);
     } else {
       resetForm();
     }
@@ -253,9 +268,10 @@ export function AddSubscriptionModal({
   const handleCategorySelect = (value: string, onChange: (value: string) => void) => {
     onChange(value);
     const selectedCategory = categories.find((cat) => cat.value === value);
-    const color = selectedCategory?.color || defaultValues.bgColor;
+    const color = selectedCategory?.color || DEFAULT_BG_COLOR;
     setCategoryColor(color);
     form.setValue("bgColor", color);
+    form.setValue("categoryColor", color);
   };
 
   const handleAddCategory = () => {
@@ -272,6 +288,7 @@ export function AddSubscriptionModal({
 
     form.setValue("category", name);
     form.setValue("bgColor", customCategoryColor);
+    form.setValue("categoryColor", customCategoryColor);
     setCategoryColor(customCategoryColor);
     setCustomCategoryName("");
   };
@@ -297,6 +314,33 @@ export function AddSubscriptionModal({
   const handleClose = () => {
     resetForm();
     onClose();
+  };
+
+  const renderStars = () => {
+    const currentRating = form.watch("rating") ?? 0;
+
+    return (
+      <div className="flex items-center space-x-1">
+        {[1, 2, 3, 4, 5].map((star) => {
+          const isActive = star <= currentRating;
+          return (
+            <button
+              key={star}
+              type="button"
+              onClick={() => form.setValue("rating", star)}
+              className="focus:outline-none"
+              aria-label={`Noter ${star} étoiles`}
+            >
+              <Star
+                className={`h-5 w-5 ${isActive ? "text-yellow-400" : "text-gray-300"}`}
+                fill={isActive ? "currentColor" : "none"}
+              />
+            </button>
+          );
+        })}
+        <span className="ml-2 text-xs text-gray-600">{currentRating}/5</span>
+      </div>
+    );
   };
 
   return (

@@ -82,6 +82,29 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
 
   const iconClass = 'fas fa-dove';
 
+  const getRenewalStyles = (subscription: Subscription, daysUntil: number) => {
+    const baseColor = subscription.categoryColor || subscription.bgColor || '#f8fafc';
+    let backgroundColor = baseColor;
+    let borderColor = '#e5e7eb';
+
+    const urgencyBadge = {
+      text: daysUntil > 1 ? `Dans ${daysUntil} jours` : daysUntil === 1 ? 'Demain' : "Aujourd'hui",
+      className: 'bg-green-100 text-green-700',
+    };
+
+    if (daysUntil <= 0) {
+      backgroundColor = '#fef2f2';
+      borderColor = '#ef4444';
+      urgencyBadge.className = 'bg-red-100 text-red-700';
+    } else if (daysUntil <= 3) {
+      backgroundColor = '#fff7ed';
+      borderColor = '#fb923c';
+      urgencyBadge.className = 'bg-orange-100 text-orange-700';
+    }
+
+    return { backgroundColor, borderColor, urgencyBadge };
+  };
+
   const deleteSubscription = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/subscriptions/${id}`);

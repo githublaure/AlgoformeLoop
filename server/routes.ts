@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertSubscriptionSchema, insertVoiceReminderSchema, users } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { generateVoiceReminder } from "./services/voice";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -19,35 +19,115 @@ const normalizeBoolean = (value: any, fallback?: boolean) => {
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
 type DbUser = typeof users.$inferSelect;
 
+let schemaReady = false;
+
+async function ensureSchema() {
+  if (schemaReady) return;
+
+  // Users table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS "users" (
+      "id" serial PRIMARY KEY,
+      "name" text NOT NULL,
+      "email" text NOT NULL UNIQUE,
+      "password" text NOT NULL,
+      "created_at" timestamp DEFAULT now()
+    );
+  `);
+
+  // Subscriptions table with user relation
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS "subscriptions" (
+      "id" serial PRIMARY KEY,
+      "user_id" integer REFERENCES "users"("id"),
+      "name" text NOT NULL,
+      "price" numeric(10, 2) NOT NULL,
+      "frequency" text NOT NULL,
+      "category" text NOT NULL,
+      "category_color" text DEFAULT '#7c3aed',
+      "usage_frequency" text NOT NULL,
+      "next_renewal" timestamp NOT NULL,
+      "icon_class" text,
+      "bg_color" text,
+      "note" text,
+      "rating" integer DEFAULT 0,
+      "is_suspect" boolean DEFAULT false,
+      "is_active" boolean DEFAULT true,
+      "is_trial" boolean DEFAULT false,
+      "trial_ends_at" timestamp,
+      "created_at" timestamp DEFAULT now()
+    );
+  `);
+
+  // Ensure user_id column exists when table already present without migration
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'user_id'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "user_id" integer REFERENCES "users"("id");
+      END IF;
+    END $$;
+  `);
+
+  // Voice reminders table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS "voice_reminders" (
+      "id" serial PRIMARY KEY,
+      "subscription_id" integer REFERENCES "subscriptions"("id"),
+      "audio_url" text,
+      "reminder_type" text NOT NULL,
+      "created_at" timestamp DEFAULT now()
+    );
+  `);
+
+  schemaReady = true;
+}
+
 // Configuration email
-const emailTransporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || 'your-email@gmail.com',
-    pass: process.env.EMAIL_PASS || 'your-app-password'
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
-  debug: true // Active les logs de debug
-});
+const hasEmailConfig = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+
+const emailTransporter = hasEmailConfig
+  ? nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+      debug: true, // Active les logs de debug
+    })
+  : null;
 
 // Vérifier la configuration email au démarrage
-emailTransporter.verify((error, success) => {
-  if (error) {
-    console.log('❌ Erreur de configuration email:', error);
-    console.log('📧 Variables EMAIL_USER et EMAIL_PASS manquantes ou incorrectes');
-  } else {
-    console.log('✅ Configuration email OK');
-  }
-});
+if (emailTransporter) {
+  emailTransporter.verify((error) => {
+    if (error) {
+      console.log("❌ Erreur de configuration email:", error);
+      console.log("📧 Variables EMAIL_USER et EMAIL_PASS manquantes ou incorrectes");
+    } else {
+      console.log("✅ Configuration email OK");
+    }
+  });
+} else {
+  console.log("📧 Configuration email désactivée - variables manquantes");
+}
 
 // Fonction pour envoyer un email
 async function sendResetEmail(email: string, resetToken: string, req: any) {
   const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
 
+  if (!emailTransporter) {
+    console.log("📧 Impossible d'envoyer l'email de réinitialisation: configuration manquante");
+    return false;
+  }
+
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'noreply@pigeonsub.com',
+    from: process.env.EMAIL_USER || "noreply@pigeonsub.com",
     to: email,
     subject: 'PigeonSub - Réinitialisation de votre mot de passe',
     html: `
@@ -105,9 +185,13 @@ const authenticateToken = (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  await ensureSchema();
+
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
     try {
+      await ensureSchema();
+
       const { name, email, password } = req.body;
 
       if (!name || !email || !password) {
@@ -137,12 +221,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: { id: created.id, name: created.name, email: created.email }
       });
     } catch (error) {
+      console.error("Erreur lors de l'inscription:", error);
       res.status(500).json({ message: "Erreur lors de l'inscription" });
     }
   });
 
   app.post("/api/auth/login", async (req, res) => {
     try {
+      await ensureSchema();
+
       const { email, password } = req.body;
 
       if (!email || !password) {
@@ -171,12 +258,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: { id: user.id, name: user.name, email: user.email }
       });
     } catch (error) {
+      console.error("Erreur lors de la connexion:", error);
       res.status(500).json({ message: "Erreur lors de la connexion" });
     }
   });
 
   app.get("/api/auth/me", authenticateToken, async (req: any, res) => {
     try {
+      await ensureSchema();
+
       const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
       if (!user) {
         return res.status(404).json({ message: "Utilisateur non trouvé" });
@@ -184,6 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ id: user.id, name: user.name, email: user.email });
     } catch (error) {
+      console.error("Erreur lors de la récupération du profil:", error);
       res.status(500).json({ message: "Erreur lors de la récupération du profil" });
     }
   });
@@ -293,19 +384,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Subscription routes
-  app.get("/api/subscriptions", async (req, res) => {
+  app.get("/api/subscriptions", authenticateToken, async (req: any, res) => {
     try {
-      const subscriptions = await storage.getSubscriptions();
+      const subscriptions = await storage.getSubscriptions(req.user.id);
       res.json(subscriptions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch subscriptions" });
     }
   });
 
-  app.get("/api/subscriptions/:id", async (req, res) => {
+  app.get("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const subscription = await storage.getSubscription(id);
+      const subscription = await storage.getSubscription(id, req.user.id);
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });
       }
@@ -315,7 +406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/subscriptions", async (req, res) => {
+  app.post("/api/subscriptions", authenticateToken, async (req: any, res) => {
     try {
       const body = {
         ...req.body,
@@ -327,7 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isTrial: normalizeBoolean(req.body.isTrial, false),
         isActive: normalizeBoolean(req.body.isActive, true),
       };
-      const validatedData = insertSubscriptionSchema.parse(body);
+      const validatedData = insertSubscriptionSchema.parse({ ...body, userId: req.user.id });
       const subscription = await storage.createSubscription(validatedData);
       res.status(201).json(subscription);
     } catch (error) {
@@ -336,7 +427,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/subscriptions/:id", async (req, res) => {
+  app.put("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const body = {
@@ -350,7 +441,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: normalizeBoolean(req.body.isActive),
       };
       const validatedData = insertSubscriptionSchema.partial().parse(body);
-      const subscription = await storage.updateSubscription(id, validatedData);
+      delete (validatedData as any).userId;
+      const subscription = await storage.updateSubscription(id, req.user.id, validatedData);
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });
       }
@@ -360,10 +452,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/subscriptions/:id", async (req, res) => {
+  app.delete("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteSubscription(id);
+      const deleted = await storage.deleteSubscription(id, req.user.id);
       if (!deleted) {
         return res.status(404).json({ message: "Subscription not found" });
       }
@@ -373,10 +465,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/subscriptions/upcoming/:days", async (req, res) => {
+  app.get("/api/subscriptions/upcoming/:days", authenticateToken, async (req: any, res) => {
     try {
       const days = parseInt(req.params.days) || 7;
-      const subscriptions = await storage.getUpcomingRenewals(days);
+      const subscriptions = await storage.getUpcomingRenewals(days, req.user.id);
       res.json(subscriptions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch upcoming renewals" });
@@ -429,10 +521,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stats endpoint
-  app.get("/api/stats", async (req, res) => {
+  app.get("/api/stats", authenticateToken, async (req: any, res) => {
     try {
-      const subscriptions = await storage.getSubscriptions();
-      const upcomingRenewals = await storage.getUpcomingRenewals(7);
+      const subscriptions = await storage.getSubscriptions(req.user.id);
+      const upcomingRenewals = await storage.getUpcomingRenewals(7, req.user.id);
       const trials = subscriptions.filter(sub => sub.isTrial);
 
       const normalizeToMonthly = (sub: any) => {

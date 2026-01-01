@@ -12,6 +12,7 @@ import type { Subscription } from "@shared/schema";
 export default function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
+  const [ratingFilter, setRatingFilter] = useState<string>("all");
 
   const { data: subscriptions = [], isLoading } = useQuery<Subscription[]>({
     queryKey: ['/api/subscriptions'],
@@ -196,7 +197,7 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {subscriptions.map((subscription) => (
+                    {filteredSubscriptions.map((subscription) => (
                       <SubscriptionCard
                         key={subscription.id}
                         subscription={subscription}

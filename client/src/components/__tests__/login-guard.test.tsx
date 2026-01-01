@@ -44,13 +44,16 @@ describe("LoginGuard", () => {
     const stop = await screen.findByLabelText("stop-pigeon");
     expect(stop).toBeInTheDocument();
 
-    // Canvas should be visible (opacity-100) and have the animation class and larger size
+    // Canvas should be visible (opacity-100) and have the animation class and be slightly larger
     expect(canvas.className).toContain("opacity-100");
     expect(canvas.className).toContain("pigeon-talk");
-    expect(canvas.className).toContain("w-64");
+    expect(canvas.className).toContain("w-80");
 
     // Play button should be hidden/disabled
     expect(playButton.className).toContain("opacity-0");
+
+    // The stop control should include a visible label "Stop"
+    expect(stop).toHaveTextContent(/stop/i);
 
     // Click stop to stop animation
     await userEvent.click(stop);

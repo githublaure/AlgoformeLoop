@@ -270,8 +270,9 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div className="relative flex items-start justify-center gap-6">
-            <Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <div className="w-full">
+              <Card>
               <CardHeader>
                 <CardTitle>{isLogin ? "Connexion" : "Inscription"}</CardTitle>
                 <CardDescription>
@@ -431,9 +432,10 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
                 </div>
               </CardContent>
             </Card>
+            </div>
 
             {/* Pigeon interactive area placed next to card */}
-            <div className="relative flex-shrink-0 login-pigeon">
+            <div className="relative flex-shrink-0 login-pigeon self-start md:mt-12 mt-4">
               <canvas
                 ref={canvasRef}
                 className={`w-64 h-64 object-contain transition-opacity duration-300 pointer-events-none ${isTalking ? "opacity-100 pigeon-talk" : "opacity-0"}`}
@@ -475,11 +477,12 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               >
                 <button
                   type="button"
-                  aria-label="pause-pigeon"
+                  aria-label="stop-pigeon"
+                  title="Stop"
                   className={`w-12 h-12 bg-red-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg ${isTalking ? "opacity-100" : ""}`}
                   onClick={stopTalkingPigeon}
                 >
-                  <i className="fas fa-pause text-white"></i>
+                  <i className="fas fa-stop text-white"></i>
                 </button>
               </div>
             </div>

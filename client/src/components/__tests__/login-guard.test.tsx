@@ -40,9 +40,9 @@ describe("LoginGuard", () => {
     // Click play
     await userEvent.click(playButton);
 
-    // Pause button should appear (play -> pause)
-    const pause = await screen.findByLabelText("pause-pigeon");
-    expect(pause).toBeInTheDocument();
+    // Stop button should appear (play -> stop)
+    const stop = await screen.findByLabelText("stop-pigeon");
+    expect(stop).toBeInTheDocument();
 
     // Canvas should be visible (opacity-100) and have the animation class and larger size
     expect(canvas.className).toContain("opacity-100");
@@ -52,10 +52,10 @@ describe("LoginGuard", () => {
     // Play button should be hidden/disabled
     expect(playButton.className).toContain("opacity-0");
 
-    // Click pause to stop animation
-    await userEvent.click(pause);
+    // Click stop to stop animation
+    await userEvent.click(stop);
 
-    // Pause should be hidden and canvas should stop animating and hide
+    // Stop should be hidden and canvas should stop animating and hide
     expect(canvas.className).not.toContain("pigeon-talk");
     expect(canvas.className).toContain("opacity-0");
     expect(playButton.className).not.toContain("opacity-0");

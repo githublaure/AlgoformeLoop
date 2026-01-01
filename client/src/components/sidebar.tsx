@@ -1,3 +1,4 @@
+import React from "react";
 import { Link, useLocation } from "wouter";
 import { VoiceControls } from "./voice-controls";
 
@@ -32,13 +33,35 @@ export function Sidebar({ onAddSubscription }: SidebarProps) {
           <i className="fas fa-plus"></i>
           <span>Ajouter un abonnement</span>
         </button>
-        <a
-          href="#essais-gratuits"
+        <button
+          type="button"
+          onClick={() => {
+            // Navigate to the dashboard and scroll to the trials section
+            // Use a small timeout to allow route change to complete
+            const tryScroll = () => {
+              const el = document.getElementById('essais-gratuits');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+                return true;
+              }
+              return false;
+            };
+
+            // If we're already on the dashboard, just scroll
+            if (location === '/') {
+              tryScroll();
+              return;
+            }
+
+            // Otherwise navigate to '/' and attempt to scroll shortly after
+            (window as any).location = '/#essais-gratuits';
+            setTimeout(tryScroll, 300);
+          }}
           className="flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <i className="fas fa-calendar-alt"></i>
           <span>Essais gratuits</span>
-        </a>
+        </button>
         <Link href="/stats">
           <a className={linkClass("/stats")}>
             <i className="fas fa-chart-pie"></i>

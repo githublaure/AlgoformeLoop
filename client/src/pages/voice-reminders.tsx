@@ -1,7 +1,9 @@
+import React from 'react';
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { LoginGuard } from "@/components/login-guard";
 import { VoiceControls } from "@/components/voice-controls";
+import { AddSubscriptionModal } from "@/components/add-subscription-modal";
 import { useQuery } from "@tanstack/react-query";
 import type { VoiceReminder, Subscription } from "@shared/schema";
 import { useState } from "react";
@@ -10,6 +12,8 @@ export default function VoiceRemindersPage() {
   const { data: reminders = [] } = useQuery<VoiceReminder[]>({ queryKey: ["/api/voice/reminders"] });
   const { data: subscriptions = [] } = useQuery<Subscription[]>({ queryKey: ["/api/subscriptions"] });
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
 
   const playAudio = (audioUrl: string) => {
     if (currentAudio) {
@@ -32,7 +36,12 @@ export default function VoiceRemindersPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div className="lg:col-span-1">
-              <Sidebar />
+              <Sidebar
+                onAddSubscription={() => {
+                  setEditingSubscription(null);
+                  setIsAddModalOpen(true);
+                }}
+              />
             </div>
 
             <div className="lg:col-span-3 space-y-8">
@@ -85,6 +94,16 @@ export default function VoiceRemindersPage() {
           </div>
         </div>
       </div>
+
+      <AddSubscriptionModal
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingSubscription(null);
+        }}
+        subscription={editingSubscription || undefined}
+      />
+
     </LoginGuard>
   );
 }

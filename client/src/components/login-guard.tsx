@@ -473,7 +473,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               </div>
 
               <div
-                className={`absolute bottom-1 right-1 ${isTalking ? "" : "pointer-events-none opacity-0"}`}
+                className={`absolute bottom-6 right-3 ${isTalking ? "" : "pointer-events-none opacity-0"}`}
               >
                 <button
                   type="button"

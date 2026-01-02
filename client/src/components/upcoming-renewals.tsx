@@ -202,7 +202,31 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
                       <i className={`${iconClass} text-white`}></i>
                     </div>
                     <div>
-                      <h3 className="font-medium">{subscription.name}</h3>
+                      <div className="flex items-center">
+                        <h3 className="font-medium">{subscription.name}</h3>
+                        {(flaggedSuspect || ratedPigeoned) && (
+                          <div className="ml-2 flex items-center space-x-1">
+                            {flaggedSuspect && (
+                              <img
+                                src="/pigeon3.png"
+                                alt="Abonnement suspect"
+                                role="img"
+                                aria-label="pigeon-suspect"
+                                className="w-6 h-6"
+                              />
+                            )}
+                            {ratedPigeoned && (
+                              <img
+                                src="/pigeon2.png"
+                                alt="Abonnement pigeonné"
+                                role="img"
+                                aria-label="pigeon-pigeonned"
+                                className="w-6 h-6"
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600">
                         {formatRenewalDate(subscription.nextRenewal)} • €{subscription.price}/{subscription.frequency === 'monthly' ? 'mois' : 'an'}
                       </p>

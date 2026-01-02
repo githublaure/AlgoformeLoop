@@ -195,13 +195,26 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
             <div className="flex items-center">
               <h3 className="font-medium">{subscription.name}</h3>
               {(isSuspect || pigeoned) && (
-                <img
-                  src={subscription.usageFrequency !== 'very_used' ? '/pigeon3.png' : '/pigeon2.png'}
-                  alt="Pigeon suspect"
-                  role="img"
-                  aria-label="pigeon-flag"
-                  className="w-6 h-6 ml-2"
-                />
+                <div className="ml-2 flex items-center space-x-1">
+                  {isSuspect && (
+                    <img
+                      src="/pigeon3.png"
+                      alt="Abonnement suspect"
+                      role="img"
+                      aria-label="pigeon-suspect"
+                      className="w-6 h-6"
+                    />
+                  )}
+                  {pigeoned && (
+                    <img
+                      src="/pigeon2.png"
+                      alt="Abonnement pigeonné"
+                      role="img"
+                      aria-label="pigeon-pigeonned"
+                      className="w-6 h-6"
+                    />
+                  )}
+                </div>
               )}
             </div>
             <p className="text-sm text-gray-600">{getCategoryLabel(subscription.category)}</p>

@@ -5,6 +5,7 @@ import type { Subscription } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/calendar";
+import { isPigeoned } from "@shared/subscription-utils";
 
 interface UpcomingRenewalsProps {
   onEdit?: (subscription: Subscription) => void;
@@ -184,6 +185,8 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
             {renewals.map((subscription) => {
               const daysUntil = Math.ceil((new Date(subscription.nextRenewal).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
               const { backgroundColor, borderColor, urgencyBadge } = getRenewalStyles(subscription, daysUntil);
+              const flaggedSuspect = subscription.isSuspect ?? false;
+              const ratedPigeoned = isPigeoned(subscription);
 
               return (
                 <div
@@ -199,7 +202,31 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
                       <i className={`${iconClass} text-white`}></i>
                     </div>
                     <div>
-                      <h3 className="font-medium">{subscription.name}</h3>
+                      <div className="flex items-center">
+                        <h3 className="font-medium">{subscription.name}</h3>
+                        {(flaggedSuspect || ratedPigeoned) && (
+                          <div className="ml-2 flex items-center space-x-1">
+                            {flaggedSuspect && (
+                              <img
+                                src="/pigeon3.png"
+                                alt="Abonnement suspect"
+                                role="img"
+                                aria-label="pigeon-suspect"
+                                className="w-6 h-6"
+                              />
+                            )}
+                            {ratedPigeoned && (
+                              <img
+                                src="/pigeon2.png"
+                                alt="Abonnement pigeonné"
+                                role="img"
+                                aria-label="pigeon-pigeonned"
+                                className="w-6 h-6"
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600">
                         {formatRenewalDate(subscription.nextRenewal)} • €{subscription.price}/{subscription.frequency === 'monthly' ? 'mois' : 'an'}
                       </p>
@@ -207,8 +234,11 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
                         <span className={`inline-flex items-center rounded-full px-3 py-1 ${urgencyBadge.className}`}>
                           {urgencyBadge.text}
                         </span>
-                        {subscription.isSuspect && (
+                        {flaggedSuspect && (
                           <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">Suspect</span>
+                        )}
+                        {ratedPigeoned && (
+                          <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-700">Pigeonné</span>
                         )}
                         {subscription.isTrial && (
                           <span className="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700">

@@ -7,31 +7,13 @@ export default function Test() {
   const [isTalking, setIsTalking] = useState(false);
   const [renderMode, setRenderMode] = useState<'canvas' | 'video'>('canvas');
   const videoRef = useRef<HTMLVideoElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
-  const videoSrc = new URL('/test/Introduction-To-Cybersecurity.mp4', import.meta.env.BASE_URL).toString();
-  const audioSrc = new URL('/test/fit-attention presentation.mp3', import.meta.env.BASE_URL).toString();
+  const baseUrl = `${(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}/`;
+  const videoSrc = `${baseUrl}test/Introduction-To-Cybersecurity.mp4`;
 
   // Démarrer automatiquement la vidéo au chargement de la page
   useEffect(() => {
-    // Vérifier que les fichiers sont accessibles
-    const checkFiles = async () => {
-      try {
-        const videoResponse = await fetch(videoSrc);
-        const audioResponse = await fetch(audioSrc);
-        
-        console.log("Vérification fichiers:", {
-          video: videoResponse.ok ? "OK" : "Manquant",
-          audio: audioResponse.ok ? "OK" : "Manquant"
-        });
-      } catch (error) {
-        console.log("Erreur vérification fichiers:", error);
-      }
-    };
-
-    checkFiles();
-
     // Petit délai pour s'assurer que les refs sont prêtes
     const timer = setTimeout(() => {
       startVideo();
@@ -149,7 +131,6 @@ export default function Test() {
 
   const startVideo = () => {
     const video = videoRef.current;
-    const audio = audioRef.current;
 
     if (video && !isTalking) {
       // S'assurer que les métadonnées sont chargées
@@ -176,46 +157,23 @@ export default function Test() {
       }).catch(error => {
         console.log("Erreur de lecture vidéo .mov:", error);
         setRenderMode('video');
-        // Fallback: essayer avec l'audio séparé
-        if (audio) {
-          video.muted = true;
-          audio.volume = 0.8;
-          audio.currentTime = 0;
-
-          Promise.all([
-            video.play(),
-            audio.play()
-          ]).then(() => {
-            setIsTalking(true);
-            setRenderMode('canvas');
-            processFrame();
-            console.log("Fallback audio lancé pour .mov");
-          }).catch(err => {
-            console.log("Erreur fallback:", err);
-            // Dernière tentative: vidéo muette seulement
-            video.play().then(() => {
-              setIsTalking(true);
-              setRenderMode('video');
-              processFrame();
-              console.log("Vidéo .mov muette lancée");
-            });
-          });
-        }
+        // Dernière tentative: vidéo muette seulement
+        video.play().then(() => {
+          setIsTalking(true);
+          setRenderMode('video');
+          processFrame();
+          console.log("Vidéo .mov muette lancée");
+        });
       });
     }
   };
 
   const stopVideo = () => {
     const video = videoRef.current;
-    const audio = audioRef.current;
 
     if (video) {
       video.pause();
       video.currentTime = 0;
-      if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
@@ -334,10 +292,6 @@ export default function Test() {
         </div>
       </div>
 
-      {/* Audio de backup si besoin */}
-      <audio ref={audioRef} preload="metadata" onEnded={handleVideoEnd} style={{ display: 'none' }}>
-        <source src={audioSrc} type="audio/mpeg" />
-      </audio>
     </div>
   );
 }

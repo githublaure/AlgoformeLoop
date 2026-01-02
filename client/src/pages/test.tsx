@@ -13,11 +13,10 @@ export default function Test() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
 
-  const baseUrl = `${(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}/`;
   const assets = {
-    background: `${baseUrl}test/video1m44.mov`,
-    avatar: `${baseUrl}pigeon_talking.mp4`,
-    voice: `${baseUrl}test/fit-attention presentation.mp3`,
+    background: '/test/video1m44.mov',
+    avatar: '/pigeon_talking.mp4',
+    voice: '/test/fit-attention presentation.mp3',
   };
 
   useEffect(() => {

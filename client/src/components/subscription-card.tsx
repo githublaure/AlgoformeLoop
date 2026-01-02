@@ -1,3 +1,4 @@
+import React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -176,7 +177,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className={`border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${!subscription.isActive ? 'opacity-60 bg-gray-50' : ''}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
           <div
@@ -188,18 +189,28 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
             <i className={`${subscription.iconClass || 'fas fa-dove'} text-white`}></i>
           </div>
           <div>
-            <h3 className="font-medium">{subscription.name}</h3>
+            <div className="flex items-center">
+              <h3 className="font-medium">{subscription.name}</h3>
+              {subscription.isSuspect && (
+                <img src="/pigeongangsta.png" alt="Pigeon suspect" role="img" aria-label="pigeon-flag" className="w-4 h-4 ml-2" />
+              )}
+            </div>
             <p className="text-sm text-gray-600">{getCategoryLabel(subscription.category)}</p>
-            {(subscription.isTrial || subscription.isSuspect) && (
+            {(subscription.isTrial || subscription.isSuspect || !subscription.isActive) && (
               <div className="mt-1 flex flex-wrap gap-2 text-xs">
                 {subscription.isTrial && (
                   <span className="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700">
                     Essai gratuit
                   </span>
                 )}
-                {subscription.isSuspect && (
+                {subscription.isSuspect && subscription.usageFrequency !== 'very_used' && (
                   <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
                     Risque d'arnaque
+                  </span>
+                )}
+                {!subscription.isActive && (
+                  <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-700">
+                    Archivé
                   </span>
                 )}
               </div>

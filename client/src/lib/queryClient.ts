@@ -36,7 +36,27 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const token = typeof localStorage !== "undefined" ? localStorage.getItem("authToken") : null;
-    const res = await fetch(queryKey[0] as string, {
+    const base = queryKey[0] as string;
+    let url = base;
+
+    // Support optional params in queryKey[1]
+    if (queryKey.length > 1) {
+      const params = queryKey[1] as any;
+      if (params && typeof params === 'object') {
+        const sp = new URLSearchParams();
+        for (const k of Object.keys(params)) {
+          const v = params[k];
+          if (v !== undefined && v !== null) sp.append(k, String(v));
+        }
+        const queryString = sp.toString();
+        if (queryString.length) url = `${base}?${queryString}`;
+      } else if (params !== undefined) {
+        // support boolean or primitive as includeArchived
+        url = `${base}?includeArchived=${String(params)}`;
+      }
+    }
+
+    const res = await fetch(url, {
       credentials: "include",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });

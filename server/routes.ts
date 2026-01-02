@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertSubscriptionSchema, insertVoiceReminderSchema, users } from "@shared/schema";
-import { db } from "./db";
+// db is imported lazily inside functions to avoid requiring DATABASE_URL during tests
 import { eq, sql } from "drizzle-orm";
 import { generateVoiceReminder } from "./services/voice";
 import jwt from "jsonwebtoken";
@@ -23,6 +23,7 @@ let schemaReady = false;
 
 async function backfillOrphanSubscriptions(userId: number) {
   // Ré-associe les abonnements historiques sans user_id à l'utilisateur courant
+  const { db } = await import('./db');
   await db.execute(sql`
     UPDATE "subscriptions"
     SET "user_id" = ${userId}
@@ -32,6 +33,7 @@ async function backfillOrphanSubscriptions(userId: number) {
 
 async function ensureSchema() {
   if (schemaReady) return;
+  const { db } = await import('./db');
 
   // Users table
   await db.execute(sql`
@@ -254,12 +256,14 @@ const authenticateToken = (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  await ensureSchema();
+  // Skip schema creation in test env to avoid requiring DATABASE_URL
+  if (process.env.NODE_ENV !== 'test') await ensureSchema();
 
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
     try {
       await ensureSchema();
+      const { db } = await import('./db');
 
       const { name, email, password } = req.body;
 
@@ -298,6 +302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req, res) => {
     try {
       await ensureSchema();
+      const { db } = await import('./db');
 
       const { email, password } = req.body;
 
@@ -335,6 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/me", authenticateToken, async (req: any, res) => {
     try {
       await ensureSchema();
+      const { db } = await import('./db');
 
       const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
       if (!user) {
@@ -357,6 +363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Mot de passe actuel et nouveau mot de passe requis" });
       }
 
+      const { db } = await import('./db');
       const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
       if (!user) {
         return res.status(404).json({ message: "Utilisateur non trouvé" });
@@ -390,6 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email requis" });
       }
 
+      const { db } = await import('./db');
       const [user] = await db.select().from(users).where(eq(users.email, email));
       if (!user) {
         // Pour des raisons de sécurité, on retourne toujours le même message
@@ -431,6 +439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Token invalide" });
       }
 
+      const { db } = await import('./db');
       const [user] = await db.select().from(users).where(eq(users.id, decoded.id));
       if (!user) {
         return res.status(404).json({ message: "Utilisateur non trouvé" });
@@ -456,8 +465,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/subscriptions", authenticateToken, async (req: any, res) => {
     try {
       await ensureSchema();
-      await backfillOrphanSubscriptions(req.user.id);
-      const subscriptions = await storage.getSubscriptions(req.user.id);
+      const includeArchived = normalizeBoolean(req.query.includeArchived, false);
+      const subscriptions = await storage.getSubscriptions(req.user.id, includeArchived);
       res.json(subscriptions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch subscriptions" });
@@ -467,7 +476,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/subscriptions/:id", authenticateToken, async (req: any, res) => {
     try {
       await ensureSchema();
-      await backfillOrphanSubscriptions(req.user.id);
       const id = parseInt(req.params.id);
       const subscription = await storage.getSubscription(id, req.user.id);
       if (!subscription) {
@@ -598,6 +606,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+
   app.get("/api/voice/reminders/:subscriptionId", async (req, res) => {
     try {
       const subscriptionId = parseInt(req.params.subscriptionId);
@@ -620,9 +630,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stats endpoint
   app.get("/api/stats", authenticateToken, async (req: any, res) => {
     try {
-      await ensureSchema();
-      await backfillOrphanSubscriptions(req.user.id);
-      const subscriptions = await storage.getSubscriptions(req.user.id);
+      // Skip schema creation in tests
+      if (process.env.NODE_ENV !== 'test') await ensureSchema();
+      const includeArchived = normalizeBoolean(req.query.includeArchived, false);
+      const subscriptions = await storage.getSubscriptions(req.user.id, includeArchived);
       const upcomingRenewals = await storage.getUpcomingRenewals(7, req.user.id);
       const trials = subscriptions.filter(sub => sub.isTrial);
 
@@ -636,11 +647,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const monthlyTotal = subscriptions
         .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
 
+      // Consider only suspect subscriptions that are not marked as 'very_used'
       const suspectTotal = subscriptions
-        .filter(sub => sub.isSuspect)
+        .filter(sub => sub.isSuspect && sub.usageFrequency !== 'very_used')
         .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
 
-      const suspectCount = subscriptions.filter(sub => sub.isSuspect).length;
+      const suspectCount = subscriptions.filter(sub => sub.isSuspect && sub.usageFrequency !== 'very_used').length;
 
       const wastedEstimate = subscriptions
         .filter(sub => sub.usageFrequency === 'rarely_used')

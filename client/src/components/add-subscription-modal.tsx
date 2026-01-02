@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -148,15 +148,18 @@ export function AddSubscriptionModal({
 
     if (subscription) {
       setCategories((prev) => {
-        if (prev.some((cat) => cat.value === subscription.category)) {
+        // don't add empty category values (they create a SelectItem with value="" which Radix forbids)
+        const catVal = subscription.category?.toString().trim();
+        if (!catVal) return prev;
+        if (prev.some((cat) => cat.value === catVal)) {
           return prev;
         }
         const color = subscription.bgColor ?? DEFAULT_BG_COLOR;
         return [
           ...prev,
           {
-            value: subscription.category,
-            label: subscription.category,
+            value: catVal,
+            label: catVal,
             color,
           },
         ];
@@ -164,6 +167,7 @@ export function AddSubscriptionModal({
 
       form.reset({
         ...subscription,
+        category: subscription.category || DEFAULT_CATEGORY,
         price: subscription.price?.toString() ?? "",
         nextRenewal: formatDateForInput(subscription.nextRenewal),
         bgColor: subscription.bgColor ?? DEFAULT_BG_COLOR,

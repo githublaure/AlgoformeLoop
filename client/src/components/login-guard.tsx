@@ -166,17 +166,36 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
     animationRef.current = requestAnimationFrame(processFrame);
   };
 
+  const ensureVideoReady = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.readyState >= 2) {
+      setupVideoProcessing();
+      return;
+    }
+
+    // Force the load so that metadata is available
+    video.load();
+    video.addEventListener("loadeddata", setupVideoProcessing, { once: true });
+  };
+
   const startTalkingPigeon = () => {
     if (videoRef.current && !isTalking) {
+      const video = videoRef.current;
       // set state immediately so UI reflects play
       setIsTalking(true);
+
+      ensureVideoReady();
+
       // Enlever le mode muet pour activer le son
-      videoRef.current.muted = false;
-      videoRef.current.volume = 0.7; // Volume à 70%
+      video.muted = false;
+      video.volume = 0.7; // Volume à 70%
+      video.currentTime = 0;
 
       // play() may not return a promise in some environments; wrap in Promise.resolve
       try {
-        const res = videoRef.current.play();
+        const res = video.play();
         Promise.resolve(res)
           .then(() => {
             processFrame();
@@ -184,8 +203,8 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
           .catch((error) => {
             // fallback: try playing muted
             console.log("Erreur de lecture audio:", error);
-            videoRef.current!.muted = true;
-            Promise.resolve(videoRef.current!.play())
+            video.muted = true;
+            Promise.resolve(video.play())
               .then(() => {
                 processFrame();
               })
@@ -193,9 +212,9 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
           });
       } catch (error) {
         // synchronous throw - fallback
-        videoRef.current.muted = true;
+        video.muted = true;
         try {
-          Promise.resolve(videoRef.current.play())
+          Promise.resolve(video.play())
             .then(() => {
               processFrame();
             })
@@ -448,6 +467,8 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               <video
                 ref={videoRef}
                 className="hidden"
+                playsInline
+                preload="auto"
                 loop
                 onEnded={() => setIsTalking(false)}
                 onLoadedData={setupVideoProcessing}

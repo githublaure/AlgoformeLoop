@@ -15,7 +15,7 @@ export default function Test() {
     // Vérifier que les fichiers sont accessibles
     const checkFiles = async () => {
       try {
-        const videoResponse = await fetch('/test/video1m44.mov');
+        const videoResponse = await fetch('/test/Introduction-To-Cybersecurity.mp4');
         const audioResponse = await fetch('/test/fit-attention presentation.mp3');
         
         console.log("Vérification fichiers:", {
@@ -310,8 +310,7 @@ export default function Test() {
         playsInline
         controls={false}
       >
-        <source src="/test/video1m44.mov" type="video/quicktime" />
-        <source src="/test/video1m44.mov" type="video/mp4" />
+        <source src="/test/Introduction-To-Cybersecurity.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
 

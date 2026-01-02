@@ -116,6 +116,10 @@ Va voir la page `/demo` pour une démo complète avec :
 - **Témoignages** : De Pierre Pigeon et Marie Colombe (ils existent vraiment !)
 - **Fonctionnalités en action** : Tout ce que l'app peut faire
 
+### ℹ️ Astuce sur les fichiers binaires de la démo
+
+Si tu vois l'avertissement « Binary files are not supported » dans l'interface GitHub, c'est normal : la vidéo de démonstration est un fichier binaire que GitHub ne peut pas prévisualiser en diff. Pour éviter d'alourdir la PR, le fichier `Introduction-To-Cybersecurity.mp4` n'est pas commité ; il est toutefois déjà présent dans l'espace Replit. Pour le tester en local, place simplement la vidéo dans `client/public/test/` (même nom de fichier) avant d'ouvrir la page `/test`.
+
 ## 🛠️ API Endpoints
 
 ### Authentification

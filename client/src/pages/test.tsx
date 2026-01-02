@@ -5,30 +5,15 @@ import { useLocation } from 'wouter';
 export default function Test() {
   const [, setLocation] = useLocation();
   const [isTalking, setIsTalking] = useState(false);
+  const [renderMode, setRenderMode] = useState<'canvas' | 'video'>('canvas');
   const videoRef = useRef<HTMLVideoElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
+  const baseUrl = `${(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}/`;
+  const videoSrc = `${baseUrl}test/Introduction-To-Cybersecurity.mp4`;
 
   // Démarrer automatiquement la vidéo au chargement de la page
   useEffect(() => {
-    // Vérifier que les fichiers sont accessibles
-    const checkFiles = async () => {
-      try {
-        const videoResponse = await fetch('/test/video1m44.mov');
-        const audioResponse = await fetch('/test/fit-attention presentation.mp3');
-        
-        console.log("Vérification fichiers:", {
-          video: videoResponse.ok ? "OK" : "Manquant",
-          audio: audioResponse.ok ? "OK" : "Manquant"
-        });
-      } catch (error) {
-        console.log("Erreur vérification fichiers:", error);
-      }
-    };
-
-    checkFiles();
-
     // Petit délai pour s'assurer que les refs sont prêtes
     const timer = setTimeout(() => {
       startVideo();
@@ -46,9 +31,10 @@ export default function Test() {
     }
 
     // Attendre que les métadonnées soient chargées pour .mov
-    if (video.readyState >= 1) {
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
+    if (video.readyState >= 1 && video.videoWidth && video.videoHeight) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      setRenderMode('canvas');
       console.log("Configuration vidéo:", {
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
@@ -66,8 +52,16 @@ export default function Test() {
     const canvas = canvasRef.current;
     if (!video || !canvas || video.paused || video.ended) return;
 
+    if (!video.videoWidth || !video.videoHeight) {
+      setRenderMode('video');
+      return;
+    }
+
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      setRenderMode('video');
+      return;
+    }
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -137,7 +131,6 @@ export default function Test() {
 
   const startVideo = () => {
     const video = videoRef.current;
-    const audio = audioRef.current;
 
     if (video && !isTalking) {
       // S'assurer que les métadonnées sont chargées
@@ -158,48 +151,29 @@ export default function Test() {
       // Essayer de lire la vidéo avec son
       video.play().then(() => {
         setIsTalking(true);
+        setRenderMode('canvas');
         processFrame();
         console.log("Vidéo .mov lancée avec succès");
       }).catch(error => {
         console.log("Erreur de lecture vidéo .mov:", error);
-        // Fallback: essayer avec l'audio séparé
-        if (audio) {
-          video.muted = true;
-          audio.volume = 0.8;
-          audio.currentTime = 0;
-          
-          Promise.all([
-            video.play(),
-            audio.play()
-          ]).then(() => {
-            setIsTalking(true);
-            processFrame();
-            console.log("Fallback audio lancé pour .mov");
-          }).catch(err => {
-            console.log("Erreur fallback:", err);
-            // Dernière tentative: vidéo muette seulement
-            video.play().then(() => {
-              setIsTalking(true);
-              processFrame();
-              console.log("Vidéo .mov muette lancée");
-            });
-          });
-        }
+        setRenderMode('video');
+        // Dernière tentative: vidéo muette seulement
+        video.play().then(() => {
+          setIsTalking(true);
+          setRenderMode('video');
+          processFrame();
+          console.log("Vidéo .mov muette lancée");
+        });
       });
     }
   };
 
   const stopVideo = () => {
     const video = videoRef.current;
-    const audio = audioRef.current;
 
     if (video) {
       video.pause();
       video.currentTime = 0;
-      if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
@@ -243,13 +217,31 @@ export default function Test() {
       {/* Vidéo en plein écran */}
       <div className="absolute inset-0 flex items-center justify-center">
         {isTalking ? (
-          <canvas
-            ref={canvasRef}
-            className="max-w-full max-h-full object-contain"
-            style={{ 
-              filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.3))',
-            }}
-          />
+          <div className="relative w-full h-full flex items-center justify-center">
+            <video
+              ref={videoRef}
+              className={`max-w-full max-h-full object-contain ${renderMode === 'canvas' ? 'opacity-0 pointer-events-none absolute' : ''}`}
+              onEnded={handleVideoEnd}
+              onLoadedMetadata={setupVideoProcessing}
+              onError={() => setRenderMode('video')}
+              preload="metadata"
+              playsInline
+              controls={false}
+            >
+              <source src={videoSrc} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+
+            {renderMode === 'canvas' && (
+              <canvas
+                ref={canvasRef}
+                className="max-w-full max-h-full object-contain"
+                style={{
+                  filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.3))',
+                }}
+              />
+            )}
+          </div>
         ) : (
           <div className="text-center">
             <div className="w-64 h-64 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-full flex items-center justify-center border-2 border-white/30 backdrop-blur-sm mb-8">
@@ -300,25 +292,6 @@ export default function Test() {
         </div>
       </div>
 
-      {/* Vidéo avec audio intégré */}
-      <video
-        ref={videoRef}
-        className="hidden"
-        onEnded={handleVideoEnd}
-        onLoadedData={setupVideoProcessing}
-        preload="metadata"
-        playsInline
-        controls={false}
-      >
-        <source src="/test/video1m44.mov" type="video/quicktime" />
-        <source src="/test/video1m44.mov" type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
-
-      {/* Audio de backup si besoin */}
-      <audio ref={audioRef} preload="metadata" onEnded={handleVideoEnd} style={{ display: 'none' }}>
-        <source src="/test/fit-attention presentation.mp3" type="audio/mpeg" />
-      </audio>
     </div>
   );
 }

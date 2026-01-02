@@ -438,7 +438,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             <div className="relative flex-shrink-0 login-pigeon md:w-72 self-start mt-4 md:mt-0 md:border-l md:border-gray-200 md:border-opacity-20 md:pl-6">
               <canvas
                 ref={canvasRef}
-                className={`object-contain transition-all duration-300 pointer-events-none ${isTalking ? "opacity-100 pigeon-talk w-80 h-80" : "opacity-0 w-64 h-64"}`}
+                className={`object-contain transition-all duration-300 pointer-events-none ${isTalking ? "opacity-100 pigeon-talk w-96 h-96" : "opacity-0 w-64 h-64"}`}
                 style={{
                   display: "block",
                   borderRadius: "16px",
@@ -458,7 +458,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               <img
                 src="/pigeongangsta.png"
                 alt="PigeonSub mascot"
-                className={`object-contain transition-all duration-300 ${isTalking ? "opacity-0 pointer-events-none w-80 h-80" : "opacity-100 w-64 h-64"}`}
+                className={`object-contain transition-all duration-300 ${isTalking ? "opacity-0 pointer-events-none w-96 h-96" : "opacity-100 w-64 h-64"}`}
               />
 
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -473,13 +473,13 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               </div>
 
               <div
-                className={`absolute bottom-2 right-2 ${isTalking ? "" : "pointer-events-none opacity-0"}`}
+                className={`absolute bottom-1 right-1 ${isTalking ? "" : "pointer-events-none opacity-0"}`}
               >
                 <button
                   type="button"
                   aria-label="stop-pigeon"
                   title="Stop"
-                  className={`bg-red-500 rounded-full flex items-center gap-2 text-white px-3 py-2 shadow-lg ${isTalking ? "opacity-100" : ""}`}
+                  className={`bg-red-500 rounded-full flex items-center gap-2 text-white px-2 py-1 shadow-lg ${isTalking ? "opacity-100" : ""}`}
                   onClick={stopTalkingPigeon}
                 >
                   <i className="fas fa-stop"></i>

@@ -47,7 +47,7 @@ describe("LoginGuard", () => {
     // Canvas should be visible (opacity-100) and have the animation class and be slightly larger
     expect(canvas.className).toContain("opacity-100");
     expect(canvas.className).toContain("pigeon-talk");
-    expect(canvas.className).toContain("w-80");
+    expect(canvas.className).toContain("w-96");
 
     // Play button should be hidden/disabled
     expect(playButton.className).toContain("opacity-0");

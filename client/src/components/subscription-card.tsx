@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/calendar";
 import type { Subscription } from "@shared/schema";
+import { isPigeoned } from "@shared/subscription-utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CalendarPlus, Pencil, Trash2 } from "lucide-react";
@@ -16,6 +17,8 @@ interface SubscriptionCardProps {
 export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const pigeoned = isPigeoned(subscription);
+  const isSuspect = subscription.isSuspect ?? false;
 
   const deleteSubscription = useMutation({
     mutationFn: async (id: number) => {
@@ -191,27 +194,45 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
           <div>
             <div className="flex items-center">
               <h3 className="font-medium">{subscription.name}</h3>
-              {subscription.isSuspect && (
-                <img
-                  src={subscription.usageFrequency !== 'very_used' ? '/pigeon3.png' : '/pigeon2.png'}
-                  alt="Pigeon suspect"
-                  role="img"
-                  aria-label="pigeon-flag"
-                  className="w-6 h-6 ml-2"
-                />
+              {(isSuspect || pigeoned) && (
+                <div className="ml-2 flex items-center space-x-1">
+                  {isSuspect && (
+                    <img
+                      src="/pigeon3.png"
+                      alt="Abonnement suspect"
+                      role="img"
+                      aria-label="pigeon-suspect"
+                      className="w-6 h-6"
+                    />
+                  )}
+                  {pigeoned && (
+                    <img
+                      src="/pigeon2.png"
+                      alt="Abonnement pigeonné"
+                      role="img"
+                      aria-label="pigeon-pigeonned"
+                      className="w-6 h-6"
+                    />
+                  )}
+                </div>
               )}
             </div>
             <p className="text-sm text-gray-600">{getCategoryLabel(subscription.category)}</p>
-            {(subscription.isTrial || subscription.isSuspect || !subscription.isActive) && (
+            {(subscription.isTrial || isSuspect || pigeoned || !subscription.isActive) && (
               <div className="mt-1 flex flex-wrap gap-2 text-xs">
                 {subscription.isTrial && (
                   <span className="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700">
                     Essai gratuit
                   </span>
                 )}
-                {subscription.isSuspect && subscription.usageFrequency !== 'very_used' && (
+                {isSuspect && subscription.usageFrequency !== 'very_used' && (
                   <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
                     Risque d'arnaque
+                  </span>
+                )}
+                {pigeoned && (
+                  <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-700">
+                    Pigeonné (≤ 2★)
                   </span>
                 )}
                 {!subscription.isActive && (

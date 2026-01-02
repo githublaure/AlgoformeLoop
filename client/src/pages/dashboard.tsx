@@ -1,3 +1,4 @@
+import React from 'react'
 import { Header } from "../components/header";
 import { Sidebar } from "../components/sidebar";
 import { StatsOverview } from "../components/stats-overview";
@@ -13,17 +14,40 @@ export default function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
   const [ratingFilter, setRatingFilter] = useState<string>("all");
+  const [pigeonFilter, setPigeonFilter] = useState<string>("all");
+  const [upcomingFilter, setUpcomingFilter] = useState<string>("all");
+
+  const [includeArchived, setIncludeArchived] = useState<boolean>(false);
 
   const { data: subscriptions = [], isLoading } = useQuery<Subscription[]>({
-    queryKey: ['/api/subscriptions'],
+    queryKey: ['/api/subscriptions', { includeArchived }],
   });
 
   const trials = subscriptions.filter((subscription) => subscription.isTrial);
   const suspects = subscriptions.filter((subscription) => subscription.isSuspect);
+
   const filteredSubscriptions = subscriptions.filter((subscription) => {
-    if (ratingFilter === "all") return true;
-    const ratingValue = Number(ratingFilter);
-    return (subscription.rating ?? 0) >= ratingValue;
+    // Rating filter
+    if (ratingFilter !== "all") {
+      const ratingValue = Number(ratingFilter);
+      if ((subscription.rating ?? 0) < ratingValue) return false;
+    }
+
+    // Pigeon filter: all | pigeon | not-pigeon
+    if (pigeonFilter === 'pigeon' && !subscription.isSuspect) return false;
+    if (pigeonFilter === 'not-pigeon' && subscription.isSuspect) return false;
+
+    // Upcoming filter
+    if (upcomingFilter !== 'all') {
+      const now = new Date();
+      const next = new Date(subscription.nextRenewal);
+      const days = Math.ceil((next.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (upcomingFilter === '7' && (days < 0 || days > 7)) return false;
+      if (upcomingFilter === '30' && (days < 0 || days > 30)) return false;
+      if (upcomingFilter === 'overdue' && days >= 0) return false;
+    }
+
+    return true;
   });
 
   const handleCloseModal = () => {
@@ -162,6 +186,40 @@ export default function Dashboard() {
                       <option value="2">2 étoiles et plus</option>
                       <option value="1">1 étoile et plus</option>
                     </select>
+
+                    <label className="text-sm text-gray-600">Type</label>
+                    <select
+                      className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      value={pigeonFilter}
+                      onChange={(e) => setPigeonFilter(e.target.value)}
+                    >
+                      <option value="all">Tous</option>
+                      <option value="pigeon">Pigeonné</option>
+                      <option value="not-pigeon">Non pigeonné</option>
+                    </select>
+
+                    <label className="text-sm text-gray-600">Renouvellement</label>
+                    <select
+                      className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      value={upcomingFilter}
+                      onChange={(e) => setUpcomingFilter(e.target.value)}
+                    >
+                      <option value="all">Tous</option>
+                      <option value="7">Sous 7 jours</option>
+                      <option value="30">Sous 30 jours</option>
+                      <option value="overdue">Échu</option>
+                    </select>
+
+                    <label className="flex items-center gap-2 text-sm text-gray-600">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-4 w-4 text-purple-600"
+                        checked={includeArchived}
+                        onChange={(e) => setIncludeArchived(e.target.checked)}
+                      />
+                      Inclure archivés
+                    </label>
+
                     <button
                       onClick={() => {
                         setEditingSubscription(null);

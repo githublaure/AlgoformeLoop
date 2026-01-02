@@ -465,7 +465,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/subscriptions", authenticateToken, async (req: any, res) => {
     try {
       await ensureSchema();
-      const subscriptions = await storage.getSubscriptions(req.user.id);
+      const includeArchived = normalizeBoolean(req.query.includeArchived, false);
+      const subscriptions = await storage.getSubscriptions(req.user.id, includeArchived);
       res.json(subscriptions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch subscriptions" });
@@ -631,7 +632,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Skip schema creation in tests
       if (process.env.NODE_ENV !== 'test') await ensureSchema();
-      const subscriptions = await storage.getSubscriptions(req.user.id);
+      const includeArchived = normalizeBoolean(req.query.includeArchived, false);
+      const subscriptions = await storage.getSubscriptions(req.user.id, includeArchived);
       const upcomingRenewals = await storage.getUpcomingRenewals(7, req.user.id);
       const trials = subscriptions.filter(sub => sub.isTrial);
 

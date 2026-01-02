@@ -6,7 +6,7 @@ import { and, eq, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Subscription methods
-  getSubscriptions(userId?: number): Promise<Subscription[]>;
+  getSubscriptions(userId?: number, includeArchived?: boolean): Promise<Subscription[]>;
   getSubscription(id: number, userId?: number): Promise<Subscription | undefined>;
   createSubscription(subscription: InsertSubscription): Promise<Subscription>;
   updateSubscription(
@@ -125,9 +125,9 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async getSubscriptions(userId?: number): Promise<Subscription[]> {
+  async getSubscriptions(userId?: number, includeArchived?: boolean): Promise<Subscription[]> {
     return Array.from(this.subscriptions.values()).filter(sub => {
-      if (!sub.isActive) return false;
+      if (!includeArchived && !sub.isActive) return false;
       if (userId === undefined) return true;
       // Only return subscriptions belonging to the requested user
       return sub.userId === userId;
@@ -234,11 +234,18 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getSubscriptions(userId?: number): Promise<Subscription[]> {
+  async getSubscriptions(userId?: number, includeArchived?: boolean): Promise<Subscription[]> {
     const { db } = await import('./db');
-    const conditions = [eq(subscriptions.isActive, true)];
+    const conditions = [] as any[];
+    if (!includeArchived) {
+      conditions.push(eq(subscriptions.isActive, true));
+    }
     if (userId !== undefined) {
       conditions.push(eq(subscriptions.userId, userId));
+    }
+
+    if (conditions.length === 0) {
+      return await db.select().from(subscriptions);
     }
 
     return await db

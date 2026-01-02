@@ -47,4 +47,31 @@ describe('SubscriptionCard', () => {
     await userEvent.click(editButton)
     expect(onEditMock).toHaveBeenCalledWith(subscription)
   })
+
+  test('affiche une icône pigeon quand suspicious', () => {
+    const subscription = {
+      id: 2,
+      userId: 1,
+      name: 'Suspect Sub',
+      price: '19.99',
+      frequency: 'monthly',
+      category: 'cloud',
+      categoryColor: '#3b82f6',
+      usageFrequency: 'rarely_used',
+      nextRenewal: new Date().toISOString(),
+      iconClass: 'fas fa-dove',
+      bgColor: '#3b82f6',
+      note: '',
+      rating: 2,
+      isSuspect: true,
+      isActive: true,
+      isTrial: false,
+      trialEndsAt: null,
+      createdAt: new Date().toISOString(),
+    } as any
+
+    render(<SubscriptionCard subscription={subscription} onEdit={vi.fn()} />, { wrapper: createWrapper() })
+    const pigeon = screen.getByLabelText('pigeon-flag')
+    expect(pigeon).toBeInTheDocument()
+  })
 })

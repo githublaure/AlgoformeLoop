@@ -9,6 +9,7 @@ import { LoginGuard } from "../components/login-guard";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Subscription } from "@shared/schema";
+import { isPigeoned } from "@shared/subscription-utils";
 
 export default function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -24,7 +25,7 @@ export default function Dashboard() {
   });
 
   const trials = subscriptions.filter((subscription) => subscription.isTrial);
-  const suspects = subscriptions.filter((subscription) => subscription.isSuspect);
+  const suspects = subscriptions.filter((subscription) => isPigeoned(subscription));
 
   const filteredSubscriptions = subscriptions.filter((subscription) => {
     if (!includeArchived && !subscription.isActive) return false;
@@ -36,8 +37,8 @@ export default function Dashboard() {
     }
 
     // Pigeon filter: all | pigeon | not-pigeon
-    if (pigeonFilter === 'pigeon' && !subscription.isSuspect) return false;
-    if (pigeonFilter === 'not-pigeon' && subscription.isSuspect) return false;
+    if (pigeonFilter === 'pigeon' && !isPigeoned(subscription)) return false;
+    if (pigeonFilter === 'not-pigeon' && isPigeoned(subscription)) return false;
 
     // Upcoming filter
     if (upcomingFilter !== 'all') {

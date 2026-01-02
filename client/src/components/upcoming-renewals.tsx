@@ -5,6 +5,7 @@ import type { Subscription } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/calendar";
+import { isPigeoned } from "@shared/subscription-utils";
 
 interface UpcomingRenewalsProps {
   onEdit?: (subscription: Subscription) => void;
@@ -207,7 +208,7 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
                         <span className={`inline-flex items-center rounded-full px-3 py-1 ${urgencyBadge.className}`}>
                           {urgencyBadge.text}
                         </span>
-                        {subscription.isSuspect && (
+                        {isPigeoned(subscription) && (
                           <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">Suspect</span>
                         )}
                         {subscription.isTrial && (

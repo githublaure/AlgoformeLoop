@@ -259,14 +259,6 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               >
                 🎬 Voir la démo IA (test)
               </button>
-              <button
-                onClick={() =>
-                  window.open("/test", "_blank", "width=1200,height=800")
-                }
-                className="text-sm text-blue-600 hover:text-blue-800 underline transition-colors block"
-              >
-                🔗 test
-              </button>
             </div>
           </div>
 

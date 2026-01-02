@@ -74,4 +74,32 @@ describe('SubscriptionCard', () => {
     const pigeon = screen.getByLabelText('pigeon-flag')
     expect(pigeon).toBeInTheDocument()
   })
+
+  test('affiche l’icône pigeon2 pour une arnaque avérée archivée', () => {
+    const subscription = {
+      id: 3,
+      userId: 1,
+      name: 'Arnaque',
+      price: '4.99',
+      frequency: 'monthly',
+      category: 'other',
+      categoryColor: '#000000',
+      usageFrequency: 'used',
+      nextRenewal: new Date().toISOString(),
+      iconClass: 'fas fa-dove',
+      bgColor: '#000000',
+      note: '',
+      rating: 0,
+      isSuspect: true,
+      isActive: false,
+      isTrial: false,
+      trialEndsAt: null,
+      createdAt: new Date().toISOString(),
+    } as any
+
+    render(<SubscriptionCard subscription={subscription} onEdit={vi.fn()} />, { wrapper: createWrapper() })
+    const pigeon = screen.getByLabelText('pigeon-flag') as HTMLImageElement
+    expect(pigeon).toBeInTheDocument()
+    expect(pigeon.src).toContain('/pigeon2.png')
+  })
 })

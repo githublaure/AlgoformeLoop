@@ -167,6 +167,13 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
   const iconColor = subscription.categoryColor || subscription.bgColor;
   const iconClass = 'fas fa-dove';
 
+  const isPigeonne =
+    subscription.usageFrequency === 'rarely_used' ||
+    (subscription.isSuspect && !subscription.isActive);
+  const isSuspectOnly = subscription.isSuspect && !isPigeonne;
+  const showPigeonFlag = isSuspectOnly || isPigeonne;
+  const pigeonFlagSrc = isSuspectOnly ? '/pigeon3.png' : '/pigeon2.png';
+
   const handleAddToCalendar = () => {
     const icsContent = createSubscriptionCalendarEvent(subscription);
     downloadCalendarEvent(`renouvellement-${subscription.name}.ics`, icsContent);
@@ -191,8 +198,14 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
           <div>
             <div className="flex items-center">
               <h3 className="font-medium">{subscription.name}</h3>
-              {subscription.isSuspect && (
-                <img src="/pigeongangsta.png" alt="Pigeon suspect" role="img" aria-label="pigeon-flag" className="w-4 h-4 ml-2" />
+              {showPigeonFlag && (
+                <img
+                  src={pigeonFlagSrc}
+                  alt="Pigeon indicator"
+                  role="img"
+                  aria-label="pigeon-flag"
+                  className="w-12 h-6 ml-12"
+                />
               )}
             </div>
             <p className="text-sm text-gray-600">{getCategoryLabel(subscription.category)}</p>
@@ -203,9 +216,14 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
                     Essai gratuit
                   </span>
                 )}
-                {subscription.isSuspect && subscription.usageFrequency !== 'very_used' && (
+                {subscription.isSuspect && (
                   <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
                     Risque d'arnaque
+                  </span>
+                )}
+                {isPigeonne && (
+                  <span className="rounded-full bg-purple-100 px-3 py-1 text-purple-700">
+                    Pigeonné
                   </span>
                 )}
                 {!subscription.isActive && (

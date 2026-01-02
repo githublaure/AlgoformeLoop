@@ -192,7 +192,13 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
             <div className="flex items-center">
               <h3 className="font-medium">{subscription.name}</h3>
               {subscription.isSuspect && (
-                <img src="/pigeongangsta.png" alt="Pigeon suspect" role="img" aria-label="pigeon-flag" className="w-4 h-4 ml-2" />
+                <img
+                  src={subscription.usageFrequency !== 'very_used' ? '/pigeon3.png' : '/pigeon2.png'}
+                  alt="Pigeon suspect"
+                  role="img"
+                  aria-label="pigeon-flag"
+                  className="w-6 h-6 ml-2"
+                />
               )}
             </div>
             <p className="text-sm text-gray-600">{getCategoryLabel(subscription.category)}</p>

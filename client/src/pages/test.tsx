@@ -16,7 +16,7 @@ export default function Test() {
   const baseUrl = `${(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}/`;
   const assets = {
     background: `${baseUrl}test/video1m44.mov`,
-    avatar: `${baseUrl}test/ai_talking.mp4`,
+    avatar: `${baseUrl}pigeon_talking.mp4`,
     voice: `${baseUrl}test/fit-attention presentation.mp3`,
   };
 
@@ -129,7 +129,7 @@ export default function Test() {
     }
 
     avatarVideo.currentTime = 0;
-    avatarVideo.muted = false;
+    avatarVideo.muted = true;
     try {
       await avatarVideo.play();
       setIsPlaying(true);

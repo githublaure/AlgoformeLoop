@@ -18,6 +18,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const pigeoned = isPigeoned(subscription);
+  const isSuspect = subscription.isSuspect ?? false;
 
   const deleteSubscription = useMutation({
     mutationFn: async (id: number) => {
@@ -193,7 +194,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
           <div>
             <div className="flex items-center">
               <h3 className="font-medium">{subscription.name}</h3>
-              {pigeoned && (
+              {(isSuspect || pigeoned) && (
                 <img
                   src={subscription.usageFrequency !== 'very_used' ? '/pigeon3.png' : '/pigeon2.png'}
                   alt="Pigeon suspect"
@@ -204,16 +205,21 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
               )}
             </div>
             <p className="text-sm text-gray-600">{getCategoryLabel(subscription.category)}</p>
-            {(subscription.isTrial || pigeoned || !subscription.isActive) && (
+            {(subscription.isTrial || isSuspect || pigeoned || !subscription.isActive) && (
               <div className="mt-1 flex flex-wrap gap-2 text-xs">
                 {subscription.isTrial && (
                   <span className="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700">
                     Essai gratuit
                   </span>
                 )}
-                {pigeoned && subscription.usageFrequency !== 'very_used' && (
+                {isSuspect && subscription.usageFrequency !== 'very_used' && (
                   <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
                     Risque d'arnaque
+                  </span>
+                )}
+                {pigeoned && (
+                  <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-700">
+                    Pigeonné (≤ 2★)
                   </span>
                 )}
                 {!subscription.isActive && (

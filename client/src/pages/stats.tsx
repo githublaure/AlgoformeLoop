@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import type { Subscription } from "@shared/schema";
 import type { StatsResponse } from "@/types/stats";
 import { Progress } from "@/components/ui/progress";
-import { isPigeoned } from "@shared/subscription-utils";
 
 const usageLabels: Record<string, string> = {
   very_used: "Très utilisé",
@@ -20,7 +19,7 @@ export default function StatsPage() {
 
   const trialSubscriptions = subscriptions.filter((sub) => sub.isTrial);
   // Exclude subscriptions that are marked as 'very_used' from the suspect list
-  const suspectSubscriptions = subscriptions.filter((sub) => isPigeoned(sub) && sub.usageFrequency !== 'very_used');
+  const suspectSubscriptions = subscriptions.filter((sub) => sub.isSuspect && sub.usageFrequency !== 'very_used');
 
   const categoryEntries = Object.entries(stats?.categoryTotals || {}).sort(([, a], [, b]) => b - a);
 

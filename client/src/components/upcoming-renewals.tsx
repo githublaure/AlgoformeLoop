@@ -185,6 +185,8 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
             {renewals.map((subscription) => {
               const daysUntil = Math.ceil((new Date(subscription.nextRenewal).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
               const { backgroundColor, borderColor, urgencyBadge } = getRenewalStyles(subscription, daysUntil);
+              const flaggedSuspect = subscription.isSuspect ?? false;
+              const ratedPigeoned = isPigeoned(subscription);
 
               return (
                 <div
@@ -208,8 +210,11 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
                         <span className={`inline-flex items-center rounded-full px-3 py-1 ${urgencyBadge.className}`}>
                           {urgencyBadge.text}
                         </span>
-                        {isPigeoned(subscription) && (
+                        {flaggedSuspect && (
                           <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">Suspect</span>
+                        )}
+                        {ratedPigeoned && (
+                          <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-700">Pigeonné</span>
                         )}
                         {subscription.isTrial && (
                           <span className="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700">

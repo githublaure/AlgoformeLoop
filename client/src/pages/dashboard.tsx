@@ -25,7 +25,7 @@ export default function Dashboard() {
   });
 
   const trials = subscriptions.filter((subscription) => subscription.isTrial);
-  const suspects = subscriptions.filter((subscription) => isPigeoned(subscription));
+  const suspects = subscriptions.filter((subscription) => subscription.isSuspect);
 
   const filteredSubscriptions = subscriptions.filter((subscription) => {
     if (!includeArchived && !subscription.isActive) return false;
@@ -36,7 +36,7 @@ export default function Dashboard() {
       if ((subscription.rating ?? 0) < ratingValue) return false;
     }
 
-    // Pigeon filter: all | pigeon | not-pigeon
+    // Pigeon filter: all | pigeon | not-pigeon (basé sur la note)
     if (pigeonFilter === 'pigeon' && !isPigeoned(subscription)) return false;
     if (pigeonFilter === 'not-pigeon' && isPigeoned(subscription)) return false;
 

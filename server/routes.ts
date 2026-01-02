@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertSubscriptionSchema, insertVoiceReminderSchema, users } from "@shared/schema";
-import { isPigeoned } from "@shared/subscription-utils";
 // db is imported lazily inside functions to avoid requiring DATABASE_URL during tests
 import { eq, sql } from "drizzle-orm";
 import { generateVoiceReminder } from "./services/voice";
@@ -650,10 +649,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Consider only suspect subscriptions that are not marked as 'very_used'
       const suspectTotal = subscriptions
-        .filter(sub => isPigeoned(sub) && sub.usageFrequency !== 'very_used')
+        .filter(sub => sub.isSuspect && sub.usageFrequency !== 'very_used')
         .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
 
-      const suspectCount = subscriptions.filter(sub => isPigeoned(sub) && sub.usageFrequency !== 'very_used').length;
+      const suspectCount = subscriptions.filter(sub => sub.isSuspect && sub.usageFrequency !== 'very_used').length;
 
       const wastedEstimate = subscriptions
         .filter(sub => sub.usageFrequency === 'rarely_used')

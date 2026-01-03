@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { useLocation } from 'wouter';
+import React, { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 export default function Test() {
   const [, setLocation] = useLocation();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [renderMode, setRenderMode] = useState<'canvas' | 'video'>('canvas');
+  const [renderMode, setRenderMode] = useState<"canvas" | "video">("canvas");
 
   const avatarVideoRef = useRef<HTMLVideoElement>(null);
   const backgroundVideoRef = useRef<HTMLVideoElement>(null);
@@ -14,9 +14,9 @@ export default function Test() {
   const animationRef = useRef<number>();
 
   const assets = {
-    background: '/test/video1m44.mov',
-    avatar: '/pigeon_talking.mp4',
-    voice: '/test/fit-attention presentation.mp3',
+    background: "/test/video1m44.mp4",
+    avatar: "/pigeon_talking.mp4",
+    voice: "/test/fit-attention presentation.mp3",
   };
 
   useEffect(() => {
@@ -31,10 +31,14 @@ export default function Test() {
     const canvas = canvasRef.current;
     if (!avatarVideo || !canvas) return;
 
-    if (avatarVideo.readyState >= 1 && avatarVideo.videoWidth && avatarVideo.videoHeight) {
+    if (
+      avatarVideo.readyState >= 1 &&
+      avatarVideo.videoWidth &&
+      avatarVideo.videoHeight
+    ) {
       canvas.width = avatarVideo.videoWidth;
       canvas.height = avatarVideo.videoHeight;
-      setRenderMode('canvas');
+      setRenderMode("canvas");
     } else {
       setTimeout(setupCanvas, 100);
     }
@@ -43,16 +47,17 @@ export default function Test() {
   const processFrame = () => {
     const avatarVideo = avatarVideoRef.current;
     const canvas = canvasRef.current;
-    if (!avatarVideo || !canvas || avatarVideo.paused || avatarVideo.ended) return;
+    if (!avatarVideo || !canvas || avatarVideo.paused || avatarVideo.ended)
+      return;
 
     if (!avatarVideo.videoWidth || !avatarVideo.videoHeight) {
-      setRenderMode('video');
+      setRenderMode("video");
       return;
     }
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) {
-      setRenderMode('video');
+      setRenderMode("video");
       return;
     }
 
@@ -118,13 +123,13 @@ export default function Test() {
     try {
       await backgroundVideo.play();
     } catch (error) {
-      console.error('Lecture vidéo de fond impossible', error);
+      console.error("Lecture vidéo de fond impossible", error);
     }
 
     try {
       await voice.play();
     } catch (error) {
-      console.error('Lecture audio impossible', error);
+      console.error("Lecture audio impossible", error);
     }
 
     avatarVideo.currentTime = 0;
@@ -132,11 +137,11 @@ export default function Test() {
     try {
       await avatarVideo.play();
       setIsPlaying(true);
-      setRenderMode('canvas');
+      setRenderMode("canvas");
       processFrame();
     } catch (error) {
-      console.error('Lecture avatar impossible', error);
-      setRenderMode('video');
+      console.error("Lecture avatar impossible", error);
+      setRenderMode("video");
       setIsPlaying(true);
       processFrame();
     }
@@ -167,7 +172,11 @@ export default function Test() {
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
       <div className="absolute top-4 left-4 z-50 flex items-center space-x-3">
-        <img src="/pigeongangsta.png" alt="PigeonSubcription" className="w-12 h-12 rounded-full border border-white/20" />
+        <img
+          src="/pigeongangsta.png"
+          alt="PigeonSubcription"
+          className="w-12 h-12 rounded-full border border-white/20"
+        />
         <div>
           <p className="text-sm text-white/70">Démo temps réel</p>
           <p className="text-xl font-semibold">PigeonSubscription</p>
@@ -175,13 +184,25 @@ export default function Test() {
       </div>
 
       <div className="absolute top-4 right-4 z-50 flex space-x-2">
-        <Button onClick={() => setLocation('/')} variant="outline" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
+        <Button
+          onClick={() => setLocation("/")}
+          variant="outline"
+          className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+        >
           <i className="fas fa-arrow-left mr-2"></i>Retour
         </Button>
-        <Button onClick={startDemo} className="bg-green-500 hover:bg-green-600 text-white" disabled={isPlaying}>
+        <Button
+          onClick={startDemo}
+          className="bg-green-500 hover:bg-green-600 text-white"
+          disabled={isPlaying}
+        >
           ▶️ Démarrer
         </Button>
-        <Button onClick={stopDemo} variant="outline" className="border-white/30 text-white hover:bg-white/20">
+        <Button
+          onClick={stopDemo}
+          variant="outline"
+          className="border-white/30 text-white hover:bg-white/20"
+        >
           ⏹ Stop
         </Button>
       </div>
@@ -201,12 +222,12 @@ export default function Test() {
         <div className="relative w-72 h-72">
           <canvas
             ref={canvasRef}
-            className={`absolute inset-0 w-full h-full ${renderMode === 'canvas' ? 'block' : 'hidden'}`}
+            className={`absolute inset-0 w-full h-full ${renderMode === "canvas" ? "block" : "hidden"}`}
           />
           <video
             ref={avatarVideoRef}
             src={assets.avatar}
-            className={`absolute inset-0 w-full h-full object-contain ${renderMode === 'video' ? 'block' : 'hidden'}`}
+            className={`absolute inset-0 w-full h-full object-contain ${renderMode === "video" ? "block" : "hidden"}`}
             loop
             playsInline
             muted

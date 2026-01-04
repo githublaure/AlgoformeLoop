@@ -207,7 +207,7 @@ export default function Test() {
             Pigeon coach — bulle tutoriel
           </div>
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute -top-16 left-1/2 -translate-x-1/2 pointer-events-auto">
+            <div className="absolute -top-14 -left-12 sm:-left-16 pointer-events-auto">
               <Button
                 onClick={() => setLocation('/')}
                 className="font-bold bg-white/90 text-pink-700 shadow-xl border border-pink-200 hover:bg-white rounded-full px-5 py-2"
@@ -215,23 +215,25 @@ export default function Test() {
                 <i className="fas fa-arrow-left mr-2"></i>Retour
               </Button>
             </div>
-            <div className="absolute -bottom-4 -left-16 sm:-left-24 pointer-events-auto rotate-[-6deg]">
-              <Button
-                onClick={startDemo}
-                className="font-bold bg-green-400 text-green-950 shadow-lg hover:bg-green-500 rounded-full px-5 py-2"
-                disabled={isPlaying}
-              >
-                ▶️ Démarrer
-              </Button>
-            </div>
-            <div className="absolute -bottom-4 -right-16 sm:-right-24 pointer-events-auto rotate-[6deg]">
-              <Button
-                onClick={stopDemo}
-                variant="outline"
-                className="font-bold bg-white/90 text-red-600 border-red-200 shadow-lg hover:bg-white rounded-full px-5 py-2"
-              >
-                ⏹ Stop
-              </Button>
+            <div className="absolute -bottom-6 -left-16 sm:-left-24 pointer-events-auto flex flex-col items-center gap-3">
+              <div className="rotate-[-6deg]">
+                <Button
+                  onClick={startDemo}
+                  className="font-bold bg-green-400 text-green-950 shadow-lg hover:bg-green-500 rounded-full px-5 py-2"
+                  disabled={isPlaying}
+                >
+                  ▶️ Démarrer
+                </Button>
+              </div>
+              <div className="rotate-[6deg]">
+                <Button
+                  onClick={stopDemo}
+                  variant="outline"
+                  className="font-bold bg-white/90 text-red-600 border-red-200 shadow-lg hover:bg-white rounded-full px-5 py-2"
+                >
+                  ⏹ Stop
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -198,22 +198,25 @@ export default function Test() {
       </div>
 
       <div className="relative w-full h-full flex items-end justify-end p-6">
-        <div className="relative w-72 h-72">
-          <canvas
-            ref={canvasRef}
-            className={`absolute inset-0 w-full h-full ${renderMode === 'canvas' ? 'block' : 'hidden'}`}
-          />
-          <video
-            ref={avatarVideoRef}
-            src={assets.avatar}
-            className={`absolute inset-0 w-full h-full object-contain ${renderMode === 'video' ? 'block' : 'hidden'}`}
-            loop
-            playsInline
-            muted
-            onLoadedMetadata={setupCanvas}
-          />
-          <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/60 px-3 py-1 rounded-full text-sm border border-white/20">
-            Avatar animé (fond noir supprimé)
+        <div className="relative w-[22rem] h-[22rem] sm:w-[24rem] sm:h-[24rem]">
+          <div className="absolute inset-0 rounded-full bg-pink-200/80 border-4 border-pink-300 shadow-[0_20px_80px_rgba(244,114,182,0.35)]" />
+          <div className="absolute inset-3 sm:inset-4 rounded-full overflow-hidden bg-pink-50/90 backdrop-blur-lg">
+            <canvas
+              ref={canvasRef}
+              className={`absolute inset-0 w-full h-full rounded-full ${renderMode === 'canvas' ? 'block' : 'hidden'}`}
+            />
+            <video
+              ref={avatarVideoRef}
+              src={assets.avatar}
+              className={`absolute inset-0 w-full h-full object-contain rounded-full ${renderMode === 'video' ? 'block' : 'hidden'}`}
+              loop
+              playsInline
+              muted
+              onLoadedMetadata={setupCanvas}
+            />
+          </div>
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-pink-500 text-white px-4 py-2 rounded-full text-sm shadow-lg border border-white/40">
+            Pigeon coach — bulle tutoriel
           </div>
         </div>
       </div>

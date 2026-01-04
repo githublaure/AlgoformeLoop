@@ -174,6 +174,11 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
       videoRef.current.muted = false;
       videoRef.current.volume = 0.7; // Volume à 70%
 
+      const handlePlayFailure = () => {
+        // reset UI so play button comes back if playback fails
+        setIsTalking(false);
+      };
+
       // play() may not return a promise in some environments; wrap in Promise.resolve
       try {
         const res = videoRef.current.play();
@@ -189,7 +194,9 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               .then(() => {
                 processFrame();
               })
-              .catch(() => {});
+              .catch(() => {
+                handlePlayFailure();
+              });
           });
       } catch (error) {
         // synchronous throw - fallback
@@ -199,9 +206,11 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             .then(() => {
               processFrame();
             })
-            .catch(() => {});
+            .catch(() => {
+              handlePlayFailure();
+            });
         } catch (e) {
-          // ignore
+          handlePlayFailure();
         }
       }
     }

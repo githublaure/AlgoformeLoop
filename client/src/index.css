@@ -115,11 +115,13 @@
     @apply text-white text-xs px-2 py-1 rounded-full;
   }
 
-  /* Ensure pigeon elements don't get global border from base reset */
-  .login-pigeon,
-  .login-pigeon * {
+  /* Ensure pigeon media stays frameless without affecting buttons */
+  .login-pigeon canvas,
+  .login-pigeon video,
+  .login-pigeon img {
     border: none !important;
     box-shadow: none !important;
+    background: transparent !important;
   }
 
   /* Pigeon talking continuous subtle vertical motion */
@@ -128,7 +130,7 @@
       transform: translateY(0);
     }
     50% {
-      transform: translateY(-6px);
+      transform: translateY(-2px);
     }
     100% {
       transform: translateY(0);
@@ -136,7 +138,7 @@
   }
 
   .pigeon-talk {
-    animation: pigeon-talk 1.2s ease-in-out infinite;
+    animation: pigeon-talk 2.2s ease-in-out infinite;
     will-change: transform;
   }
 }

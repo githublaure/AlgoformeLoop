@@ -174,6 +174,11 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
       videoRef.current.muted = false;
       videoRef.current.volume = 0.7; // Volume à 70%
 
+      const handlePlayFailure = () => {
+        // reset UI so play button comes back if playback fails
+        setIsTalking(false);
+      };
+
       // play() may not return a promise in some environments; wrap in Promise.resolve
       try {
         const res = videoRef.current.play();
@@ -189,7 +194,9 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               .then(() => {
                 processFrame();
               })
-              .catch(() => {});
+              .catch(() => {
+                handlePlayFailure();
+              });
           });
       } catch (error) {
         // synchronous throw - fallback
@@ -199,9 +206,11 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             .then(() => {
               processFrame();
             })
-            .catch(() => {});
+            .catch(() => {
+              handlePlayFailure();
+            });
         } catch (e) {
-          // ignore
+          handlePlayFailure();
         }
       }
     }
@@ -231,7 +240,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
         className="min-h-screen flex items-center justify-center"
         style={{ backgroundColor: "hsl(210, 17%, 98%)" }}
       >
-        <div className="w-full max-w-4xl mx-auto p-8">
+        <div className="w-full max-w-5xl mx-auto p-8">
           <div className="text-center mb-8">
             <div
               className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-6"
@@ -261,179 +270,33 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           </div>
-
-          <div className="flex flex-col md:flex-row gap-8 items-start md:justify-end">
-            <div className="md:order-2 flex-1 flex justify-center md:justify-end">
-              <Card className="w-full md:max-w-xl">
-              <CardHeader>
-                <CardTitle>{isLogin ? "Connexion" : "Inscription"}</CardTitle>
-                <CardDescription>
-                  {isLogin
-                    ? "Connectez-vous pour gérer vos abonnements"
-                    : "Créez votre compte pour commencer"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {!isLogin && !showForgotPassword && (
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nom</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        placeholder="Votre nom"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        required={!isLogin}
-                      />
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="votre.email@exemple.com"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-
-                  {!showForgotPassword && (
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Mot de passe</Label>
-                      <Input
-                        id="password"
-                        name="password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="text-red-600 text-sm text-center">
-                      {error}
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full pigeon-button-primary"
-                  >
-                    {isLoading
-                      ? "Chargement..."
-                      : showForgotPassword
-                        ? "Envoyer le lien"
-                        : isLogin
-                          ? "Se connecter"
-                          : "S'inscrire"}
-                  </Button>
-
-                  <div className="text-center space-y-2">
-                    {!showForgotPassword && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setIsLogin(!isLogin)}
-                          className="text-sm underline block mx-auto"
-                          style={{ color: "hsl(258, 71%, 65%)" }}
-                        >
-                          {isLogin
-                            ? "Créer un compte"
-                            : "Déjà un compte ? Se connecter"}
-                        </button>
-
-                        {isLogin && (
-                          <button
-                            type="button"
-                            onClick={() => setShowForgotPassword(true)}
-                            className="text-sm underline block mx-auto"
-                            style={{ color: "hsl(258, 71%, 65%)" }}
-                          >
-                            Mot de passe oublié ?
-                          </button>
-                        )}
-                      </>
-                    )}
-
-                    {showForgotPassword && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowForgotPassword(false);
-                          setFormData({ name: "", email: "", password: "" });
-                        }}
-                        className="text-sm underline"
-                        style={{ color: "hsl(258, 71%, 65%)" }}
-                      >
-                        Retour à la connexion
-                      </button>
-                    )}
-                  </div>
-                </form>
-
-                <div className="mt-6 pt-6 border-t">
-                  <div className="flex justify-between items-center mb-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setLocation("/demo")}
-                      className="text-sm w-full"
-                    >
-                      Voir la démo
-                    </Button>
-                  </div>
-                  <div className="flex space-x-2 justify-center">
-                    <img
-                      src="/pigeon1.png"
-                      alt="Pigeon 1"
-                      className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
-                      onClick={() => setLocation("/demo")}
-                    />
-                    <img
-                      src="/pigeon2.png"
-                      alt="Pigeon 2"
-                      className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
-                      onClick={() => setLocation("/demo")}
-                    />
-                    <img
-                      src="/pigeon3.png"
-                      alt="Pigeon 3"
-                      className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
-                      onClick={() => setLocation("/demo")}
-                    />
-                    <img
-                      src="/pigeon4.png"
-                      alt="Pigeon 4"
-                      className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
-                      onClick={() => setLocation("/demo")}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 text-center mt-2">
-                    Cliquez sur un pigeon pour voir la démo
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-[360px,minmax(0,1fr)] items-start gap-10 md:gap-16">
             {/* Pigeon interactive area placed next to card */}
-            <div className="relative order-1 md:order-1 login-pigeon w-full md:w-80 h-80 self-start mt-4 md:mt-0 flex items-center justify-center">
+            <div
+              className={[
+                "relative login-pigeon",
+                "h-80 md:h-[26rem] w-full",
+                "flex items-center justify-center",
+                "overflow-hidden rounded-2xl",
+                "md:mr-auto",
+              ].join(" ")}
+            >
               <canvas
                 ref={canvasRef}
-                className={`object-contain transition-opacity duration-300 pointer-events-none w-full h-full ${isTalking ? "opacity-100" : "opacity-0"}`}
+                className={`absolute inset-0 object-contain transition-all duration-300 ease-in-out pointer-events-none ${
+                  isTalking
+                    ? "opacity-100 pigeon-talk"
+                    : "opacity-0"
+                }`}
                 style={{
                   display: "block",
                   borderRadius: "16px",
+                  willChange: "opacity",
+                  imageRendering: "pixelated",
+                  width: "90%",
+                  height: "90%",
+                  maxWidth: "480px",
+                  maxHeight: "480px",
                 }}
               />
 
@@ -450,14 +313,25 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               <img
                 src="/pigeongangsta.png"
                 alt="PigeonSub mascot"
-                className={`object-contain transition-opacity duration-300 w-full h-full ${isTalking ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+                className={`absolute inset-0 object-contain transition-opacity duration-300 ${
+                  isTalking ? "opacity-0 pointer-events-none" : "opacity-100"
+                }`}
+                style={{ imageRendering: "pixelated" }}
               />
 
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div
+                className={[
+                  "absolute inset-0",
+                  "flex items-center justify-center",
+                  "pointer-events-none",
+                ].join(" ")}
+              >
                 <button
                   type="button"
                   aria-label="play-pigeon"
-                  className={`w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg pointer-events-auto ${isTalking ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+                  className={`w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg pointer-events-auto ${
+                    isTalking ? "opacity-0 pointer-events-none" : "opacity-100"
+                  }`}
                   onClick={startTalkingPigeon}
                 >
                   <i className="fas fa-play text-white text-xl ml-1"></i>
@@ -465,19 +339,184 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               </div>
 
               <div
-                className={`absolute top-4 left-1/2 -translate-x-1/2 ${isTalking ? "" : "pointer-events-none opacity-0"}`}
+                className={`absolute top-2 left-1/2 -translate-x-1/2 ${
+                  isTalking ? "" : "pointer-events-none opacity-0"
+                }`}
               >
                 <button
                   type="button"
                   aria-label="stop-pigeon"
                   title="Stop"
-                  className={`bg-red-500 rounded-full flex items-center gap-2 text-white px-2 py-1 shadow-lg ${isTalking ? "opacity-100" : ""}`}
+                  className={`bg-red-500 rounded-full flex items-center gap-2 text-white px-3 py-1.5 shadow-lg ${
+                    isTalking ? "opacity-100" : ""
+                  }`}
                   onClick={stopTalkingPigeon}
                 >
                   <i className="fas fa-stop"></i>
                   <span className="text-sm font-medium">Stop</span>
                 </button>
               </div>
+            </div>
+
+            <div className="md:col-start-2 flex-1 flex justify-center md:justify-end">
+              <Card className="w-full md:max-w-xl md:ml-8">
+                <CardHeader>
+                  <CardTitle>{isLogin ? "Connexion" : "Inscription"}</CardTitle>
+                  <CardDescription>
+                    {isLogin
+                      ? "Connectez-vous pour gérer vos abonnements"
+                      : "Créez votre compte pour commencer"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    {!isLogin && !showForgotPassword && (
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Nom</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          type="text"
+                          placeholder="Votre nom"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          required={!isLogin}
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="votre.email@exemple.com"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+
+                    {!showForgotPassword && (
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Mot de passe</Label>
+                        <Input
+                          id="password"
+                          name="password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                    )}
+
+                    {error && (
+                      <div className="text-red-600 text-sm text-center">{error}</div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full pigeon-button-primary"
+                    >
+                      {isLoading
+                        ? "Chargement..."
+                        : showForgotPassword
+                          ? "Envoyer le lien"
+                          : isLogin
+                            ? "Se connecter"
+                            : "S'inscrire"}
+                    </Button>
+
+                    <div className="text-center space-y-2">
+                      {!showForgotPassword && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setIsLogin(!isLogin)}
+                            className="text-sm underline block mx-auto"
+                            style={{ color: "hsl(258, 71%, 65%)" }}
+                          >
+                            {isLogin
+                              ? "Créer un compte"
+                              : "Déjà un compte ? Se connecter"}
+                          </button>
+
+                          {isLogin && (
+                            <button
+                              type="button"
+                              onClick={() => setShowForgotPassword(true)}
+                              className="text-sm underline block mx-auto"
+                              style={{ color: "hsl(258, 71%, 65%)" }}
+                            >
+                              Mot de passe oublié ?
+                            </button>
+                          )}
+                        </>
+                      )}
+
+                      {showForgotPassword && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowForgotPassword(false);
+                            setFormData({ name: "", email: "", password: "" });
+                          }}
+                          className="text-sm underline"
+                          style={{ color: "hsl(258, 71%, 65%)" }}
+                        >
+                          Retour à la connexion
+                        </button>
+                      )}
+                    </div>
+                  </form>
+
+                  <div className="mt-6 pt-6 border-t">
+                    <div className="flex justify-between items-center mb-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLocation("/demo")}
+                        className="text-sm w-full"
+                      >
+                        Voir la démo
+                      </Button>
+                    </div>
+                    <div className="flex space-x-2 justify-center">
+                      <img
+                        src="/pigeon1.png"
+                        alt="Pigeon 1"
+                        className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
+                        onClick={() => setLocation("/demo")}
+                      />
+                      <img
+                        src="/pigeon2.png"
+                        alt="Pigeon 2"
+                        className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
+                        onClick={() => setLocation("/demo")}
+                      />
+                      <img
+                        src="/pigeon3.png"
+                        alt="Pigeon 3"
+                        className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
+                        onClick={() => setLocation("/demo")}
+                      />
+                      <img
+                        src="/pigeon4.png"
+                        alt="Pigeon 4"
+                        className="w-12 h-12 object-contain hover:scale-110 transition-transform cursor-pointer"
+                        onClick={() => setLocation("/demo")}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 text-center mt-2">
+                      Cliquez sur un pigeon pour voir la démo
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

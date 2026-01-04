@@ -120,6 +120,7 @@
   .login-pigeon * {
     border: none !important;
     box-shadow: none !important;
+    background: transparent !important;
   }
 
   /* Pigeon talking continuous subtle vertical motion */
@@ -128,7 +129,7 @@
       transform: translateY(0);
     }
     50% {
-      transform: translateY(-6px);
+      transform: translateY(-2px);
     }
     100% {
       transform: translateY(0);
@@ -136,7 +137,7 @@
   }
 
   .pigeon-talk {
-    animation: pigeon-talk 1.2s ease-in-out infinite;
+    animation: pigeon-talk 2.2s ease-in-out infinite;
     will-change: transform;
   }
 }

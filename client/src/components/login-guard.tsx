@@ -266,9 +266,9 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
             <div
               className={[
                 "relative login-pigeon",
-                "h-72 md:h-96 w-full",
+                "h-80 md:h-[26rem] w-full",
                 "flex items-center justify-center",
-                "overflow-hidden rounded-2xl bg-white shadow-sm border",
+                "overflow-hidden rounded-2xl",
                 "md:mr-auto",
               ].join(" ")}
             >
@@ -276,13 +276,18 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
                 ref={canvasRef}
                 className={`absolute inset-0 object-contain transition-all duration-300 ease-in-out pointer-events-none ${
                   isTalking
-                    ? "opacity-100 pigeon-talk scale-105 w-96 h-96"
-                    : "opacity-0 scale-100"
+                    ? "opacity-100 pigeon-talk"
+                    : "opacity-0"
                 }`}
                 style={{
                   display: "block",
                   borderRadius: "16px",
-                  willChange: "transform",
+                  willChange: "opacity",
+                  imageRendering: "pixelated",
+                  width: "90%",
+                  height: "90%",
+                  maxWidth: "480px",
+                  maxHeight: "480px",
                 }}
               />
 
@@ -302,6 +307,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
                 className={`absolute inset-0 object-contain transition-opacity duration-300 ${
                   isTalking ? "opacity-0 pointer-events-none" : "opacity-100"
                 }`}
+                style={{ imageRendering: "pixelated" }}
               />
 
               <div

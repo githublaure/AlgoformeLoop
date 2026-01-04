@@ -174,18 +174,6 @@ export default function Test() {
         </div>
       </div>
 
-      <div className="absolute top-4 right-4 z-50 flex space-x-2">
-        <Button onClick={() => setLocation('/')} variant="outline" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
-          <i className="fas fa-arrow-left mr-2"></i>Retour
-        </Button>
-        <Button onClick={startDemo} className="bg-green-500 hover:bg-green-600 text-white" disabled={isPlaying}>
-          ▶️ Démarrer
-        </Button>
-        <Button onClick={stopDemo} variant="outline" className="border-white/30 text-white hover:bg-white/20">
-          ⏹ Stop
-        </Button>
-      </div>
-
       <div className="w-full h-full absolute inset-0">
         <video
           ref={backgroundVideoRef}
@@ -217,6 +205,34 @@ export default function Test() {
           </div>
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-pink-500 text-white px-4 py-2 rounded-full text-sm shadow-lg border border-white/40">
             Pigeon coach — bulle tutoriel
+          </div>
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-16 left-1/2 -translate-x-1/2 pointer-events-auto">
+              <Button
+                onClick={() => setLocation('/')}
+                className="font-bold bg-white/90 text-pink-700 shadow-xl border border-pink-200 hover:bg-white rounded-full px-5 py-2"
+              >
+                <i className="fas fa-arrow-left mr-2"></i>Retour
+              </Button>
+            </div>
+            <div className="absolute -bottom-4 -left-16 sm:-left-24 pointer-events-auto rotate-[-6deg]">
+              <Button
+                onClick={startDemo}
+                className="font-bold bg-green-400 text-green-950 shadow-lg hover:bg-green-500 rounded-full px-5 py-2"
+                disabled={isPlaying}
+              >
+                ▶️ Démarrer
+              </Button>
+            </div>
+            <div className="absolute -bottom-4 -right-16 sm:-right-24 pointer-events-auto rotate-[6deg]">
+              <Button
+                onClick={stopDemo}
+                variant="outline"
+                className="font-bold bg-white/90 text-red-600 border-red-200 shadow-lg hover:bg-white rounded-full px-5 py-2"
+              >
+                ⏹ Stop
+              </Button>
+            </div>
           </div>
         </div>
       </div>

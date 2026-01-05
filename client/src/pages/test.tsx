@@ -207,33 +207,29 @@ export default function Test() {
             Pigeon coach — bulle tutoriel
           </div>
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-3 left-3 sm:top-4 sm:left-4 pointer-events-auto">
+            <div className="absolute -left-6 -top-10 sm:left-0 sm:-top-8 pointer-events-auto z-50">
               <Button
                 onClick={() => setLocation('/')}
-                className="font-bold bg-white/95 text-pink-700 shadow-xl border border-pink-200 hover:bg-white rounded-full px-5 py-2"
+                className="font-bold bg-white text-pink-700 shadow-2xl border border-pink-200 hover:bg-white rounded-full px-5 py-2"
               >
                 <i className="fas fa-arrow-left mr-2"></i>Retour
               </Button>
             </div>
-            <div className="absolute left-3 bottom-6 sm:left-4 sm:bottom-7 pointer-events-auto flex flex-col items-center gap-3">
-              <div className="rotate-[-4deg]">
-                <Button
-                  onClick={startDemo}
-                  className="font-bold bg-green-400 text-green-950 shadow-lg hover:bg-green-500 rounded-full px-5 py-2"
-                  disabled={isPlaying}
-                >
-                  ▶️ Démarrer
-                </Button>
-              </div>
-              <div className="rotate-[4deg]">
-                <Button
-                  onClick={stopDemo}
-                  variant="outline"
-                  className="font-bold bg-white/95 text-red-600 border-red-200 shadow-lg hover:bg-white rounded-full px-5 py-2"
-                >
-                  ⏹ Stop
-                </Button>
-              </div>
+            <div className="absolute left-4 top-16 sm:left-6 sm:top-20 pointer-events-auto flex flex-col items-stretch gap-2">
+              <Button
+                onClick={startDemo}
+                className="font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-5 py-2"
+                disabled={isPlaying}
+              >
+                ▶️ Démarrer
+              </Button>
+              <Button
+                onClick={stopDemo}
+                variant="outline"
+                className="font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-5 py-2"
+              >
+                ⏹ Stop
+              </Button>
             </div>
           </div>
         </div>

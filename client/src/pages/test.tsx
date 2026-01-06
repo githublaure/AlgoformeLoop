@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { useLocation } from 'wouter';
+import React, { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 export default function Test() {
   const [, setLocation] = useLocation();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [renderMode, setRenderMode] = useState<'canvas' | 'video'>('canvas');
+  const [renderMode, setRenderMode] = useState<"canvas" | "video">("canvas");
 
   const avatarVideoRef = useRef<HTMLVideoElement>(null);
   const backgroundVideoRef = useRef<HTMLVideoElement>(null);
@@ -14,9 +14,9 @@ export default function Test() {
   const animationRef = useRef<number>();
 
   const assets = {
-    background: '/test/video1m44.mov',
-    avatar: '/pigeon_talking.mp4',
-    voice: '/test/fit-attention presentation.mp3',
+    background: "/test/video1m44.mp4",
+    avatar: "/pigeon_talking.mp4",
+    voice: "/test/fit-attention presentation.mp3",
   };
 
   useEffect(() => {
@@ -31,10 +31,14 @@ export default function Test() {
     const canvas = canvasRef.current;
     if (!avatarVideo || !canvas) return;
 
-    if (avatarVideo.readyState >= 1 && avatarVideo.videoWidth && avatarVideo.videoHeight) {
+    if (
+      avatarVideo.readyState >= 1 &&
+      avatarVideo.videoWidth &&
+      avatarVideo.videoHeight
+    ) {
       canvas.width = avatarVideo.videoWidth;
       canvas.height = avatarVideo.videoHeight;
-      setRenderMode('canvas');
+      setRenderMode("canvas");
     } else {
       setTimeout(setupCanvas, 100);
     }
@@ -43,16 +47,17 @@ export default function Test() {
   const processFrame = () => {
     const avatarVideo = avatarVideoRef.current;
     const canvas = canvasRef.current;
-    if (!avatarVideo || !canvas || avatarVideo.paused || avatarVideo.ended) return;
+    if (!avatarVideo || !canvas || avatarVideo.paused || avatarVideo.ended)
+      return;
 
     if (!avatarVideo.videoWidth || !avatarVideo.videoHeight) {
-      setRenderMode('video');
+      setRenderMode("video");
       return;
     }
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) {
-      setRenderMode('video');
+      setRenderMode("video");
       return;
     }
 
@@ -118,13 +123,13 @@ export default function Test() {
     try {
       await backgroundVideo.play();
     } catch (error) {
-      console.error('Lecture vidéo de fond impossible', error);
+      console.error("Lecture vidéo de fond impossible", error);
     }
 
     try {
       await voice.play();
     } catch (error) {
-      console.error('Lecture audio impossible', error);
+      console.error("Lecture audio impossible", error);
     }
 
     avatarVideo.currentTime = 0;
@@ -132,11 +137,11 @@ export default function Test() {
     try {
       await avatarVideo.play();
       setIsPlaying(true);
-      setRenderMode('canvas');
+      setRenderMode("canvas");
       processFrame();
     } catch (error) {
-      console.error('Lecture avatar impossible', error);
-      setRenderMode('video');
+      console.error("Lecture avatar impossible", error);
+      setRenderMode("video");
       setIsPlaying(true);
       processFrame();
     }

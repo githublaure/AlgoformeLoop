@@ -166,43 +166,60 @@ export default function Test() {
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      <div className="absolute top-4 left-4 right-4 z-50 space-y-3">
-        <div className="flex items-center space-x-3">
-          <img src="/pigeongangsta.png" alt="PigeonSubcription" className="w-12 h-12 rounded-full border border-white/20" />
-          <div>
-            <p className="text-sm text-white/70">Démo temps réel</p>
-            <p className="text-xl font-semibold">PigeonSubscription</p>
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-gradient-to-r from-purple-700/90 via-indigo-700/90 to-purple-800/90 border border-white/10 shadow-2xl px-4 py-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/10 border border-white/20 rounded-xl px-4 py-3 shadow-inner">
-              <p className="text-sm sm:text-base font-semibold">Pigeon coach</p>
-              <p className="text-xs sm:text-sm text-white/80">Bulle tutoriel</p>
+      <div className="absolute top-4 left-4 right-4 z-50">
+        <div className="relative">
+          <div className="absolute -top-16 left-1/2 -translate-x-1/2 flex justify-center">
+            <div className="relative w-32 h-32 sm:w-36 sm:h-36">
+              <div className="absolute inset-0 rounded-full bg-pink-200/80 border-4 border-pink-300 shadow-[0_20px_80px_rgba(244,114,182,0.35)]" />
+              <div className="absolute inset-2 sm:inset-3 rounded-full overflow-hidden bg-pink-50/90 backdrop-blur-lg">
+                <canvas
+                  ref={canvasRef}
+                  className={`absolute inset-0 w-full h-full rounded-full ${renderMode === 'canvas' ? 'block' : 'hidden'}`}
+                />
+                <video
+                  ref={avatarVideoRef}
+                  src={assets.avatar}
+                  className={`absolute inset-0 w-full h-full object-contain rounded-full ${renderMode === 'video' ? 'block' : 'hidden'}`}
+                  loop
+                  playsInline
+                  muted
+                  onLoadedMetadata={setupCanvas}
+                />
+              </div>
+              <div className="absolute inset-0 pointer-events-none" />
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3 justify-start sm:justify-end">
-            <Button
-              onClick={() => setLocation('/')}
-              className="font-bold bg-white text-purple-800 shadow-2xl border border-purple-200 hover:bg-white rounded-full px-5 py-2"
-            >
-              <i className="fas fa-arrow-left mr-2"></i>Retour
-            </Button>
-            <Button
-              onClick={startDemo}
-              className="font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-5 py-2"
-              disabled={isPlaying}
-            >
-              ▶️ Démarrer
-            </Button>
-            <Button
-              onClick={stopDemo}
-              variant="outline"
-              className="font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-5 py-2"
-            >
-              ⏹ Stop
-            </Button>
+
+          <div className="rounded-2xl bg-gradient-to-r from-purple-700/90 via-indigo-700/90 to-purple-800/90 border border-white/10 shadow-2xl px-4 py-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <img src="/pigeongangsta.png" alt="PigeonSubcription" className="w-12 h-12 rounded-full border border-white/20" />
+              <div>
+                <p className="text-sm text-white/70">Démo temps réel</p>
+                <p className="text-xl font-semibold">PigeonSubscription</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 justify-start sm:justify-end">
+              <Button
+                onClick={() => setLocation('/')}
+                className="font-bold bg-white text-purple-800 shadow-2xl border border-purple-200 hover:bg-white rounded-full px-5 py-2"
+              >
+                <i className="fas fa-arrow-left mr-2"></i>Retour
+              </Button>
+              <Button
+                onClick={startDemo}
+                className="font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-5 py-2"
+                disabled={isPlaying}
+              >
+                ▶️ Démarrer
+              </Button>
+              <Button
+                onClick={stopDemo}
+                variant="outline"
+                className="font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-5 py-2"
+              >
+                ⏹ Stop
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -218,27 +235,7 @@ export default function Test() {
         />
       </div>
 
-      <div className="relative w-full h-full flex items-end justify-end p-6">
-        <div className="relative w-[22rem] h-[22rem] sm:w-[24rem] sm:h-[24rem]">
-          <div className="absolute inset-0 rounded-full bg-pink-200/80 border-4 border-pink-300 shadow-[0_20px_80px_rgba(244,114,182,0.35)]" />
-          <div className="absolute inset-3 sm:inset-4 rounded-full overflow-hidden bg-pink-50/90 backdrop-blur-lg">
-            <canvas
-              ref={canvasRef}
-              className={`absolute inset-0 w-full h-full rounded-full ${renderMode === 'canvas' ? 'block' : 'hidden'}`}
-            />
-            <video
-              ref={avatarVideoRef}
-              src={assets.avatar}
-              className={`absolute inset-0 w-full h-full object-contain rounded-full ${renderMode === 'video' ? 'block' : 'hidden'}`}
-              loop
-              playsInline
-              muted
-              onLoadedMetadata={setupCanvas}
-            />
-          </div>
-          <div className="absolute inset-0 pointer-events-none" />
-        </div>
-      </div>
+      <div className="relative w-full h-full flex items-end justify-end p-6" />
 
       <audio ref={voiceRef} src={assets.voice} />
     </div>

@@ -166,11 +166,44 @@ export default function Test() {
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      <div className="absolute top-4 left-4 z-50 flex items-center space-x-3">
-        <img src="/pigeongangsta.png" alt="PigeonSubcription" className="w-12 h-12 rounded-full border border-white/20" />
-        <div>
-          <p className="text-sm text-white/70">Démo temps réel</p>
-          <p className="text-xl font-semibold">PigeonSubscription</p>
+      <div className="absolute top-4 left-4 right-4 z-50 space-y-3">
+        <div className="flex items-center space-x-3">
+          <img src="/pigeongangsta.png" alt="PigeonSubcription" className="w-12 h-12 rounded-full border border-white/20" />
+          <div>
+            <p className="text-sm text-white/70">Démo temps réel</p>
+            <p className="text-xl font-semibold">PigeonSubscription</p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-gradient-to-r from-purple-700/90 via-indigo-700/90 to-purple-800/90 border border-white/10 shadow-2xl px-4 py-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/10 border border-white/20 rounded-xl px-4 py-3 shadow-inner">
+              <p className="text-sm sm:text-base font-semibold">Pigeon coach</p>
+              <p className="text-xs sm:text-sm text-white/80">Bulle tutoriel</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 justify-start sm:justify-end">
+            <Button
+              onClick={() => setLocation('/')}
+              className="font-bold bg-white text-purple-800 shadow-2xl border border-purple-200 hover:bg-white rounded-full px-5 py-2"
+            >
+              <i className="fas fa-arrow-left mr-2"></i>Retour
+            </Button>
+            <Button
+              onClick={startDemo}
+              className="font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-5 py-2"
+              disabled={isPlaying}
+            >
+              ▶️ Démarrer
+            </Button>
+            <Button
+              onClick={stopDemo}
+              variant="outline"
+              className="font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-5 py-2"
+            >
+              ⏹ Stop
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -203,35 +236,7 @@ export default function Test() {
               onLoadedMetadata={setupCanvas}
             />
           </div>
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-pink-500 text-white px-4 py-2 rounded-full text-sm shadow-lg border border-white/40">
-            Pigeon coach — bulle tutoriel
-          </div>
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute -left-6 -top-10 sm:left-0 sm:-top-8 pointer-events-auto z-50">
-              <Button
-                onClick={() => setLocation('/')}
-                className="font-bold bg-white text-pink-700 shadow-2xl border border-pink-200 hover:bg-white rounded-full px-5 py-2"
-              >
-                <i className="fas fa-arrow-left mr-2"></i>Retour
-              </Button>
-            </div>
-            <div className="absolute left-4 top-16 sm:left-6 sm:top-20 pointer-events-auto flex flex-col items-stretch gap-2">
-              <Button
-                onClick={startDemo}
-                className="font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-5 py-2"
-                disabled={isPlaying}
-              >
-                ▶️ Démarrer
-              </Button>
-              <Button
-                onClick={stopDemo}
-                variant="outline"
-                className="font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-5 py-2"
-              >
-                ⏹ Stop
-              </Button>
-            </div>
-          </div>
+          <div className="absolute inset-0 pointer-events-none" />
         </div>
       </div>
 

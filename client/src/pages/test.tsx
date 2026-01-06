@@ -165,57 +165,46 @@ export default function Test() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      <div className="absolute top-4 left-4 z-50 flex items-center space-x-3">
-        <img src="/pigeongangsta.png" alt="PigeonSubcription" className="w-12 h-12 rounded-full border border-white/20" />
-        <div>
-          <p className="text-sm text-white/70">Démo temps réel</p>
-          <p className="text-xl font-semibold">PigeonSubscription</p>
-        </div>
-      </div>
-
-      <div className="w-full h-full absolute inset-0">
-        <video
-          ref={backgroundVideoRef}
-          src={assets.background}
-          className="w-full h-full object-cover"
-          muted
-          loop
-          playsInline
-        />
-      </div>
-
-      <div className="relative w-full h-full flex items-end justify-end p-6">
-        <div className="relative w-[22rem] h-[22rem] sm:w-[24rem] sm:h-[24rem]">
-          <div className="absolute inset-0 rounded-full bg-pink-200/80 border-4 border-pink-300 shadow-[0_20px_80px_rgba(244,114,182,0.35)]" />
-          <div className="absolute inset-3 sm:inset-4 rounded-full overflow-hidden bg-pink-50/90 backdrop-blur-lg">
-            <canvas
-              ref={canvasRef}
-              className={`absolute inset-0 w-full h-full rounded-full ${renderMode === 'canvas' ? 'block' : 'hidden'}`}
-            />
-            <video
-              ref={avatarVideoRef}
-              src={assets.avatar}
-              className={`absolute inset-0 w-full h-full object-contain rounded-full ${renderMode === 'video' ? 'block' : 'hidden'}`}
-              loop
-              playsInline
-              muted
-              onLoadedMetadata={setupCanvas}
-            />
+    <div className="min-h-screen bg-black text-white relative overflow-visible pt-28">
+      <div className="absolute inset-x-0 top-0 flex justify-center">
+        <div className="relative w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="absolute inset-x-0 -top-14 sm:-top-16 flex justify-center z-50 pointer-events-none">
+            <div className="relative w-32 h-32 sm:w-36 sm:h-36 drop-shadow-2xl">
+              <div className="absolute inset-0 rounded-full bg-pink-200/90 border-4 border-pink-300 shadow-[0_20px_80px_rgba(244,114,182,0.35)]" />
+              <div className="absolute inset-2 sm:inset-3 rounded-full overflow-hidden bg-pink-50/90 backdrop-blur-lg">
+                <canvas
+                  ref={canvasRef}
+                  className={`absolute inset-0 w-full h-full rounded-full ${renderMode === 'canvas' ? 'block' : 'hidden'}`}
+                />
+                <video
+                  ref={avatarVideoRef}
+                  src={assets.avatar}
+                  className={`absolute inset-0 w-full h-full object-contain rounded-full ${renderMode === 'video' ? 'block' : 'hidden'}`}
+                  loop
+                  playsInline
+                  muted
+                  onLoadedMetadata={setupCanvas}
+                />
+              </div>
+              <div className="absolute inset-0 pointer-events-none" />
+            </div>
           </div>
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-pink-500 text-white px-4 py-2 rounded-full text-sm shadow-lg border border-white/40">
-            Pigeon coach — bulle tutoriel
-          </div>
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute -left-6 -top-10 sm:left-0 sm:-top-8 pointer-events-auto z-50">
+
+          <div className="relative z-40 mt-12 sm:mt-14 rounded-3xl bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 border border-white/10 shadow-2xl px-6 sm:px-8 py-6 flex items-center justify-between gap-6">
+            <div className="flex items-center space-x-4 sm:space-x-5">
+              <img src="/pigeongangsta.png" alt="PigeonSubcription" className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-white/20" />
+              <div>
+                <p className="text-sm sm:text-base text-white/70">Démo temps réel</p>
+                <p className="text-xl sm:text-2xl font-semibold">PigeonSubscription</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 justify-end">
               <Button
                 onClick={() => setLocation('/')}
-                className="font-bold bg-white text-pink-700 shadow-2xl border border-pink-200 hover:bg-white rounded-full px-5 py-2"
+                className="font-bold bg-white text-purple-800 shadow-2xl border border-purple-200 hover:bg-white rounded-full px-5 py-2"
               >
                 <i className="fas fa-arrow-left mr-2"></i>Retour
               </Button>
-            </div>
-            <div className="absolute left-4 top-16 sm:left-6 sm:top-20 pointer-events-auto flex flex-col items-stretch gap-2">
               <Button
                 onClick={startDemo}
                 className="font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-5 py-2"
@@ -234,6 +223,19 @@ export default function Test() {
           </div>
         </div>
       </div>
+
+      <div className="w-full h-full absolute inset-0">
+        <video
+          ref={backgroundVideoRef}
+          src={assets.background}
+          className="w-full h-full object-cover"
+          muted
+          loop
+          playsInline
+        />
+      </div>
+
+      <div className="relative w-full h-full flex items-end justify-end p-6" />
 
       <audio ref={voiceRef} src={assets.voice} />
     </div>

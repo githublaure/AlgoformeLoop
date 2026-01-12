@@ -57,7 +57,7 @@ async function ensureSchema() {
       "category" text NOT NULL,
       "category_color" text DEFAULT '#7c3aed',
       "usage_frequency" text NOT NULL,
-      "next_renewal" timestamp NOT NULL,
+      "next_renewal" timestamp,
       "icon_class" text,
       "bg_color" text,
       "note" text,
@@ -149,6 +149,14 @@ async function ensureSchema() {
         WHERE table_name = 'subscriptions' AND column_name = 'created_at'
       ) THEN
         ALTER TABLE "subscriptions" ADD COLUMN "created_at" timestamp DEFAULT now();
+      END IF;
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions'
+          AND column_name = 'next_renewal'
+          AND is_nullable = 'NO'
+      ) THEN
+        ALTER TABLE "subscriptions" ALTER COLUMN "next_renewal" DROP NOT NULL;
       END IF;
       IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
@@ -516,7 +524,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         price: req.body.price !== undefined ? String(req.body.price) : undefined,
         rating: req.body.rating !== undefined ? Number(req.body.rating) : undefined,
-        nextRenewal: req.body.nextRenewal ? new Date(req.body.nextRenewal) : undefined,
+        nextRenewal: req.body.nextRenewal === null
+          ? null
+          : req.body.nextRenewal
+            ? new Date(req.body.nextRenewal)
+            : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
         isSuspect: normalizeBoolean(req.body.isSuspect, false),
         isTrial: normalizeBoolean(req.body.isTrial, false),
@@ -559,7 +571,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         price: req.body.price !== undefined ? String(req.body.price) : undefined,
         rating: req.body.rating !== undefined ? Number(req.body.rating) : undefined,
-        nextRenewal: req.body.nextRenewal ? new Date(req.body.nextRenewal) : undefined,
+        nextRenewal: req.body.nextRenewal === null
+          ? null
+          : req.body.nextRenewal
+            ? new Date(req.body.nextRenewal)
+            : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
         isSuspect: normalizeBoolean(req.body.isSuspect),
         isTrial: normalizeBoolean(req.body.isTrial),

@@ -68,7 +68,7 @@ export function StatsOverview() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
       <div className="pigeon-card p-6">
-        <div className="flex items-center justify-between">
+        <div className="relative pr-16">
           <div>
             <p className="text-sm text-gray-600">Coût mensuel</p>
             <p className="text-2xl font-bold" style={{ color: 'hsl(258, 71%, 65%)' }}>
@@ -105,14 +105,14 @@ export function StatsOverview() {
           <img
             src="/pigeon1.png"
             alt=""
-            className="w-12 h-12 object-contain opacity-70 grayscale brightness-0"
+            className="absolute right-6 top-6 w-12 h-12 object-contain opacity-70 grayscale brightness-0"
             aria-hidden="true"
           />
         </div>
       </div>
 
       <div className="pigeon-card p-6">
-        <div className="flex items-center justify-between">
+        <div className="relative pr-16">
           <div>
             <p className="text-sm text-gray-600">Abonnements actifs</p>
             <p className="text-2xl font-bold" style={{ color: 'hsl(162, 64%, 36%)' }}>
@@ -123,14 +123,14 @@ export function StatsOverview() {
           <img
             src="/pigeon1.png"
             alt=""
-            className="w-12 h-12 object-contain opacity-70 grayscale brightness-0"
+            className="absolute right-6 top-6 w-12 h-12 object-contain opacity-70 grayscale brightness-0"
             aria-hidden="true"
           />
         </div>
       </div>
 
       <div className="pigeon-card p-6">
-        <div className="flex items-center justify-between">
+        <div className="relative pr-16">
           <div>
             <p className="text-sm text-gray-600">Essais gratuits</p>
             <p className="text-2xl font-bold" style={{ color: 'hsl(42, 96%, 70%)' }}>
@@ -141,14 +141,14 @@ export function StatsOverview() {
           <img
             src="/pigeon1.png"
             alt=""
-            className="w-12 h-12 object-contain opacity-70 grayscale brightness-0"
+            className="absolute right-6 top-6 w-12 h-12 object-contain opacity-70 grayscale brightness-0"
             aria-hidden="true"
           />
         </div>
       </div>
 
       <div className="pigeon-card p-6">
-        <div className="flex items-center justify-between">
+        <div className="relative pr-16">
           <div>
             <p className="text-sm text-gray-600">Risque d'arnaque</p>
             <p className="text-2xl font-bold" style={{ color: 'hsl(10, 72%, 61%)' }}>
@@ -160,7 +160,7 @@ export function StatsOverview() {
           <img
             src="/pigeon1.png"
             alt=""
-            className="w-12 h-12 object-contain opacity-70 grayscale brightness-0"
+            className="absolute right-6 top-6 w-12 h-12 object-contain opacity-70 grayscale brightness-0"
             aria-hidden="true"
           />
         </div>

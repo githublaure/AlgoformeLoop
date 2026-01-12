@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 export default function Test() {
   const [, setLocation] = useLocation();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [renderMode, setRenderMode] = useState<"canvas" | "video">("canvas");
   const [isMuted, setIsMuted] = useState(false);
 
@@ -119,6 +120,7 @@ export default function Test() {
 
     if (!avatarVideo || !backgroundVideo || !voice) return;
 
+    setIsPaused(false);
     setupCanvas();
 
     try {
@@ -149,6 +151,46 @@ export default function Test() {
     }
   };
 
+  const togglePause = async () => {
+    const avatarVideo = avatarVideoRef.current;
+    const backgroundVideo = backgroundVideoRef.current;
+    const voice = voiceRef.current;
+
+    if (!avatarVideo || !backgroundVideo || !voice || !isPlaying) return;
+
+    if (isPaused) {
+      try {
+        await backgroundVideo.play();
+      } catch (error) {
+        console.error("Reprise vidéo de fond impossible", error);
+      }
+
+      try {
+        await avatarVideo.play();
+        processFrame();
+      } catch (error) {
+        console.error("Reprise avatar impossible", error);
+      }
+
+      try {
+        await voice.play();
+      } catch (error) {
+        console.error("Reprise audio impossible", error);
+      }
+
+      setIsPaused(false);
+      return;
+    }
+
+    avatarVideo.pause();
+    backgroundVideo.pause();
+    voice.pause();
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    setIsPaused(true);
+  };
+
   const stopDemo = () => {
     const avatarVideo = avatarVideoRef.current;
     const backgroundVideo = backgroundVideoRef.current;
@@ -169,6 +211,7 @@ export default function Test() {
       cancelAnimationFrame(animationRef.current);
     }
     setIsPlaying(false);
+    setIsPaused(false);
   };
 
   const toggleMute = () => {
@@ -207,7 +250,7 @@ export default function Test() {
             </div>
           </div>
 
-          <div className="relative z-40 mt-12 sm:mt-14 rounded-3xl bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 border border-white/10 shadow-2xl px-6 sm:px-8 py-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <div className="relative z-40 mt-12 sm:mt-14 rounded-3xl bg-gradient-to-r from-purple-700/90 via-indigo-700/90 to-purple-800/90 border border-white/10 shadow-2xl px-6 sm:px-8 py-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 backdrop-blur-sm">
             <div className="flex items-center space-x-4 sm:space-x-5">
               <img src="/pigeongangsta.png" alt="PigeonSubcription" className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-white/20" />
               <div>
@@ -237,6 +280,14 @@ export default function Test() {
                 ▶️ Démarrer
               </Button>
               <Button
+                onClick={togglePause}
+                variant="outline"
+                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-5 py-2 sm:w-auto"
+                disabled={!isPlaying}
+              >
+                {isPaused ? "▶️ Reprendre" : "⏸ Pause"}
+              </Button>
+              <Button
                 onClick={stopDemo}
                 variant="outline"
                 className="w-full font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-5 py-2 sm:w-auto"
@@ -248,18 +299,18 @@ export default function Test() {
         </div>
       </div>
 
-      <div className="w-full h-full absolute inset-0">
-        <video
-          ref={backgroundVideoRef}
-          src={assets.background}
-          className="w-full h-full object-cover"
-          muted
-          loop
-          playsInline
-        />
+      <div className="relative w-full px-4 sm:px-6 lg:px-8">
+        <div className="relative mx-auto w-full max-w-6xl aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black">
+          <video
+            ref={backgroundVideoRef}
+            src={assets.background}
+            className="absolute inset-0 w-full h-full object-cover"
+            muted
+            loop
+            playsInline
+          />
+        </div>
       </div>
-
-      <div className="relative w-full h-full flex items-end justify-end p-6" />
 
       <audio ref={voiceRef} src={assets.voice} />
     </div>

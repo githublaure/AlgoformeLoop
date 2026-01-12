@@ -21,19 +21,6 @@ export function StatsOverview() {
     setBudgetInput(budgetCap ? budgetCap.toFixed(0) : "0");
   }, [budgetCap]);
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="pigeon-card p-6 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="h-8 bg-gray-200 rounded"></div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   const updateBudget = useMutation({
     mutationFn: async () => {
       const parsed = Number(budgetInput);
@@ -60,6 +47,19 @@ export function StatsOverview() {
       });
     },
   });
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="pigeon-card p-6 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="h-8 bg-gray-200 rounded"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">

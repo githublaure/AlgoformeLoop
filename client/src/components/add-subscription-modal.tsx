@@ -251,6 +251,7 @@ export function AddSubscriptionModal({
 
   const createSubscription = useMutation({
     mutationFn: async (data: FormData) => {
+      const shouldClearRenewal = data.renewalUnknown || data.frequency === "lifetime";
       const payload = {
         ...data,
         price: String(data.price ?? ""),
@@ -258,7 +259,7 @@ export function AddSubscriptionModal({
         bgColor: data.categoryColor || data.bgColor,
         rating: Number(data.rating) || 0,
         isSuspect: Boolean(data.isSuspect),
-        nextRenewal: data.renewalUnknown ? null : new Date(data.nextRenewal ?? ""),
+        nextRenewal: shouldClearRenewal ? null : new Date(data.nextRenewal ?? ""),
         trialEndsAt: data.isTrial && data.trialEndsAt ? new Date(data.trialEndsAt) : undefined,
       };
       delete (payload as Partial<FormData>).renewalUnknown;
@@ -307,9 +308,10 @@ export function AddSubscriptionModal({
   const updateSubscription = useMutation({
     mutationFn: async (data: FormData) => {
       if (!subscription) return;
+      const shouldClearRenewal = data.renewalUnknown || data.frequency === "lifetime";
       const subscriptionData = {
         ...data,
-        nextRenewal: data.renewalUnknown ? null : new Date(data.nextRenewal ?? ""),
+        nextRenewal: shouldClearRenewal ? null : new Date(data.nextRenewal ?? ""),
       };
       delete (subscriptionData as Partial<FormData>).renewalUnknown;
       const response = await apiRequest(

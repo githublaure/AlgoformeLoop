@@ -45,8 +45,11 @@ export default function Dashboard() {
       if (upcomingFilter === 'lifetime') {
         return subscription.frequency === 'lifetime';
       }
+      if (upcomingFilter === 'unknown') {
+        return !subscription.nextRenewal && subscription.frequency !== 'lifetime';
+      }
       if (!subscription.nextRenewal) {
-        return upcomingFilter === 'unknown';
+        return false;
       }
       const now = new Date();
       const next = new Date(subscription.nextRenewal);

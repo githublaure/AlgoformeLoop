@@ -1,4 +1,4 @@
-import { subscriptions, voiceReminders, type Subscription, type InsertSubscription, type VoiceReminder, type InsertVoiceReminder } from "@shared/schema";
+import { subscriptions, userSettings, voiceReminders, type Subscription, type InsertSubscription, type VoiceReminder, type InsertVoiceReminder, type UserSettings } from "@shared/schema";
 import { and, eq, gte, lte } from "drizzle-orm";
 // Note: avoid importing `db` at module import time so tests that only
 // exercise `MemStorage` don't require DATABASE_URL to be set.
@@ -16,6 +16,10 @@ export interface IStorage {
   ): Promise<Subscription | undefined>;
   deleteSubscription(id: number, userId: number): Promise<boolean>;
   getUpcomingRenewals(days: number, userId: number): Promise<Subscription[]>;
+
+  // User settings methods
+  getUserSettings(userId: number): Promise<UserSettings | undefined>;
+  setUserBudgetCap(userId: number, budgetCap: string): Promise<UserSettings>;
   
   // Voice reminder methods
   getVoiceReminders(): Promise<VoiceReminder[]>;
@@ -26,14 +30,18 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private subscriptions: Map<number, Subscription>;
   private voiceReminders: Map<number, VoiceReminder>;
+  private userSettings: Map<number, UserSettings>;
   private currentSubscriptionId: number;
   private currentVoiceReminderId: number;
+  private currentUserSettingsId: number;
 
   constructor() {
     this.subscriptions = new Map();
     this.voiceReminders = new Map();
+    this.userSettings = new Map();
     this.currentSubscriptionId = 1;
     this.currentVoiceReminderId = 1;
+    this.currentUserSettingsId = 1;
     
     // Initialize with some sample data
     this.initializeSampleData();
@@ -210,6 +218,22 @@ export class MemStorage implements IStorage {
       .sort((a, b) => a.nextRenewal.getTime() - b.nextRenewal.getTime());
   }
 
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    return this.userSettings.get(userId);
+  }
+
+  async setUserBudgetCap(userId: number, budgetCap: string): Promise<UserSettings> {
+    const existing = this.userSettings.get(userId);
+    const updated: UserSettings = {
+      id: existing?.id ?? this.currentUserSettingsId++,
+      userId,
+      budgetCap,
+      createdAt: existing?.createdAt ?? new Date(),
+    };
+    this.userSettings.set(userId, updated);
+    return updated;
+  }
+
   async getVoiceReminders(): Promise<VoiceReminder[]> {
     return Array.from(this.voiceReminders.values());
   }
@@ -320,6 +344,38 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(subscriptions.nextRenewal);
+  }
+
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    const { db } = await import('./db');
+    const [settings] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId));
+    return settings || undefined;
+  }
+
+  async setUserBudgetCap(userId: number, budgetCap: string): Promise<UserSettings> {
+    const { db } = await import('./db');
+    const [existing] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId));
+
+    if (existing) {
+      const [updated] = await db
+        .update(userSettings)
+        .set({ budgetCap })
+        .where(eq(userSettings.userId, userId))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db
+      .insert(userSettings)
+      .values({ userId, budgetCap })
+      .returning();
+    return created;
   }
 
   async getVoiceReminders(): Promise<VoiceReminder[]> {

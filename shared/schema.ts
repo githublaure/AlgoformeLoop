@@ -11,6 +11,13 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const userSettings = pgTable("user_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull().unique(),
+  budgetCap: decimal("budget_cap", { precision: 10, scale: 2 }).default("100"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
@@ -67,6 +74,7 @@ export type InsertVoiceReminder = z.infer<typeof insertVoiceReminderSchema>;
 export type VoiceReminder = typeof voiceReminders.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+export type UserSettings = typeof userSettings.$inferSelect;
 
 // Usage frequency options
 export const USAGE_FREQUENCIES = {

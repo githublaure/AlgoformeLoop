@@ -270,7 +270,7 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-[360px,minmax(0,1fr)] items-start gap-10 md:gap-16">
+          <div className="grid grid-cols-1 md:grid-cols-[360px,minmax(0,1fr)] items-start gap-10 md:gap-0">
             {/* Pigeon interactive area placed next to card */}
             <div
               className={[
@@ -278,7 +278,6 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
                 "h-80 md:h-[26rem] w-full",
                 "flex items-center justify-center",
                 "overflow-hidden rounded-2xl",
-                "md:mr-auto",
               ].join(" ")}
             >
               <canvas
@@ -304,6 +303,8 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
                 ref={videoRef}
                 className="hidden"
                 loop
+                playsInline
+                disablePictureInPicture
                 onEnded={() => setIsTalking(false)}
                 onLoadedData={setupVideoProcessing}
               >
@@ -358,8 +359,8 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            <div className="md:col-start-2 flex-1 flex justify-center md:justify-end">
-              <Card className="w-full md:max-w-xl md:ml-8">
+            <div className="md:col-start-2 flex-1 flex justify-center md:justify-start">
+              <Card className="w-full md:max-w-xl">
                 <CardHeader>
                   <CardTitle>{isLogin ? "Connexion" : "Inscription"}</CardTitle>
                   <CardDescription>

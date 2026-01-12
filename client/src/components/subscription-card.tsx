@@ -165,9 +165,8 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
     return categories[category] || category;
   };
 
-  const isHexColor = subscription.bgColor?.startsWith('#');
-
   const iconColor = subscription.categoryColor || subscription.bgColor;
+  const isHexColor = iconColor?.startsWith('#');
   const iconClass = 'fas fa-dove';
 
   const handleAddToCalendar = () => {
@@ -185,9 +184,9 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
         <div className="flex items-center space-x-3">
           <div
             className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-              isHexColor ? '' : subscription.bgColor || 'bg-gray-600'
+              isHexColor ? '' : iconColor || 'bg-gray-600'
             }`}
-            style={isHexColor && subscription.bgColor ? { backgroundColor: subscription.bgColor } : undefined}
+            style={isHexColor && iconColor ? { backgroundColor: iconColor } : undefined}
           >
             <i className={`${subscription.iconClass || 'fas fa-dove'} text-white`}></i>
           </div>

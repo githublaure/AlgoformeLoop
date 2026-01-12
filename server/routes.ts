@@ -70,6 +70,16 @@ async function ensureSchema() {
     );
   `);
 
+  // User settings table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS "user_settings" (
+      "id" serial PRIMARY KEY,
+      "user_id" integer REFERENCES "users"("id") UNIQUE NOT NULL,
+      "budget_cap" numeric(10, 2) DEFAULT 100,
+      "created_at" timestamp DEFAULT now()
+    );
+  `);
+
   // Ensure user_id column exists when table already present without migration
   await db.execute(sql`
     DO $$
@@ -139,6 +149,18 @@ async function ensureSchema() {
         WHERE table_name = 'subscriptions' AND column_name = 'created_at'
       ) THEN
         ALTER TABLE "subscriptions" ADD COLUMN "created_at" timestamp DEFAULT now();
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'user_settings' AND column_name = 'budget_cap'
+      ) THEN
+        ALTER TABLE "user_settings" ADD COLUMN "budget_cap" numeric(10, 2) DEFAULT 100;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'user_settings' AND column_name = 'created_at'
+      ) THEN
+        ALTER TABLE "user_settings" ADD COLUMN "created_at" timestamp DEFAULT now();
       END IF;
     END $$;
   `);
@@ -580,6 +602,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User settings routes
+  app.get("/api/settings", authenticateToken, async (req: any, res) => {
+    try {
+      await ensureSchema();
+      const settings = await storage.getUserSettings(req.user.id);
+      const fallbackBudget = parseFloat(process.env.SUBSCRIPTION_BUDGET || "100");
+      res.json({
+        budgetCap: settings?.budgetCap ?? fallbackBudget,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.put("/api/settings/budget", authenticateToken, async (req: any, res) => {
+    try {
+      await ensureSchema();
+      const rawBudget = req.body?.budgetCap;
+      const parsed = Number(rawBudget);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        return res.status(400).json({ message: "Invalid budget cap" });
+      }
+      const saved = await storage.setUserBudgetCap(req.user.id, parsed.toFixed(2));
+      res.json({ budgetCap: saved.budgetCap });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update budget cap" });
+    }
+  });
+
   // Voice reminder routes
   app.post("/api/voice/generate", async (req, res) => {
     try {
@@ -669,7 +720,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, { very_used: 0, used: 0, rarely_used: 0 });
 
-      const budgetCap = parseFloat(process.env.SUBSCRIPTION_BUDGET || '100');
+      const settings = await storage.getUserSettings(req.user.id);
+      const budgetCap = Number(settings?.budgetCap ?? process.env.SUBSCRIPTION_BUDGET ?? '100');
       const budgetGap = Math.max(monthlyTotal - budgetCap, 0);
 
       res.json({

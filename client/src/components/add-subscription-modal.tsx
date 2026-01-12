@@ -154,7 +154,7 @@ export function AddSubscriptionModal({
         if (prev.some((cat) => cat.value === catVal)) {
           return prev;
         }
-        const color = subscription.bgColor ?? DEFAULT_BG_COLOR;
+        const color = subscription.categoryColor ?? subscription.bgColor ?? DEFAULT_BG_COLOR;
         return [
           ...prev,
           {
@@ -181,7 +181,7 @@ export function AddSubscriptionModal({
       });
 
       setSelectedUsage(subscription.usageFrequency);
-      setCategoryColor(subscription.bgColor ?? DEFAULT_BG_COLOR);
+      setCategoryColor(subscription.categoryColor ?? subscription.bgColor ?? DEFAULT_BG_COLOR);
     } else {
       resetForm();
     }

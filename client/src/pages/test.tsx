@@ -6,6 +6,7 @@ export default function Test() {
   const [, setLocation] = useLocation();
   const [isPlaying, setIsPlaying] = useState(false);
   const [renderMode, setRenderMode] = useState<"canvas" | "video">("canvas");
+  const [isMuted, setIsMuted] = useState(false);
 
   const avatarVideoRef = useRef<HTMLVideoElement>(null);
   const backgroundVideoRef = useRef<HTMLVideoElement>(null);
@@ -127,6 +128,7 @@ export default function Test() {
     }
 
     try {
+      voice.muted = isMuted;
       await voice.play();
     } catch (error) {
       console.error("Lecture audio impossible", error);
@@ -169,12 +171,22 @@ export default function Test() {
     setIsPlaying(false);
   };
 
+  const toggleMute = () => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      if (voiceRef.current) {
+        voiceRef.current.muted = next;
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-black text-white relative overflow-visible pt-28">
       <div className="absolute inset-x-0 top-0 flex justify-center">
         <div className="relative w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="absolute inset-x-0 -top-14 sm:-top-16 flex justify-center z-50 pointer-events-none">
-            <div className="relative w-32 h-32 sm:w-36 sm:h-36 drop-shadow-2xl">
+            <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 drop-shadow-2xl">
               <div className="absolute inset-0 rounded-full bg-pink-200/90 border-4 border-pink-300 shadow-[0_20px_80px_rgba(244,114,182,0.35)]" />
               <div className="absolute inset-2 sm:inset-3 rounded-full overflow-hidden bg-pink-50/90 backdrop-blur-lg">
                 <canvas
@@ -195,7 +207,7 @@ export default function Test() {
             </div>
           </div>
 
-          <div className="relative z-40 mt-12 sm:mt-14 rounded-3xl bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 border border-white/10 shadow-2xl px-6 sm:px-8 py-6 flex items-center justify-between gap-6">
+          <div className="relative z-40 mt-12 sm:mt-14 rounded-3xl bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 border border-white/10 shadow-2xl px-6 sm:px-8 py-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
             <div className="flex items-center space-x-4 sm:space-x-5">
               <img src="/pigeongangsta.png" alt="PigeonSubcription" className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-white/20" />
               <div>
@@ -203,16 +215,23 @@ export default function Test() {
                 <p className="text-xl sm:text-2xl font-semibold">PigeonSubscription</p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3 justify-end">
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
               <Button
                 onClick={() => setLocation('/')}
-                className="font-bold bg-white text-purple-800 shadow-2xl border border-purple-200 hover:bg-white rounded-full px-5 py-2"
+                className="w-full font-bold bg-white text-purple-800 shadow-2xl border border-purple-200 hover:bg-white rounded-full px-5 py-2 sm:w-auto"
               >
                 <i className="fas fa-arrow-left mr-2"></i>Retour
               </Button>
               <Button
+                onClick={toggleMute}
+                variant="outline"
+                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-5 py-2 sm:w-auto"
+              >
+                {isMuted ? "🔇 Son coupé" : "🔊 Son actif"}
+              </Button>
+              <Button
                 onClick={startDemo}
-                className="font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-5 py-2"
+                className="w-full font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-5 py-2 sm:w-auto"
                 disabled={isPlaying}
               >
                 ▶️ Démarrer
@@ -220,7 +239,7 @@ export default function Test() {
               <Button
                 onClick={stopDemo}
                 variant="outline"
-                className="font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-5 py-2"
+                className="w-full font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-5 py-2 sm:w-auto"
               >
                 ⏹ Stop
               </Button>

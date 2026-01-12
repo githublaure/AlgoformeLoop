@@ -293,7 +293,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
       <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
         <span>
           Prochain: {subscription.nextRenewal
-            ? format(new Date(subscription.nextRenewal), "d MMM", { locale: fr })
+            ? format(new Date(subscription.nextRenewal), "d MMM yyyy", { locale: fr })
             : "Date inconnue"}
         </span>
         <div className="flex space-x-2">

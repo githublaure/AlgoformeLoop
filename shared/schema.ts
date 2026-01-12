@@ -58,10 +58,15 @@ export const voiceRemindersRelations = relations(voiceReminders, ({ one }) => ({
   }),
 }));
 
-export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertSubscriptionSchema = createInsertSchema(subscriptions)
+  .omit({
+    id: true,
+    createdAt: true,
+  })
+  .extend({
+    nextRenewal: z.date().nullable().optional(),
+    trialEndsAt: z.date().nullable().optional(),
+  });
 
 export const insertVoiceReminderSchema = createInsertSchema(voiceReminders).omit({
   id: true,

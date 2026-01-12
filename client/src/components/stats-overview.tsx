@@ -11,10 +11,13 @@ export function StatsOverview() {
   const { data: stats, isLoading } = useQuery<StatsResponse>({
     queryKey: ['/api/stats'],
   });
+  const { data: settings } = useQuery<{ budgetCap: number | string }>({
+    queryKey: ['/api/settings'],
+  });
 
   const [budgetInput, setBudgetInput] = useState("");
 
-  const budgetCap = Number(stats?.budgetCap ?? 0);
+  const budgetCap = Number(settings?.budgetCap ?? stats?.budgetCap ?? 0);
   const budgetGap = Number(stats?.budgetGap ?? 0);
 
   useEffect(() => {
@@ -32,7 +35,8 @@ export function StatsOverview() {
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      queryClient.setQueryData(['/api/settings'], data);
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       toast({
         title: "Budget cible mis à jour",

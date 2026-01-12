@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,6 +65,7 @@ type CategoryOption = {
 
 const DEFAULT_BG_COLOR = "#4b5563";
 const DEFAULT_CATEGORY = "other";
+const CUSTOM_CATEGORIES_STORAGE_KEY = "pigeon-custom-categories";
 
 const DEFAULT_CATEGORIES: CategoryOption[] = [
   { value: "entertainment", label: "Divertissement", color: "#7c3aed" },
@@ -74,6 +75,31 @@ const DEFAULT_CATEGORIES: CategoryOption[] = [
   { value: "cloud", label: "Cloud", color: "#475569" },
   { value: "other", label: "Autre", color: "#6b7280" },
 ];
+
+const isDefaultCategory = (value: string) =>
+  DEFAULT_CATEGORIES.some((category) => category.value === value);
+
+const getCategoryColor = (value: string) =>
+  DEFAULT_CATEGORIES.find((category) => category.value === value)?.color ?? DEFAULT_BG_COLOR;
+
+const loadCustomCategories = () => {
+  if (typeof window === "undefined") return [];
+  const raw = window.localStorage.getItem(CUSTOM_CATEGORIES_STORAGE_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item.value === "string")
+      .map((item) => ({
+        value: String(item.value),
+        label: String(item.label ?? item.value),
+        color: String(item.color ?? DEFAULT_BG_COLOR),
+      }));
+  } catch {
+    return [];
+  }
+};
 
 const defaultValues: FormData = {
   name: "",
@@ -100,6 +126,7 @@ export function AddSubscriptionModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedUsage, setSelectedUsage] = useState<string>(defaultValues.usageFrequency);
+  const [customCategories, setCustomCategories] = useState<CategoryOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>(DEFAULT_CATEGORIES);
   const [customCategoryName, setCustomCategoryName] = useState("");
   const [customCategoryColor, setCustomCategoryColor] = useState("#4b5563");
@@ -143,27 +170,42 @@ export function AddSubscriptionModal({
     return format(new Date(date), "yyyy-MM-dd");
   };
 
+  const persistCustomCategories = useCallback((next: CategoryOption[]) => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(CUSTOM_CATEGORIES_STORAGE_KEY, JSON.stringify(next));
+  }, []);
+
+  const updateCustomCategories = useCallback(
+    (updater: (prev: CategoryOption[]) => CategoryOption[]) => {
+      setCustomCategories((prev) => {
+        const next = updater(prev);
+        persistCustomCategories(next);
+        return next;
+      });
+    },
+    [persistCustomCategories],
+  );
+
+  useEffect(() => {
+    setCustomCategories(loadCustomCategories());
+  }, []);
+
+  useEffect(() => {
+    setCategories([...DEFAULT_CATEGORIES, ...customCategories]);
+  }, [customCategories]);
+
   useEffect(() => {
     if (!isOpen) return;
 
     if (subscription) {
-      setCategories((prev) => {
-        // don't add empty category values (they create a SelectItem with value="" which Radix forbids)
-        const catVal = subscription.category?.toString().trim();
-        if (!catVal) return prev;
-        if (prev.some((cat) => cat.value === catVal)) {
-          return prev;
-        }
-        const color = subscription.categoryColor ?? subscription.bgColor ?? DEFAULT_BG_COLOR;
-        return [
-          ...prev,
-          {
-            value: catVal,
-            label: catVal,
-            color,
-          },
-        ];
-      });
+      const catVal = subscription.category?.toString().trim();
+      if (catVal && !isDefaultCategory(catVal)) {
+        updateCustomCategories((prev) => {
+          if (prev.some((cat) => cat.value === catVal)) return prev;
+          const color = subscription.categoryColor ?? subscription.bgColor ?? DEFAULT_BG_COLOR;
+          return [...prev, { value: catVal, label: catVal, color }];
+        });
+      }
 
       form.reset({
         ...subscription,
@@ -185,7 +227,7 @@ export function AddSubscriptionModal({
     } else {
       resetForm();
     }
-  }, [subscription, isOpen, form]);
+  }, [subscription, isOpen, form, updateCustomCategories]);
 
   const createSubscription = useMutation({
     mutationFn: async (data: FormData) => {
@@ -321,7 +363,7 @@ export function AddSubscriptionModal({
     const normalized = name.toLowerCase();
     const newCategory = { value: name, label: name, color: customCategoryColor };
 
-    setCategories((prev) => {
+    updateCustomCategories((prev) => {
       if (prev.some((cat) => cat.value.toLowerCase() === normalized)) return prev;
       return [...prev, newCategory];
     });
@@ -331,6 +373,45 @@ export function AddSubscriptionModal({
     form.setValue("categoryColor", customCategoryColor);
     setCategoryColor(customCategoryColor);
     setCustomCategoryName("");
+  };
+
+  const handleRenameCategory = (value: string, nextName: string) => {
+    const trimmed = nextName.trim();
+    if (!trimmed) return;
+    updateCustomCategories((prev) => {
+      if (prev.some((cat) => cat.value !== value && cat.value.toLowerCase() === trimmed.toLowerCase())) {
+        return prev;
+      }
+      return prev.map((cat) =>
+        cat.value === value ? { ...cat, value: trimmed, label: trimmed } : cat
+      );
+    });
+    if (form.getValues("category") === value) {
+      form.setValue("category", trimmed);
+    }
+  };
+
+  const handleDeleteCategory = (value: string) => {
+    updateCustomCategories((prev) => prev.filter((cat) => cat.value !== value));
+    if (form.getValues("category") === value) {
+      const fallback = DEFAULT_CATEGORY;
+      const fallbackColor = getCategoryColor(fallback);
+      form.setValue("category", fallback);
+      form.setValue("bgColor", fallbackColor);
+      form.setValue("categoryColor", fallbackColor);
+      setCategoryColor(fallbackColor);
+    }
+  };
+
+  const handleCustomCategoryColor = (value: string, color: string) => {
+    updateCustomCategories((prev) =>
+      prev.map((cat) => (cat.value === value ? { ...cat, color } : cat))
+    );
+    if (form.getValues("category") === value) {
+      form.setValue("bgColor", color);
+      form.setValue("categoryColor", color);
+      setCategoryColor(color);
+    }
   };
 
   const isSaving = createSubscription.isPending || updateSubscription.isPending;
@@ -521,6 +602,41 @@ export function AddSubscriptionModal({
                       Choisissez une couleur : le pigeon sur la carte d'abonnement l'utilisera automatiquement.
                     </p>
                   </div>
+
+                  {customCategories.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm font-medium">Catégories personnalisées</p>
+                      <div className="space-y-2">
+                        {customCategories.map((category) => (
+                          <div key={category.value} className="flex flex-wrap items-center gap-2 rounded-md border px-2 py-2">
+                            <Input
+                              className="h-8 flex-1 min-w-[140px]"
+                              defaultValue={category.label}
+                              onBlur={(event) => handleRenameCategory(category.value, event.target.value)}
+                            />
+                            <Input
+                              type="color"
+                              className="h-8 w-14 p-1"
+                              value={category.color}
+                              onChange={(event) => handleCustomCategoryColor(category.value, event.target.value)}
+                              aria-label={`Couleur ${category.label}`}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-8 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                              onClick={() => handleDeleteCategory(category.value)}
+                            >
+                              Supprimer
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Renommez une catégorie en quittant le champ ou supprimez-la si vous ne l'utilisez plus.
+                      </p>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

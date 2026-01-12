@@ -250,7 +250,7 @@ export default function Test() {
             </div>
           </div>
 
-          <div className="relative z-40 mt-12 sm:mt-14 rounded-3xl bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 border border-white/10 shadow-2xl px-6 sm:px-8 py-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <div className="relative z-40 mt-12 sm:mt-14 rounded-3xl bg-gradient-to-r from-purple-700/90 via-indigo-700/90 to-purple-800/90 border border-white/10 shadow-2xl px-6 sm:px-8 py-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 backdrop-blur-sm">
             <div className="flex items-center space-x-4 sm:space-x-5">
               <img src="/pigeongangsta.png" alt="PigeonSubcription" className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-white/20" />
               <div>

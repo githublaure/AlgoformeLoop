@@ -466,13 +466,13 @@ export function AddSubscriptionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] sm:max-h-[85vh] overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Modifier l'abonnement" : "Ajouter un abonnement"}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pr-1 sm:pr-2">
             <input type="hidden" {...form.register("usageFrequency")} />
             <input type="hidden" {...form.register("bgColor")} />
             <input type="hidden" {...form.register("categoryColor")} />

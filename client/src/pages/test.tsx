@@ -8,6 +8,7 @@ export default function Test() {
   const [isPaused, setIsPaused] = useState(false);
   const [renderMode, setRenderMode] = useState<"canvas" | "video">("canvas");
   const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState<1 | 2>(1);
 
   const avatarVideoRef = useRef<HTMLVideoElement>(null);
   const backgroundVideoRef = useRef<HTMLVideoElement>(null);
@@ -124,12 +125,14 @@ export default function Test() {
     setupCanvas();
 
     try {
+      backgroundVideo.playbackRate = playbackRate;
       await backgroundVideo.play();
     } catch (error) {
       console.error("Lecture vidéo de fond impossible", error);
     }
 
     try {
+      voice.playbackRate = playbackRate;
       voice.muted = isMuted;
       await voice.play();
     } catch (error) {
@@ -139,6 +142,7 @@ export default function Test() {
     avatarVideo.currentTime = 0;
     avatarVideo.muted = true;
     try {
+      avatarVideo.playbackRate = playbackRate;
       await avatarVideo.play();
       setIsPlaying(true);
       setRenderMode("canvas");
@@ -160,12 +164,14 @@ export default function Test() {
 
     if (isPaused) {
       try {
+        backgroundVideo.playbackRate = playbackRate;
         await backgroundVideo.play();
       } catch (error) {
         console.error("Reprise vidéo de fond impossible", error);
       }
 
       try {
+        avatarVideo.playbackRate = playbackRate;
         await avatarVideo.play();
         processFrame();
       } catch (error) {
@@ -173,6 +179,7 @@ export default function Test() {
       }
 
       try {
+        voice.playbackRate = playbackRate;
         await voice.play();
       } catch (error) {
         console.error("Reprise audio impossible", error);
@@ -206,12 +213,48 @@ export default function Test() {
     if (avatarVideo) {
       avatarVideo.currentTime = 0;
     }
+    if (backgroundVideo) {
+      backgroundVideo.currentTime = 0;
+    }
 
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
     setIsPlaying(false);
     setIsPaused(false);
+  };
+
+  const updatePlaybackRate = (nextRate: 1 | 2) => {
+    setPlaybackRate(nextRate);
+    const avatarVideo = avatarVideoRef.current;
+    const backgroundVideo = backgroundVideoRef.current;
+    const voice = voiceRef.current;
+    if (avatarVideo) avatarVideo.playbackRate = nextRate;
+    if (backgroundVideo) backgroundVideo.playbackRate = nextRate;
+    if (voice) voice.playbackRate = nextRate;
+  };
+
+  const seekBy = (deltaSeconds: number) => {
+    const avatarVideo = avatarVideoRef.current;
+    const backgroundVideo = backgroundVideoRef.current;
+    const voice = voiceRef.current;
+
+    const mediaElements: Array<HTMLMediaElement | null> = [
+      avatarVideo,
+      backgroundVideo,
+      voice,
+    ];
+
+    mediaElements.forEach((media) => {
+      if (!media) return;
+      const duration = Number.isFinite(media.duration) ? media.duration : undefined;
+      const nextTime = media.currentTime + deltaSeconds;
+      if (duration !== undefined) {
+        media.currentTime = Math.max(0, Math.min(nextTime, duration));
+      } else {
+        media.currentTime = Math.max(0, nextTime);
+      }
+    });
   };
 
   const toggleMute = () => {
@@ -225,7 +268,7 @@ export default function Test() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-visible pt-28">
+    <div className="min-h-screen bg-black text-white relative overflow-visible pt-20 sm:pt-28">
       <div className="absolute inset-x-0 top-0 flex justify-center">
         <div className="relative w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="absolute inset-x-0 -top-14 sm:-top-16 flex justify-center z-50 pointer-events-none">
@@ -250,7 +293,7 @@ export default function Test() {
             </div>
           </div>
 
-          <div className="relative z-40 mt-12 sm:mt-14 rounded-3xl bg-gradient-to-r from-purple-700/90 via-indigo-700/90 to-purple-800/90 border border-white/10 shadow-2xl px-6 sm:px-8 py-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 backdrop-blur-sm">
+          <div className="relative z-40 mt-8 sm:mt-14 rounded-3xl bg-gradient-to-r from-purple-700/90 via-indigo-700/90 to-purple-800/90 border border-white/10 shadow-2xl px-4 sm:px-8 py-4 sm:py-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 backdrop-blur-sm">
             <div className="flex items-center space-x-4 sm:space-x-5">
               <img src="/pigeongangsta.png" alt="PigeonSubcription" className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-white/20" />
               <div>
@@ -258,23 +301,24 @@ export default function Test() {
                 <p className="text-xl sm:text-2xl font-semibold">PigeonSubscription</p>
               </div>
             </div>
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+            <div className="grid w-full grid-cols-2 gap-2 text-sm sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
               <Button
                 onClick={() => setLocation('/')}
-                className="w-full font-bold bg-white text-purple-800 shadow-2xl border border-purple-200 hover:bg-white rounded-full px-5 py-2 sm:w-auto"
+                className="w-full font-bold bg-white text-purple-800 shadow-2xl border border-purple-200 hover:bg-white rounded-full px-4 py-2 sm:w-auto"
               >
-                <i className="fas fa-arrow-left mr-2"></i>Retour
+                <i className="fas fa-arrow-left mr-2"></i>
+                <span className="sm:inline">Retour</span>
               </Button>
               <Button
                 onClick={toggleMute}
                 variant="outline"
-                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-5 py-2 sm:w-auto"
+                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-4 py-2 sm:w-auto"
               >
-                {isMuted ? "🔇 Son coupé" : "🔊 Son actif"}
+                <span className="sm:inline">{isMuted ? "🔇 Son coupé" : "🔊 Son actif"}</span>
               </Button>
               <Button
                 onClick={startDemo}
-                className="w-full font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-5 py-2 sm:w-auto"
+                className="w-full font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-4 py-2 sm:w-auto"
                 disabled={isPlaying}
               >
                 ▶️ Démarrer
@@ -282,15 +326,38 @@ export default function Test() {
               <Button
                 onClick={togglePause}
                 variant="outline"
-                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-5 py-2 sm:w-auto"
+                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-4 py-2 sm:w-auto"
                 disabled={!isPlaying}
               >
                 {isPaused ? "▶️ Reprendre" : "⏸ Pause"}
               </Button>
               <Button
+                onClick={() => seekBy(-10)}
+                variant="outline"
+                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-4 py-2 sm:w-auto"
+                disabled={!isPlaying}
+              >
+                ⏪ -10s
+              </Button>
+              <Button
+                onClick={() => seekBy(10)}
+                variant="outline"
+                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-4 py-2 sm:w-auto"
+                disabled={!isPlaying}
+              >
+                ⏩ +10s
+              </Button>
+              <Button
+                onClick={() => updatePlaybackRate(playbackRate === 1 ? 2 : 1)}
+                variant="outline"
+                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-4 py-2 sm:w-auto"
+              >
+                ⚡ Lecture x{playbackRate}
+              </Button>
+              <Button
                 onClick={stopDemo}
                 variant="outline"
-                className="w-full font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-5 py-2 sm:w-auto"
+                className="w-full font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-4 py-2 sm:w-auto"
               >
                 ⏹ Stop
               </Button>

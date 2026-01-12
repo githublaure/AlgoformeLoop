@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Subscription } from "@shared/schema";
+import { getFrequencySuffix } from "@shared/subscription-utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -104,8 +105,15 @@ export function VoiceControls() {
   const handleMonthlyReview = () => {
     const totalMonthly = subscriptions.reduce((sum, sub) => {
       const price = parseFloat(String(sub.price));
+      if (!Number.isFinite(price)) return sum;
       if (sub.frequency === "yearly") {
         return sum + price / 12;
+      }
+      if (sub.frequency === "weekly") {
+        return sum + (price * 52) / 12;
+      }
+      if (sub.frequency === "lifetime") {
+        return sum;
       }
       return sum + price;
     }, 0);
@@ -124,7 +132,7 @@ export function VoiceControls() {
     }
 
     const renewalDate = format(new Date(nextRenewal.nextRenewal), "EEEE d MMMM", { locale: fr });
-    const text = `Attention ! ${nextRenewal.name} se renouvelle ${renewalDate} pour ${nextRenewal.price} euros par ${nextRenewal.frequency === 'monthly' ? 'mois' : 'an'}.`;
+    const text = `Attention ! ${nextRenewal.name} se renouvelle ${renewalDate} pour ${nextRenewal.price} euros ${getFrequencySuffix(nextRenewal.frequency)}.`;
     generateVoiceMutation.mutate({ text, reminderType: "upcoming_reminders", subscriptionId: nextRenewal.id });
   };
 

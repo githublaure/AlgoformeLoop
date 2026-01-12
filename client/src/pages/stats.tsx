@@ -4,6 +4,7 @@ import { StatsOverview } from "@/components/stats-overview";
 import { LoginGuard } from "@/components/login-guard";
 import { useQuery } from "@tanstack/react-query";
 import type { Subscription } from "@shared/schema";
+import { getPriceSuffix } from "@shared/subscription-utils";
 import type { StatsResponse } from "@/types/stats";
 import { Progress } from "@/components/ui/progress";
 
@@ -135,7 +136,7 @@ export default function StatsPage() {
                             <div>
                               <p className="font-medium">{sub.name}</p>
                               <p className="text-xs text-gray-600">
-                                €{sub.price}/{sub.frequency === "monthly" ? "mois" : "an"}
+                                €{sub.price}{getPriceSuffix(sub.frequency)}
                               </p>
                             </div>
                             <span className="rounded-full bg-red-100 px-3 py-1 text-xs text-red-700">Risque d'arnaque</span>

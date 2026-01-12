@@ -42,8 +42,14 @@ export default function Dashboard() {
 
     // Upcoming filter
     if (upcomingFilter !== 'all') {
+      if (upcomingFilter === 'lifetime') {
+        return subscription.frequency === 'lifetime';
+      }
+      if (upcomingFilter === 'unknown') {
+        return !subscription.nextRenewal && subscription.frequency !== 'lifetime';
+      }
       if (!subscription.nextRenewal) {
-        return upcomingFilter === 'unknown';
+        return false;
       }
       const now = new Date();
       const next = new Date(subscription.nextRenewal);
@@ -215,6 +221,7 @@ export default function Dashboard() {
                       <option value="30">Sous 30 jours</option>
                       <option value="overdue">Échu</option>
                       <option value="unknown">Je ne sais pas</option>
+                      <option value="lifetime">Accès à vie</option>
                     </select>
 
                     <label className="flex items-center gap-2 text-sm text-gray-600">

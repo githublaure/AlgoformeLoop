@@ -58,10 +58,21 @@ export const voiceRemindersRelations = relations(voiceReminders, ({ one }) => ({
   }),
 }));
 
-export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertSubscriptionSchema = createInsertSchema(subscriptions)
+  .omit({
+    id: true,
+    createdAt: true,
+  })
+  .partial({
+    rating: true,
+    nextRenewal: true,
+    trialEndsAt: true,
+  })
+  .extend({
+    rating: z.number().nullable().optional(),
+    nextRenewal: z.date().nullable().optional(),
+    trialEndsAt: z.date().nullable().optional(),
+  });
 
 export const insertVoiceReminderSchema = createInsertSchema(voiceReminders).omit({
   id: true,
@@ -97,5 +108,6 @@ export const CATEGORIES = {
 export const FREQUENCIES = {
   monthly: "Mensuel",
   yearly: "Annuel",
-  weekly: "Hebdomadaire"
+  weekly: "Hebdomadaire",
+  lifetime: "Accès à vie"
 } as const;

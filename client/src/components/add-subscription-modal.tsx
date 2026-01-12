@@ -50,12 +50,12 @@ const formSchema = insertSubscriptionSchema.extend({
   trialEndsAt: z.string().optional(),
   categoryColor: z.string().optional(),
   note: z.string().optional(),
-  rating: z.coerce.number().min(0).max(5).default(0),
+  rating: z.coerce.number().min(0).max(5).nullable().optional(),
   isSuspect: z.coerce.boolean().default(false),
   isTrial: z.coerce.boolean().default(false),
   renewalUnknown: z.coerce.boolean().default(false),
 }).superRefine((data, ctx) => {
-  if (!data.renewalUnknown && !data.nextRenewal) {
+  if (!data.renewalUnknown && data.frequency !== "lifetime" && !data.nextRenewal) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["nextRenewal"],
@@ -124,7 +124,7 @@ const defaultValues: FormData = {
   isActive: true,
   isTrial: false,
   isSuspect: false,
-  rating: 0,
+  rating: undefined,
   note: "",
 };
 
@@ -149,6 +149,8 @@ export function AddSubscriptionModal({
 
   const isTrial = form.watch("isTrial");
   const renewalUnknown = form.watch("renewalUnknown");
+  const selectedFrequency = form.watch("frequency");
+  const isLifetime = selectedFrequency === "lifetime";
 
   const isEditing = Boolean(subscription);
 
@@ -226,7 +228,7 @@ export function AddSubscriptionModal({
         renewalUnknown: !subscription.nextRenewal,
         bgColor: subscription.bgColor ?? DEFAULT_BG_COLOR,
         iconClass: subscription.iconClass || defaultValues.iconClass,
-        rating: subscription.rating ?? 0,
+        rating: subscription.rating ?? undefined,
         isSuspect: subscription.isSuspect ?? false,
         note: subscription.note ?? "",
         categoryColor: subscription.categoryColor ?? subscription.bgColor ?? DEFAULT_BG_COLOR,
@@ -241,16 +243,23 @@ export function AddSubscriptionModal({
     }
   }, [subscription, isOpen, form, updateCustomCategories]);
 
+  useEffect(() => {
+    if (!isLifetime) return;
+    form.setValue("renewalUnknown", true, { shouldDirty: true, shouldValidate: true });
+    form.setValue("nextRenewal", "");
+  }, [form, isLifetime]);
+
   const createSubscription = useMutation({
     mutationFn: async (data: FormData) => {
+      const shouldClearRenewal = data.renewalUnknown || data.frequency === "lifetime";
       const payload = {
         ...data,
         price: String(data.price ?? ""),
         iconClass: "fas fa-dove",
         bgColor: data.categoryColor || data.bgColor,
-        rating: Number(data.rating) || 0,
+        rating: data.rating ?? null,
         isSuspect: Boolean(data.isSuspect),
-        nextRenewal: data.renewalUnknown ? null : new Date(data.nextRenewal ?? ""),
+        nextRenewal: shouldClearRenewal ? null : new Date(data.nextRenewal ?? ""),
         trialEndsAt: data.isTrial && data.trialEndsAt ? new Date(data.trialEndsAt) : undefined,
       };
       delete (payload as Partial<FormData>).renewalUnknown;
@@ -299,9 +308,10 @@ export function AddSubscriptionModal({
   const updateSubscription = useMutation({
     mutationFn: async (data: FormData) => {
       if (!subscription) return;
+      const shouldClearRenewal = data.renewalUnknown || data.frequency === "lifetime";
       const subscriptionData = {
         ...data,
-        nextRenewal: data.renewalUnknown ? null : new Date(data.nextRenewal ?? ""),
+        nextRenewal: shouldClearRenewal ? null : new Date(data.nextRenewal ?? ""),
       };
       delete (subscriptionData as Partial<FormData>).renewalUnknown;
       const response = await apiRequest(
@@ -337,17 +347,21 @@ export function AddSubscriptionModal({
       return;
     }
 
+    const isLifetimeFrequency = data.frequency === "lifetime";
+    const renewalUnknownValue = isLifetimeFrequency ? true : data.renewalUnknown;
+
     const normalizedData: FormData = {
       ...data,
       usageFrequency: data.usageFrequency || selectedUsage || defaultValues.usageFrequency,
       category: data.category || DEFAULT_CATEGORY,
       price: normalizedPrice,
-      rating: data.rating ?? 0,
+      rating: data.rating ?? null,
       categoryColor: data.categoryColor || data.bgColor || DEFAULT_BG_COLOR,
       bgColor: data.categoryColor || data.bgColor || DEFAULT_BG_COLOR,
       note: data.note?.trim() ?? "",
       trialEndsAt: data.isTrial ? data.trialEndsAt : undefined,
-      nextRenewal: data.renewalUnknown ? "" : data.nextRenewal,
+      renewalUnknown: renewalUnknownValue,
+      nextRenewal: renewalUnknownValue ? "" : data.nextRenewal,
     };
 
     if (isEditing) {
@@ -549,6 +563,7 @@ export function AddSubscriptionModal({
                       <SelectItem value="monthly">Mensuel</SelectItem>
                       <SelectItem value="yearly">Annuel</SelectItem>
                       <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                      <SelectItem value="lifetime">Accès à vie</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -665,7 +680,7 @@ export function AddSubscriptionModal({
                 <FormItem>
                   <FormLabel>Date de renouvellement</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} disabled={renewalUnknown} />
+                    <Input type="date" {...field} disabled={renewalUnknown || isLifetime} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -692,6 +707,7 @@ export function AddSubscriptionModal({
                           form.setValue("nextRenewal", "");
                         }
                       }}
+                      disabled={isLifetime}
                     />
                   </FormControl>
                 </FormItem>

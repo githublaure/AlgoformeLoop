@@ -1,4 +1,5 @@
 import type { Subscription } from "@shared/schema";
+import { getPriceSuffix } from "@shared/subscription-utils";
 
 const formatDateToICS = (date: Date) => {
   return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
@@ -21,7 +22,7 @@ export function createSubscriptionCalendarEvent(subscription: Subscription) {
   const dtStamp = formatDateToICS(new Date());
   const dtStart = formatDateToICS(startDate);
   const dtEnd = formatDateToICS(endDate);
-  const amount = `${formatPrice(subscription.price)}€/${subscription.frequency === "monthly" ? "mois" : "an"}`;
+  const amount = `${formatPrice(subscription.price)}€${getPriceSuffix(subscription.frequency)}`;
 
   const description = `Renouvellement de ${subscription.name} pour ${amount}. Catégorie : ${subscription.category}.`;
 

@@ -5,7 +5,7 @@ import type { Subscription } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/calendar";
-import { isPigeoned } from "@shared/subscription-utils";
+import { getFrequencySuffix, getPriceSuffix, isPigeoned } from "@shared/subscription-utils";
 
 interface UpcomingRenewalsProps {
   onEdit?: (subscription: Subscription) => void;
@@ -25,7 +25,7 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
         throw new Error("Date de renouvellement inconnue");
       }
       const renewalDate = format(new Date(subscription.nextRenewal), "EEEE d MMMM", { locale: fr });
-      const text = `Attention ! ${subscription.name} se renouvelle ${renewalDate} pour ${subscription.price} euros par ${subscription.frequency === 'monthly' ? 'mois' : 'an'}.`;
+      const text = `Attention ! ${subscription.name} se renouvelle ${renewalDate} pour ${subscription.price} euros ${getFrequencySuffix(subscription.frequency)}.`;
       
       const response = await apiRequest("POST", "/api/voice/generate", {
         subscriptionId: subscription.id,
@@ -250,7 +250,7 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
                         )}
                       </div>
                       <p className="text-sm text-gray-600">
-                        {formatRenewalDate(subscription.nextRenewal)} • €{subscription.price}/{subscription.frequency === 'monthly' ? 'mois' : 'an'}
+                        {formatRenewalDate(subscription.nextRenewal)} • €{subscription.price}{getPriceSuffix(subscription.frequency)}
                       </p>
                       <div className="mt-1 flex flex-wrap gap-2 text-xs items-center">
                         <span className={`inline-flex items-center rounded-full px-3 py-1 ${urgencyBadge.className}`}>

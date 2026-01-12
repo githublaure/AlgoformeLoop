@@ -523,7 +523,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const body = {
         ...req.body,
         price: req.body.price !== undefined ? String(req.body.price) : undefined,
-        rating: req.body.rating !== undefined ? Number(req.body.rating) : undefined,
+        rating: req.body.rating === null
+          ? null
+          : req.body.rating !== undefined
+            ? Number(req.body.rating)
+            : undefined,
         nextRenewal: req.body.nextRenewal === null
           ? null
           : req.body.nextRenewal
@@ -570,7 +574,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const body = {
         ...req.body,
         price: req.body.price !== undefined ? String(req.body.price) : undefined,
-        rating: req.body.rating !== undefined ? Number(req.body.rating) : undefined,
+        rating: req.body.rating === null
+          ? null
+          : req.body.rating !== undefined
+            ? Number(req.body.rating)
+            : undefined,
         nextRenewal: req.body.nextRenewal === null
           ? null
           : req.body.nextRenewal

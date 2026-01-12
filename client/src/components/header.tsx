@@ -79,12 +79,22 @@ export function Header() {
               <h2 className="text-lg font-semibold">Paramètres</h2>
               <button
                 onClick={() => setShowProfile(false)}
+                type="button"
                 className="text-gray-500 hover:text-gray-700"
               >
                 <i className="fas fa-times"></i>
               </button>
             </div>
             <ProfileSettings />
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowProfile(false)}
+                className="pigeon-button-secondary px-4 py-2 rounded-lg text-sm"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}

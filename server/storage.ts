@@ -160,6 +160,7 @@ export class MemStorage implements IStorage {
       iconClass: insertSubscription.iconClass ?? null,
       bgColor: insertSubscription.bgColor ?? null,
       rating: insertSubscription.rating ?? 0,
+      nextRenewal: insertSubscription.nextRenewal ?? null,
       trialEndsAt: insertSubscription.trialEndsAt ?? null,
       isSuspect: insertSubscription.isSuspect ?? false,
       isTrial: insertSubscription.isTrial ?? false,
@@ -181,6 +182,7 @@ export class MemStorage implements IStorage {
     const updated: Subscription = {
       ...existing,
       ...updates,
+      nextRenewal: updates.nextRenewal ?? existing.nextRenewal ?? null,
       note: updates.note ?? existing.note ?? null,
       rating: updates.rating ?? existing.rating ?? 0,
       categoryColor: updates.categoryColor ?? existing.categoryColor ?? null,
@@ -212,10 +214,11 @@ export class MemStorage implements IStorage {
       .filter(sub =>
         sub.isActive &&
         sub.userId === userId &&
+        sub.nextRenewal &&
         sub.nextRenewal >= now &&
         sub.nextRenewal <= cutoffDate
       )
-      .sort((a, b) => a.nextRenewal.getTime() - b.nextRenewal.getTime());
+      .sort((a, b) => a.nextRenewal!.getTime() - b.nextRenewal!.getTime());
   }
 
   async getUserSettings(userId: number): Promise<UserSettings | undefined> {

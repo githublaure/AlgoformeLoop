@@ -46,13 +46,22 @@ const formSchema = insertSubscriptionSchema.extend({
       typeof value === "number" ? value.toString() : typeof value === "string" ? value.trim() : "",
     z.string().min(1, "Le prix est requis"),
   ),
-  nextRenewal: z.string().min(1, "La date de renouvellement est requise"),
+  nextRenewal: z.string().optional(),
   trialEndsAt: z.string().optional(),
   categoryColor: z.string().optional(),
   note: z.string().optional(),
   rating: z.coerce.number().min(0).max(5).default(0),
   isSuspect: z.coerce.boolean().default(false),
   isTrial: z.coerce.boolean().default(false),
+  renewalUnknown: z.coerce.boolean().default(false),
+}).superRefine((data, ctx) => {
+  if (!data.renewalUnknown && !data.nextRenewal) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["nextRenewal"],
+      message: "La date de renouvellement est requise",
+    });
+  }
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -108,6 +117,7 @@ const defaultValues: FormData = {
   category: DEFAULT_CATEGORY,
   usageFrequency: "used",
   nextRenewal: "",
+  renewalUnknown: false,
   iconClass: "fas fa-dove",
   bgColor: DEFAULT_BG_COLOR,
   categoryColor: DEFAULT_BG_COLOR,
@@ -138,6 +148,7 @@ export function AddSubscriptionModal({
   });
 
   const isTrial = form.watch("isTrial");
+  const renewalUnknown = form.watch("renewalUnknown");
 
   const isEditing = Boolean(subscription);
 
@@ -211,7 +222,8 @@ export function AddSubscriptionModal({
         ...subscription,
         category: subscription.category || DEFAULT_CATEGORY,
         price: subscription.price?.toString() ?? "",
-        nextRenewal: formatDateForInput(subscription.nextRenewal),
+        nextRenewal: subscription.nextRenewal ? formatDateForInput(subscription.nextRenewal) : "",
+        renewalUnknown: !subscription.nextRenewal,
         bgColor: subscription.bgColor ?? DEFAULT_BG_COLOR,
         iconClass: subscription.iconClass || defaultValues.iconClass,
         rating: subscription.rating ?? 0,
@@ -238,9 +250,10 @@ export function AddSubscriptionModal({
         bgColor: data.categoryColor || data.bgColor,
         rating: Number(data.rating) || 0,
         isSuspect: Boolean(data.isSuspect),
-        nextRenewal: new Date(data.nextRenewal),
+        nextRenewal: data.renewalUnknown ? null : new Date(data.nextRenewal ?? ""),
         trialEndsAt: data.isTrial && data.trialEndsAt ? new Date(data.trialEndsAt) : undefined,
       };
+      delete (payload as Partial<FormData>).renewalUnknown;
 
       const response = subscription
         ? await apiRequest("PUT", `/api/subscriptions/${subscription.id}`, payload)
@@ -288,8 +301,9 @@ export function AddSubscriptionModal({
       if (!subscription) return;
       const subscriptionData = {
         ...data,
-        nextRenewal: new Date(data.nextRenewal),
+        nextRenewal: data.renewalUnknown ? null : new Date(data.nextRenewal ?? ""),
       };
+      delete (subscriptionData as Partial<FormData>).renewalUnknown;
       const response = await apiRequest(
         "PUT",
         `/api/subscriptions/${subscription.id}`,
@@ -333,6 +347,7 @@ export function AddSubscriptionModal({
       bgColor: data.categoryColor || data.bgColor || DEFAULT_BG_COLOR,
       note: data.note?.trim() ?? "",
       trialEndsAt: data.isTrial ? data.trialEndsAt : undefined,
+      nextRenewal: data.renewalUnknown ? "" : data.nextRenewal,
     };
 
     if (isEditing) {
@@ -650,9 +665,35 @@ export function AddSubscriptionModal({
                 <FormItem>
                   <FormLabel>Date de renouvellement</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input type="date" {...field} disabled={renewalUnknown} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="renewalUnknown"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                  <div>
+                    <FormLabel>Je ne sais pas</FormLabel>
+                    <p className="text-xs text-gray-600">
+                      Enregistrez l'abonnement sans date de renouvellement.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked);
+                        if (checked) {
+                          form.setValue("nextRenewal", "");
+                        }
+                      }}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />

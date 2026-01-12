@@ -60,7 +60,7 @@ export function VoiceControls() {
         return;
       }
 
-      if (variables.reminderType === "renewal_alert" && nextRenewal) {
+      if (variables.reminderType === "renewal_alert" && nextRenewal?.nextRenewal) {
         const renewalDate = format(new Date(nextRenewal.nextRenewal), "EEEE d MMMM", { locale: fr });
         setLastAlert({ title: nextRenewal.name, subtitle: `Renouvellement ${renewalDate}` });
       } else {
@@ -115,7 +115,7 @@ export function VoiceControls() {
   };
 
   const handleUpcomingReminders = () => {
-    if (!nextRenewal) {
+    if (!nextRenewal?.nextRenewal) {
       toast({
         title: "Aucun renouvellement",
         description: "Aucun abonnement ne se renouvelle dans les prochains jours.",
@@ -137,7 +137,7 @@ export function VoiceControls() {
       return;
     }
 
-    const target = lastAlert || (nextRenewal
+    const target = lastAlert || (nextRenewal?.nextRenewal
       ? {
           title: nextRenewal.name,
           subtitle: `Renouvellement ${format(new Date(nextRenewal.nextRenewal), "EEEE d MMMM", { locale: fr })}`
@@ -199,7 +199,7 @@ export function VoiceControls() {
                   <div className="font-medium">{lastAlert.title}</div>
                   <div className="text-gray-600">{lastAlert.subtitle}</div>
                 </>
-              ) : nextRenewal ? (
+              ) : nextRenewal?.nextRenewal ? (
                 <>
                   <div className="font-medium">{nextRenewal.name}</div>
                   <div className="text-gray-600">

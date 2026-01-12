@@ -42,6 +42,9 @@ export default function Dashboard() {
 
     // Upcoming filter
     if (upcomingFilter !== 'all') {
+      if (!subscription.nextRenewal) {
+        return upcomingFilter === 'unknown';
+      }
       const now = new Date();
       const next = new Date(subscription.nextRenewal);
       const days = Math.ceil((next.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -211,6 +214,7 @@ export default function Dashboard() {
                       <option value="7">Sous 7 jours</option>
                       <option value="30">Sous 30 jours</option>
                       <option value="overdue">Échu</option>
+                      <option value="unknown">Je ne sais pas</option>
                     </select>
 
                     <label className="flex items-center gap-2 text-sm text-gray-600">

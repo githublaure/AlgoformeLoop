@@ -21,6 +21,9 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
 
   const generateRenewalAlert = useMutation({
     mutationFn: async ({ subscription }: { subscription: Subscription }) => {
+      if (!subscription.nextRenewal) {
+        throw new Error("Date de renouvellement inconnue");
+      }
       const renewalDate = format(new Date(subscription.nextRenewal), "EEEE d MMMM", { locale: fr });
       const text = `Attention ! ${subscription.name} se renouvelle ${renewalDate} pour ${subscription.price} euros par ${subscription.frequency === 'monthly' ? 'mois' : 'an'}.`;
       
@@ -85,12 +88,28 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
   const iconClass = 'fas fa-dove';
 
   const handleAddToCalendar = (subscription: Subscription) => {
-    const icsContent = createSubscriptionCalendarEvent(subscription);
-    downloadCalendarEvent(`renouvellement-${subscription.name}.ics`, icsContent);
-    toast({
-      title: "Rappel ajouté au calendrier",
-      description: `${subscription.name} a été exporté en événement .ics`,
-    });
+    if (!subscription.nextRenewal) {
+      toast({
+        title: "Date inconnue",
+        description: "Ajoutez une date de renouvellement pour exporter.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const icsContent = createSubscriptionCalendarEvent(subscription);
+      downloadCalendarEvent(`renouvellement-${subscription.name}.ics`, icsContent);
+      toast({
+        title: "Rappel ajouté au calendrier",
+        description: `${subscription.name} a été exporté en événement .ics`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer l'événement calendrier.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getRenewalStyles = (subscription: Subscription, daysUntil: number) => {
@@ -183,6 +202,9 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
         ) : (
           <div className="space-y-4">
             {renewals.map((subscription) => {
+              if (!subscription.nextRenewal) {
+                return null;
+              }
               const daysUntil = Math.ceil((new Date(subscription.nextRenewal).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
               const { backgroundColor, borderColor, urgencyBadge } = getRenewalStyles(subscription, daysUntil);
               const flaggedSuspect = subscription.isSuspect ?? false;

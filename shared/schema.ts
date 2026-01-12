@@ -27,7 +27,7 @@ export const subscriptions = pgTable("subscriptions", {
   category: text("category").notNull(),
   categoryColor: text("category_color").default("#7c3aed"),
   usageFrequency: text("usage_frequency").notNull(), // very_used, used, rarely_used
-  nextRenewal: timestamp("next_renewal").notNull(),
+  nextRenewal: timestamp("next_renewal"),
   iconClass: text("icon_class"), // Font Awesome class for the icon
   bgColor: text("bg_color"), // Background color for the icon
   note: text("note"),

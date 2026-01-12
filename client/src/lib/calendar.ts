@@ -11,6 +11,9 @@ const formatPrice = (price: any) => {
 };
 
 export function createSubscriptionCalendarEvent(subscription: Subscription) {
+  if (!subscription.nextRenewal) {
+    throw new Error("Date de renouvellement inconnue.");
+  }
   const startDate = new Date(subscription.nextRenewal);
   const endDate = new Date(startDate);
   endDate.setHours(endDate.getHours() + 1);

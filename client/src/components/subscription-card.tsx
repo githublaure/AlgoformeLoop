@@ -75,7 +75,10 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
         ? numericPrice.toFixed(2)
         : subscription.price;
 
-      const text = `${subscription.name} coûte ${priceDisplay} euros par ${subscription.frequency === 'monthly' ? 'mois' : 'an'}. Ce service est ${usageText}. Le prochain renouvellement est prévu le ${format(new Date(subscription.nextRenewal), "d MMMM yyyy", { locale: fr })}.`;
+      const renewalText = subscription.nextRenewal
+        ? `Le prochain renouvellement est prévu le ${format(new Date(subscription.nextRenewal), "d MMMM yyyy", { locale: fr })}.`
+        : "La date de renouvellement est inconnue.";
+      const text = `${subscription.name} coûte ${priceDisplay} euros par ${subscription.frequency === 'monthly' ? 'mois' : 'an'}. Ce service est ${usageText}. ${renewalText}`;
       
       const response = await apiRequest("POST", "/api/voice/generate", {
         subscriptionId: subscription.id,
@@ -170,12 +173,28 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
   const iconClass = 'fas fa-dove';
 
   const handleAddToCalendar = () => {
-    const icsContent = createSubscriptionCalendarEvent(subscription);
-    downloadCalendarEvent(`renouvellement-${subscription.name}.ics`, icsContent);
-    toast({
-      title: "Rappel ajouté au calendrier",
-      description: `Le renouvellement de ${subscription.name} a été exporté en événement .ics`,
-    });
+    if (!subscription.nextRenewal) {
+      toast({
+        title: "Date inconnue",
+        description: "Ajoutez d'abord une date de renouvellement pour exporter au calendrier.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const icsContent = createSubscriptionCalendarEvent(subscription);
+      downloadCalendarEvent(`renouvellement-${subscription.name}.ics`, icsContent);
+      toast({
+        title: "Rappel ajouté au calendrier",
+        description: `Le renouvellement de ${subscription.name} a été exporté en événement .ics`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer l'événement calendrier.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -272,13 +291,18 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
       </div>
       
       <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
-        <span>Prochain: {format(new Date(subscription.nextRenewal), "d MMM", { locale: fr })}</span>
+        <span>
+          Prochain: {subscription.nextRenewal
+            ? format(new Date(subscription.nextRenewal), "d MMM", { locale: fr })
+            : "Date inconnue"}
+        </span>
         <div className="flex space-x-2">
           <button
             onClick={handleAddToCalendar}
-            className="hover:opacity-70 transition-opacity"
+            className="hover:opacity-70 transition-opacity disabled:opacity-50"
             style={{ color: 'hsl(42, 96%, 70%)' }}
             aria-label={`Ajouter ${subscription.name} au calendrier`}
+            disabled={!subscription.nextRenewal}
           >
             <CalendarPlus className="h-5 w-5" aria-hidden="true" />
           </button>

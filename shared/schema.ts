@@ -63,6 +63,11 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions)
     id: true,
     createdAt: true,
   })
+  .partial({
+    rating: true,
+    nextRenewal: true,
+    trialEndsAt: true,
+  })
   .extend({
     rating: z.number().nullable().optional(),
     nextRenewal: z.date().nullable().optional(),

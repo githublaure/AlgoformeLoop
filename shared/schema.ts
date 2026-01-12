@@ -97,5 +97,6 @@ export const CATEGORIES = {
 export const FREQUENCIES = {
   monthly: "Mensuel",
   yearly: "Annuel",
-  weekly: "Hebdomadaire"
+  weekly: "Hebdomadaire",
+  lifetime: "Accès à vie"
 } as const;

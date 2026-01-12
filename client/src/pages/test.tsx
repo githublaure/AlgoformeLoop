@@ -8,6 +8,7 @@ export default function Test() {
   const [isPaused, setIsPaused] = useState(false);
   const [renderMode, setRenderMode] = useState<"canvas" | "video">("canvas");
   const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState<1 | 2>(1);
 
   const avatarVideoRef = useRef<HTMLVideoElement>(null);
   const backgroundVideoRef = useRef<HTMLVideoElement>(null);
@@ -124,12 +125,14 @@ export default function Test() {
     setupCanvas();
 
     try {
+      backgroundVideo.playbackRate = playbackRate;
       await backgroundVideo.play();
     } catch (error) {
       console.error("Lecture vidéo de fond impossible", error);
     }
 
     try {
+      voice.playbackRate = playbackRate;
       voice.muted = isMuted;
       await voice.play();
     } catch (error) {
@@ -139,6 +142,7 @@ export default function Test() {
     avatarVideo.currentTime = 0;
     avatarVideo.muted = true;
     try {
+      avatarVideo.playbackRate = playbackRate;
       await avatarVideo.play();
       setIsPlaying(true);
       setRenderMode("canvas");
@@ -160,12 +164,14 @@ export default function Test() {
 
     if (isPaused) {
       try {
+        backgroundVideo.playbackRate = playbackRate;
         await backgroundVideo.play();
       } catch (error) {
         console.error("Reprise vidéo de fond impossible", error);
       }
 
       try {
+        avatarVideo.playbackRate = playbackRate;
         await avatarVideo.play();
         processFrame();
       } catch (error) {
@@ -173,6 +179,7 @@ export default function Test() {
       }
 
       try {
+        voice.playbackRate = playbackRate;
         await voice.play();
       } catch (error) {
         console.error("Reprise audio impossible", error);
@@ -206,12 +213,48 @@ export default function Test() {
     if (avatarVideo) {
       avatarVideo.currentTime = 0;
     }
+    if (backgroundVideo) {
+      backgroundVideo.currentTime = 0;
+    }
 
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
     setIsPlaying(false);
     setIsPaused(false);
+  };
+
+  const updatePlaybackRate = (nextRate: 1 | 2) => {
+    setPlaybackRate(nextRate);
+    const avatarVideo = avatarVideoRef.current;
+    const backgroundVideo = backgroundVideoRef.current;
+    const voice = voiceRef.current;
+    if (avatarVideo) avatarVideo.playbackRate = nextRate;
+    if (backgroundVideo) backgroundVideo.playbackRate = nextRate;
+    if (voice) voice.playbackRate = nextRate;
+  };
+
+  const seekBy = (deltaSeconds: number) => {
+    const avatarVideo = avatarVideoRef.current;
+    const backgroundVideo = backgroundVideoRef.current;
+    const voice = voiceRef.current;
+
+    const mediaElements: Array<HTMLMediaElement | null> = [
+      avatarVideo,
+      backgroundVideo,
+      voice,
+    ];
+
+    mediaElements.forEach((media) => {
+      if (!media) return;
+      const duration = Number.isFinite(media.duration) ? media.duration : undefined;
+      const nextTime = media.currentTime + deltaSeconds;
+      if (duration !== undefined) {
+        media.currentTime = Math.max(0, Math.min(nextTime, duration));
+      } else {
+        media.currentTime = Math.max(0, nextTime);
+      }
+    });
   };
 
   const toggleMute = () => {
@@ -286,6 +329,29 @@ export default function Test() {
                 disabled={!isPlaying}
               >
                 {isPaused ? "▶️ Reprendre" : "⏸ Pause"}
+              </Button>
+              <Button
+                onClick={() => seekBy(-10)}
+                variant="outline"
+                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-5 py-2 sm:w-auto"
+                disabled={!isPlaying}
+              >
+                ⏪ -10s
+              </Button>
+              <Button
+                onClick={() => seekBy(10)}
+                variant="outline"
+                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-5 py-2 sm:w-auto"
+                disabled={!isPlaying}
+              >
+                ⏩ +10s
+              </Button>
+              <Button
+                onClick={() => updatePlaybackRate(playbackRate === 1 ? 2 : 1)}
+                variant="outline"
+                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-5 py-2 sm:w-auto"
+              >
+                ⚡ Lecture x{playbackRate}
               </Button>
               <Button
                 onClick={stopDemo}

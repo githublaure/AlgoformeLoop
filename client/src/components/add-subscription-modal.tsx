@@ -149,6 +149,8 @@ export function AddSubscriptionModal({
 
   const isTrial = form.watch("isTrial");
   const renewalUnknown = form.watch("renewalUnknown");
+  const selectedFrequency = form.watch("frequency");
+  const isLifetime = selectedFrequency === "lifetime";
 
   const isEditing = Boolean(subscription);
 
@@ -240,6 +242,12 @@ export function AddSubscriptionModal({
       resetForm();
     }
   }, [subscription, isOpen, form, updateCustomCategories]);
+
+  useEffect(() => {
+    if (!isLifetime) return;
+    form.setValue("renewalUnknown", true, { shouldDirty: true, shouldValidate: true });
+    form.setValue("nextRenewal", "");
+  }, [form, isLifetime]);
 
   const createSubscription = useMutation({
     mutationFn: async (data: FormData) => {
@@ -549,6 +557,7 @@ export function AddSubscriptionModal({
                       <SelectItem value="monthly">Mensuel</SelectItem>
                       <SelectItem value="yearly">Annuel</SelectItem>
                       <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                      <SelectItem value="lifetime">Accès à vie</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -665,7 +674,7 @@ export function AddSubscriptionModal({
                 <FormItem>
                   <FormLabel>Date de renouvellement</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} disabled={renewalUnknown} />
+                    <Input type="date" {...field} disabled={renewalUnknown || isLifetime} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -692,6 +701,7 @@ export function AddSubscriptionModal({
                           form.setValue("nextRenewal", "");
                         }
                       }}
+                      disabled={isLifetime}
                     />
                   </FormControl>
                 </FormItem>

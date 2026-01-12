@@ -72,7 +72,7 @@ export function Header() {
           onClick={() => setShowProfile(false)}
         >
           <div
-            className="bg-white p-6 rounded-lg max-w-md w-full mx-4"
+            className="bg-white p-6 rounded-lg max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto pigeon-scrollbar"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">

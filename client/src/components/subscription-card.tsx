@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/calendar";
 import type { Subscription } from "@shared/schema";
-import { isPigeoned } from "@shared/subscription-utils";
+import { getFrequencySuffix, getPriceSuffix, isPigeoned } from "@shared/subscription-utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CalendarPlus, Pencil, Trash2 } from "lucide-react";
@@ -78,7 +78,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
       const renewalText = subscription.nextRenewal
         ? `Le prochain renouvellement est prévu le ${format(new Date(subscription.nextRenewal), "d MMMM yyyy", { locale: fr })}.`
         : "La date de renouvellement est inconnue.";
-      const text = `${subscription.name} coûte ${priceDisplay} euros par ${subscription.frequency === 'monthly' ? 'mois' : 'an'}. Ce service est ${usageText}. ${renewalText}`;
+      const text = `${subscription.name} coûte ${priceDisplay} euros ${getFrequencySuffix(subscription.frequency)}. Ce service est ${usageText}. ${renewalText}`;
       
       const response = await apiRequest("POST", "/api/voice/generate", {
         subscriptionId: subscription.id,
@@ -283,7 +283,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
               ? Number(subscription.price).toFixed(2)
               : subscription.price}
           </span>
-          <span className="text-sm text-gray-600">/{subscription.frequency === 'monthly' ? 'mois' : 'an'}</span>
+          <span className="text-sm text-gray-600">{getPriceSuffix(subscription.frequency)}</span>
         </div>
         <span className={getUsageBadgeClass(subscription.usageFrequency)}>
           {getUsageLabel(subscription.usageFrequency)}

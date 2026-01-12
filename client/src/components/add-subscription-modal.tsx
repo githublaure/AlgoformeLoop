@@ -471,7 +471,7 @@ export function AddSubscriptionModal({
           <DialogTitle>{isEditing ? "Modifier l'abonnement" : "Ajouter un abonnement"}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain pr-2">
+        <div className="flex-1 overflow-y-scroll overscroll-contain pr-2 pt-1 pigeon-scrollbar">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <input type="hidden" {...form.register("usageFrequency")} />

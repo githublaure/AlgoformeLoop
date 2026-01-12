@@ -466,30 +466,31 @@ export function AddSubscriptionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-md w-[95vw] sm:w-full h-[80vh] sm:h-[75vh] overflow-y-scroll overscroll-contain">
+      <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[85vh] sm:max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Modifier l'abonnement" : "Ajouter un abonnement"}</DialogTitle>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pr-1 sm:pr-2">
-            <input type="hidden" {...form.register("usageFrequency")} />
-            <input type="hidden" {...form.register("bgColor")} />
-            <input type="hidden" {...form.register("categoryColor")} />
-            <input type="hidden" {...form.register("iconClass")} />
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nom du service</FormLabel>
-                  <FormControl>
-                    <Input placeholder="ex. Netflix" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <div className="flex-1 overflow-y-auto overscroll-contain pr-2">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <input type="hidden" {...form.register("usageFrequency")} />
+              <input type="hidden" {...form.register("bgColor")} />
+              <input type="hidden" {...form.register("categoryColor")} />
+              <input type="hidden" {...form.register("iconClass")} />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nom du service</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ex. Netflix" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
             <FormField
               control={form.control}
@@ -783,32 +784,33 @@ export function AddSubscriptionModal({
               />
             )}
 
-            <div className="flex space-x-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                className="flex-1"
-              >
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSaving}
-                className="flex-1 pigeon-button-primary"
-              >
-                {isSaving ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    {isEditing ? "Mise à jour..." : "Ajout..."}
-                  </>
-                ) : (
-                  isEditing ? "Mettre à jour" : "Ajouter"
-                )}
-              </Button>
-            </div>
-          </form>
-        </Form>
+              <div className="flex space-x-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                  className="flex-1"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 pigeon-button-primary"
+                >
+                  {isSaving ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      {isEditing ? "Mise à jour..." : "Ajout..."}
+                    </>
+                  ) : (
+                    isEditing ? "Mettre à jour" : "Ajouter"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -64,6 +64,7 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions)
     createdAt: true,
   })
   .extend({
+    rating: z.number().nullable().optional(),
     nextRenewal: z.date().nullable().optional(),
     trialEndsAt: z.date().nullable().optional(),
   });

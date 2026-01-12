@@ -466,7 +466,7 @@ export function AddSubscriptionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[85vh] sm:max-h-[80vh] overflow-y-scroll overscroll-contain">
+      <DialogContent className="max-w-md w-[95vw] sm:w-full h-[80vh] sm:h-[75vh] overflow-y-scroll overscroll-contain">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Modifier l'abonnement" : "Ajouter un abonnement"}</DialogTitle>
         </DialogHeader>

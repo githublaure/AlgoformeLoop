@@ -55,7 +55,7 @@ const formSchema = insertSubscriptionSchema.extend({
   isTrial: z.coerce.boolean().default(false),
   renewalUnknown: z.coerce.boolean().default(false),
 }).superRefine((data, ctx) => {
-  if (!data.renewalUnknown && !data.nextRenewal) {
+  if (!data.renewalUnknown && data.frequency !== "lifetime" && !data.nextRenewal) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["nextRenewal"],
@@ -345,6 +345,9 @@ export function AddSubscriptionModal({
       return;
     }
 
+    const isLifetimeFrequency = data.frequency === "lifetime";
+    const renewalUnknownValue = isLifetimeFrequency ? true : data.renewalUnknown;
+
     const normalizedData: FormData = {
       ...data,
       usageFrequency: data.usageFrequency || selectedUsage || defaultValues.usageFrequency,
@@ -355,7 +358,8 @@ export function AddSubscriptionModal({
       bgColor: data.categoryColor || data.bgColor || DEFAULT_BG_COLOR,
       note: data.note?.trim() ?? "",
       trialEndsAt: data.isTrial ? data.trialEndsAt : undefined,
-      nextRenewal: data.renewalUnknown ? "" : data.nextRenewal,
+      renewalUnknown: renewalUnknownValue,
+      nextRenewal: renewalUnknownValue ? "" : data.nextRenewal,
     };
 
     if (isEditing) {

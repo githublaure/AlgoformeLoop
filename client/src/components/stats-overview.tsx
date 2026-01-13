@@ -17,10 +17,15 @@ export function StatsOverview() {
   });
   const { data: stats, isLoading } = useQuery<StatsResponse>({
     queryKey: ['/api/stats', { includeLifetime }],
-    queryFn: async () => {
+    queryFn: async ({ queryKey }) => {
+      const [, params] = queryKey;
+      const includeLifetimeParam =
+        typeof params === "object" &&
+        params !== null &&
+        Boolean((params as { includeLifetime?: boolean }).includeLifetime);
       const response = await apiRequest(
         "GET",
-        `/api/stats?includeLifetime=${includeLifetime ? "true" : "false"}`
+        `/api/stats?includeLifetime=${includeLifetimeParam ? "true" : "false"}`
       );
       return response.json();
     },

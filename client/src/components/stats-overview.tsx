@@ -6,12 +6,24 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
+const INCLUDE_LIFETIME_STORAGE_KEY = "pigeon-include-lifetime";
+
 export function StatsOverview() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [includeLifetime, setIncludeLifetime] = useState(false);
+  const [includeLifetime, setIncludeLifetime] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(INCLUDE_LIFETIME_STORAGE_KEY) === "true";
+  });
   const { data: stats, isLoading } = useQuery<StatsResponse>({
     queryKey: ['/api/stats', { includeLifetime }],
+    queryFn: async () => {
+      const response = await apiRequest(
+        "GET",
+        `/api/stats?includeLifetime=${includeLifetime ? "true" : "false"}`
+      );
+      return response.json();
+    },
   });
   const { data: settings } = useQuery<{ budgetCap: number | string }>({
     queryKey: ['/api/settings'],
@@ -25,6 +37,11 @@ export function StatsOverview() {
   useEffect(() => {
     setBudgetInput(budgetCap ? budgetCap.toFixed(0) : "0");
   }, [budgetCap]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(INCLUDE_LIFETIME_STORAGE_KEY, String(includeLifetime));
+  }, [includeLifetime]);
 
   const updateBudget = useMutation({
     mutationFn: async () => {

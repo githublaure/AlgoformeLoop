@@ -66,6 +66,7 @@ export class MemStorage implements IStorage {
         isActive: true,
         isTrial: false,
         trialEndsAt: null,
+        purchaseDate: null,
         createdAt: new Date(),
       },
       {
@@ -85,6 +86,7 @@ export class MemStorage implements IStorage {
         isActive: true,
         isTrial: false,
         trialEndsAt: null,
+        purchaseDate: null,
         createdAt: new Date(),
       },
       {
@@ -104,6 +106,7 @@ export class MemStorage implements IStorage {
         isActive: true,
         isTrial: false,
         trialEndsAt: null,
+        purchaseDate: null,
         createdAt: new Date(),
       },
       {
@@ -123,6 +126,7 @@ export class MemStorage implements IStorage {
         isActive: true,
         isTrial: true,
         trialEndsAt: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000),
+        purchaseDate: null,
         createdAt: new Date(),
       }
     ];
@@ -162,6 +166,7 @@ export class MemStorage implements IStorage {
       rating: insertSubscription.rating ?? null,
       nextRenewal: insertSubscription.nextRenewal ?? null,
       trialEndsAt: insertSubscription.trialEndsAt ?? null,
+      purchaseDate: insertSubscription.purchaseDate ?? null,
       isSuspect: insertSubscription.isSuspect ?? false,
       isTrial: insertSubscription.isTrial ?? false,
       isActive: insertSubscription.isActive ?? true,
@@ -189,6 +194,7 @@ export class MemStorage implements IStorage {
       iconClass: updates.iconClass ?? existing.iconClass ?? null,
       bgColor: updates.bgColor ?? existing.bgColor ?? null,
       trialEndsAt: updates.trialEndsAt ?? existing.trialEndsAt ?? null,
+      purchaseDate: updates.purchaseDate ?? existing.purchaseDate ?? null,
       isSuspect: updates.isSuspect ?? existing.isSuspect ?? false,
       isTrial: updates.isTrial ?? existing.isTrial ?? false,
       isActive: updates.isActive ?? existing.isActive ?? true,

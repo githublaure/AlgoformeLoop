@@ -139,8 +139,8 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
   };
 
   const renderRating = () => {
-    const rating = subscription.rating ?? 0;
-    if (!rating) return null;
+    const rating = subscription.rating;
+    if (rating === null || rating === undefined) return null;
 
     return (
       <div className="mt-2 flex items-center gap-1 text-sm">

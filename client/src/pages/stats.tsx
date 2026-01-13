@@ -7,6 +7,10 @@ import type { Subscription } from "@shared/schema";
 import { getPriceSuffix } from "@shared/subscription-utils";
 import type { StatsResponse } from "@/types/stats";
 import { Progress } from "@/components/ui/progress";
+import { useEffect, useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
+
+const INCLUDE_LIFETIME_STORAGE_KEY = "pigeon-include-lifetime";
 
 const usageLabels: Record<string, string> = {
   very_used: "Très utilisé",
@@ -15,8 +19,38 @@ const usageLabels: Record<string, string> = {
 };
 
 export default function StatsPage() {
-  const { data: stats } = useQuery<StatsResponse>({ queryKey: ["/api/stats"] });
+  const [includeLifetime, setIncludeLifetime] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(INCLUDE_LIFETIME_STORAGE_KEY) === "true";
+  });
+  const { data: stats } = useQuery<StatsResponse>({
+    queryKey: ["/api/stats", { includeLifetime }],
+    queryFn: async () => {
+      const response = await apiRequest(
+        "GET",
+        `/api/stats?includeLifetime=${includeLifetime ? "true" : "false"}`
+      );
+      return response.json();
+    },
+  });
   const { data: subscriptions = [] } = useQuery<Subscription[]>({ queryKey: ["/api/subscriptions"] });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== INCLUDE_LIFETIME_STORAGE_KEY) return;
+      setIncludeLifetime(event.newValue === "true");
+    };
+    const handleLocalToggle = () => {
+      setIncludeLifetime(window.localStorage.getItem(INCLUDE_LIFETIME_STORAGE_KEY) === "true");
+    };
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("pigeon-include-lifetime-change", handleLocalToggle);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("pigeon-include-lifetime-change", handleLocalToggle);
+    };
+  }, []);
 
   const trialSubscriptions = subscriptions.filter((sub) => sub.isTrial);
   // Exclude subscriptions that are marked as 'very_used' from the suspect list

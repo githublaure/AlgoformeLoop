@@ -31,11 +31,12 @@ export const subscriptions = pgTable("subscriptions", {
   iconClass: text("icon_class"), // Font Awesome class for the icon
   bgColor: text("bg_color"), // Background color for the icon
   note: text("note"),
-  rating: integer("rating").default(0),
+  rating: integer("rating"),
   isSuspect: boolean("is_suspect").default(false),
   isActive: boolean("is_active").default(true),
   isTrial: boolean("is_trial").default(false),
   trialEndsAt: timestamp("trial_ends_at"),
+  purchaseDate: timestamp("purchase_date"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -67,11 +68,13 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions)
     rating: true,
     nextRenewal: true,
     trialEndsAt: true,
+    purchaseDate: true,
   })
   .extend({
     rating: z.number().nullable().optional(),
     nextRenewal: z.date().nullable().optional(),
     trialEndsAt: z.date().nullable().optional(),
+    purchaseDate: z.date().nullable().optional(),
   });
 
 export const insertVoiceReminderSchema = createInsertSchema(voiceReminders).omit({

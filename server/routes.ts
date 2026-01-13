@@ -61,11 +61,12 @@ async function ensureSchema() {
       "icon_class" text,
       "bg_color" text,
       "note" text,
-      "rating" integer DEFAULT 0,
+      "rating" integer,
       "is_suspect" boolean DEFAULT false,
       "is_active" boolean DEFAULT true,
       "is_trial" boolean DEFAULT false,
       "trial_ends_at" timestamp,
+      "purchase_date" timestamp,
       "created_at" timestamp DEFAULT now()
     );
   `);
@@ -118,7 +119,15 @@ async function ensureSchema() {
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'subscriptions' AND column_name = 'rating'
       ) THEN
-        ALTER TABLE "subscriptions" ADD COLUMN "rating" integer DEFAULT 0;
+        ALTER TABLE "subscriptions" ADD COLUMN "rating" integer;
+      END IF;
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions'
+          AND column_name = 'rating'
+          AND column_default IS NOT NULL
+      ) THEN
+        ALTER TABLE "subscriptions" ALTER COLUMN "rating" DROP DEFAULT;
       END IF;
       IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
@@ -143,6 +152,12 @@ async function ensureSchema() {
         WHERE table_name = 'subscriptions' AND column_name = 'trial_ends_at'
       ) THEN
         ALTER TABLE "subscriptions" ADD COLUMN "trial_ends_at" timestamp;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'purchase_date'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "purchase_date" timestamp;
       END IF;
       IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
@@ -533,6 +548,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : req.body.nextRenewal
             ? new Date(req.body.nextRenewal)
             : undefined,
+        purchaseDate: req.body.purchaseDate === null
+          ? null
+          : req.body.purchaseDate
+            ? new Date(req.body.purchaseDate)
+            : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
         isSuspect: normalizeBoolean(req.body.isSuspect, false),
         isTrial: normalizeBoolean(req.body.isTrial, false),
@@ -583,6 +603,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? null
           : req.body.nextRenewal
             ? new Date(req.body.nextRenewal)
+            : undefined,
+        purchaseDate: req.body.purchaseDate === null
+          ? null
+          : req.body.purchaseDate
+            ? new Date(req.body.purchaseDate)
             : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
         isSuspect: normalizeBoolean(req.body.isSuspect),
@@ -708,14 +733,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Skip schema creation in tests
       if (process.env.NODE_ENV !== 'test') await ensureSchema();
       const includeArchived = normalizeBoolean(req.query.includeArchived, false);
+      const includeLifetime = normalizeBoolean(req.query.includeLifetime, false);
       const subscriptions = await storage.getSubscriptions(req.user.id, includeArchived);
       const upcomingRenewals = await storage.getUpcomingRenewals(7, req.user.id);
       const trials = subscriptions.filter(sub => sub.isTrial);
 
       const normalizeToMonthly = (sub: any) => {
         const price = parseFloat(sub.price);
-        if (sub.frequency === 'yearly') return price / 12;
-        if (sub.frequency === 'weekly') return (price * 52) / 12;
+        if (!Number.isFinite(price)) return 0;
+        const rawFrequency = String(sub.frequency ?? "").toLowerCase();
+        const normalizedFrequency = rawFrequency.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+        const isLifetime =
+          rawFrequency === "lifetime" ||
+          normalizedFrequency.includes("lifetime") ||
+          normalizedFrequency.includes("life time") ||
+          normalizedFrequency.includes("acces a vie") ||
+          normalizedFrequency.includes("access a vie");
+        const isYearly =
+          rawFrequency === "yearly" ||
+          normalizedFrequency.includes("annuel") ||
+          normalizedFrequency === "an" ||
+          normalizedFrequency.includes("annee");
+        const isWeekly =
+          rawFrequency === "weekly" ||
+          normalizedFrequency.includes("hebdomadaire") ||
+          normalizedFrequency.includes("semaine");
+        if (isYearly) return price / 12;
+        if (isWeekly) return (price * 52) / 12;
+        if (isLifetime) {
+          if (!includeLifetime) return 0;
+          const rawPurchaseDate = sub.purchaseDate ?? sub.createdAt ?? null;
+          if (!rawPurchaseDate) return 0;
+          const purchaseDate = new Date(rawPurchaseDate);
+          if (Number.isNaN(purchaseDate.getTime())) return 0;
+          const cutoff = new Date(purchaseDate);
+          cutoff.setFullYear(cutoff.getFullYear() + 1);
+          if (new Date() >= cutoff) return 0;
+          return price / 12;
+        }
         return price;
       };
 

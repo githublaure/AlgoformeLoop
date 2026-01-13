@@ -51,6 +51,7 @@ const formSchema = insertSubscriptionSchema.extend({
   categoryColor: z.string().optional(),
   note: z.string().optional(),
   rating: z.coerce.number().min(0).max(5).nullable().optional(),
+  purchaseDate: z.string().optional(),
   isSuspect: z.coerce.boolean().default(false),
   isTrial: z.coerce.boolean().default(false),
   renewalUnknown: z.coerce.boolean().default(false),
@@ -124,8 +125,9 @@ const defaultValues: FormData = {
   isActive: true,
   isTrial: false,
   isSuspect: false,
-  rating: undefined,
+  rating: null,
   note: "",
+  purchaseDate: "",
 };
 
 export function AddSubscriptionModal({
@@ -228,7 +230,8 @@ export function AddSubscriptionModal({
         renewalUnknown: !subscription.nextRenewal,
         bgColor: subscription.bgColor ?? DEFAULT_BG_COLOR,
         iconClass: subscription.iconClass || defaultValues.iconClass,
-        rating: subscription.rating ?? undefined,
+        rating: subscription.rating ?? null,
+        purchaseDate: subscription.purchaseDate ? formatDateForInput(subscription.purchaseDate) : "",
         isSuspect: subscription.isSuspect ?? false,
         note: subscription.note ?? "",
         categoryColor: subscription.categoryColor ?? subscription.bgColor ?? DEFAULT_BG_COLOR,
@@ -249,6 +252,12 @@ export function AddSubscriptionModal({
     form.setValue("nextRenewal", "");
   }, [form, isLifetime]);
 
+  useEffect(() => {
+    if (!isLifetime) {
+      form.setValue("purchaseDate", "");
+    }
+  }, [form, isLifetime]);
+
   const createSubscription = useMutation({
     mutationFn: async (data: FormData) => {
       const shouldClearRenewal = data.renewalUnknown || data.frequency === "lifetime";
@@ -260,6 +269,9 @@ export function AddSubscriptionModal({
         rating: data.rating ?? null,
         isSuspect: Boolean(data.isSuspect),
         nextRenewal: shouldClearRenewal ? null : new Date(data.nextRenewal ?? ""),
+        purchaseDate: data.frequency === "lifetime" && data.purchaseDate
+          ? new Date(data.purchaseDate)
+          : null,
         trialEndsAt: data.isTrial && data.trialEndsAt ? new Date(data.trialEndsAt) : undefined,
       };
       delete (payload as Partial<FormData>).renewalUnknown;
@@ -312,6 +324,9 @@ export function AddSubscriptionModal({
       const subscriptionData = {
         ...data,
         nextRenewal: shouldClearRenewal ? null : new Date(data.nextRenewal ?? ""),
+        purchaseDate: data.frequency === "lifetime" && data.purchaseDate
+          ? new Date(data.purchaseDate)
+          : null,
       };
       delete (subscriptionData as Partial<FormData>).renewalUnknown;
       const response = await apiRequest(
@@ -362,6 +377,7 @@ export function AddSubscriptionModal({
       trialEndsAt: data.isTrial ? data.trialEndsAt : undefined,
       renewalUnknown: renewalUnknownValue,
       nextRenewal: renewalUnknownValue ? "" : data.nextRenewal,
+      purchaseDate: isLifetimeFrequency ? data.purchaseDate : "",
     };
 
     if (isEditing) {
@@ -467,7 +483,9 @@ export function AddSubscriptionModal({
   };
 
   const renderStars = () => {
-    const currentRating = form.watch("rating") ?? 0;
+    const ratingValue = form.watch("rating");
+    const isUnrated = ratingValue === null || ratingValue === undefined;
+    const currentRating = isUnrated ? 0 : ratingValue;
 
     return (
       <div className="flex items-center space-x-1">
@@ -479,6 +497,7 @@ export function AddSubscriptionModal({
               type="button"
               onClick={() => form.setValue("rating", star)}
               className="focus:outline-none"
+              disabled={isUnrated}
               aria-label={`Noter ${star} étoiles`}
             >
               <Star
@@ -488,7 +507,9 @@ export function AddSubscriptionModal({
             </button>
           );
         })}
-        <span className="ml-2 text-xs text-gray-600">{currentRating}/5</span>
+        <span className="ml-2 text-xs text-gray-600">
+          {isUnrated ? "Pas encore noté" : `${currentRating}/5`}
+        </span>
       </div>
     );
   };
@@ -570,6 +591,25 @@ export function AddSubscriptionModal({
                 </FormItem>
               )}
             />
+
+            {isLifetime && (
+              <FormField
+                control={form.control}
+                name="purchaseDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date d'achat (optionnelle)</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Utilisée pour proratiser l'accès à vie sur la première année.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
@@ -768,7 +808,25 @@ export function AddSubscriptionModal({
                 <FormItem>
                   <FormLabel>Note en étoiles</FormLabel>
                   <FormControl>
-                    {renderStars()}
+                    <div className="space-y-2">
+                      {renderStars()}
+                      <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                        <div>
+                          <p className="text-xs font-medium text-gray-700">Pas encore de note</p>
+                          <p className="text-[11px] text-gray-500">Désactivez pour attribuer une note.</p>
+                        </div>
+                        <Switch
+                          checked={form.watch("rating") === null}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              form.setValue("rating", null, { shouldDirty: true });
+                            } else if (form.getValues("rating") === null) {
+                              form.setValue("rating", 0, { shouldDirty: true });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
                   </FormControl>
                   <p className="text-xs text-gray-600 mt-1">Aidez-vous à prioriser les abonnements suspects ou à surveiller.</p>
                 </FormItem>

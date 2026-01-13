@@ -741,9 +741,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const normalizeToMonthly = (sub: any) => {
         const price = parseFloat(sub.price);
         if (!Number.isFinite(price)) return 0;
-        if (sub.frequency === 'yearly') return price / 12;
-        if (sub.frequency === 'weekly') return (price * 52) / 12;
-        if (sub.frequency === 'lifetime') {
+        const rawFrequency = String(sub.frequency ?? "").toLowerCase();
+        const normalizedFrequency = rawFrequency.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+        const isLifetime =
+          rawFrequency === "lifetime" ||
+          normalizedFrequency.includes("acces a vie") ||
+          normalizedFrequency.includes("access a vie");
+        if (rawFrequency === 'yearly') return price / 12;
+        if (rawFrequency === 'weekly') return (price * 52) / 12;
+        if (isLifetime) {
           if (!includeLifetime) return 0;
           if (!sub.purchaseDate) return 0;
           const purchaseDate = new Date(sub.purchaseDate);

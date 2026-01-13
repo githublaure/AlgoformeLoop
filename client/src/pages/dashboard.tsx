@@ -19,6 +19,15 @@ export default function Dashboard() {
   const [upcomingFilter, setUpcomingFilter] = useState<string>("all");
 
   const [includeArchived, setIncludeArchived] = useState<boolean>(false);
+  const filterSelectClass =
+    "appearance-none rounded-md border border-gray-200 bg-white px-3 py-2 pr-10 text-sm text-gray-700 shadow-sm transition focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-300";
+  const filterSelectStyle = {
+    backgroundImage:
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%235b6472' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 8 10 12 14 8'/%3E%3C/svg%3E\")",
+    backgroundPosition: "right 0.75rem center",
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "14px 14px",
+  };
 
   const { data: subscriptions = [], isLoading } = useQuery<Subscription[]>({
     queryKey: ['/api/subscriptions', { includeArchived }],
@@ -187,7 +196,8 @@ export default function Dashboard() {
                   <div className="flex flex-wrap items-center gap-3 w-full md:w-auto md:justify-end">
                     <label className="text-sm text-gray-600">Filtrer par note</label>
                     <select
-                      className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      className={filterSelectClass}
+                      style={filterSelectStyle}
                       value={ratingFilter}
                       onChange={(event) => setRatingFilter(event.target.value)}
                     >
@@ -201,7 +211,8 @@ export default function Dashboard() {
 
                     <label className="text-sm text-gray-600">Type</label>
                     <select
-                      className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      className={filterSelectClass}
+                      style={filterSelectStyle}
                       value={pigeonFilter}
                       onChange={(e) => setPigeonFilter(e.target.value)}
                     >
@@ -212,7 +223,8 @@ export default function Dashboard() {
 
                     <label className="text-sm text-gray-600">Renouvellement</label>
                     <select
-                      className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      className={filterSelectClass}
+                      style={filterSelectStyle}
                       value={upcomingFilter}
                       onChange={(e) => setUpcomingFilter(e.target.value)}
                     >

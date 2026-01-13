@@ -24,6 +24,8 @@ export function StatsOverview() {
       );
       return response.json();
     },
+    staleTime: 0,
+    refetchOnMount: "always",
   });
   const { data: settings } = useQuery<{ budgetCap: number | string }>({
     queryKey: ['/api/settings'],
@@ -42,6 +44,10 @@ export function StatsOverview() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(INCLUDE_LIFETIME_STORAGE_KEY, String(includeLifetime));
   }, [includeLifetime]);
+
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+  }, [includeLifetime, queryClient]);
 
   const updateBudget = useMutation({
     mutationFn: async () => {

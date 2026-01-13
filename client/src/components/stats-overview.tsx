@@ -4,12 +4,14 @@ import type { StatsResponse } from "@/types/stats";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 
 export function StatsOverview() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [includeLifetime, setIncludeLifetime] = useState(false);
   const { data: stats, isLoading } = useQuery<StatsResponse>({
-    queryKey: ['/api/stats'],
+    queryKey: ['/api/stats', { includeLifetime }],
   });
   const { data: settings } = useQuery<{ budgetCap: number | string }>({
     queryKey: ['/api/settings'],
@@ -98,8 +100,16 @@ export function StatsOverview() {
                 </Button>
               </div>
               <span>
-                {budgetGap > 0 ? `(-${budgetGap.toFixed(2)} à réduire)` : "(ok)"}
+                {budgetGap > 0 ? `(-${budgetGap.toFixed(2)} à réduire)` : "(OK)"}
               </span>
+              <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                <Switch
+                  checked={includeLifetime}
+                  onCheckedChange={setIncludeLifetime}
+                  aria-label="Inclure les accès à vie"
+                />
+                <span>Inclure accès à vie (1ère année)</span>
+              </div>
             </div>
           </div>
           <img

@@ -327,6 +327,7 @@ export default function Test() {
               aria-label="Retour"
             >
               <i className="fas fa-arrow-left sm:mr-2"></i>
+              <span className="sm:hidden">Retour</span>
               <span className="hidden sm:inline">Retour</span>
             </Button>
             <Button

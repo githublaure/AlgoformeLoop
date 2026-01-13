@@ -758,7 +758,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rawFrequency === "weekly" ||
           normalizedFrequency.includes("hebdomadaire") ||
           normalizedFrequency.includes("semaine");
-        if (isYearly) return price / 12;
+        if (isYearly) {
+          if (!includeLifetime) return 0;
+          return price / 12;
+        }
         if (isWeekly) return (price * 52) / 12;
         if (isLifetime) {
           if (!includeLifetime) return 0;

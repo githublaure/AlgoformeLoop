@@ -137,7 +137,7 @@ export function StatsOverview() {
                   onCheckedChange={setIncludeLifetime}
                   aria-label="Inclure les accès à vie"
                 />
-                <span>Inclure accès à vie (1ère année)</span>
+                <span>Inclure annuel + accès à vie (1ère année)</span>
               </div>
             </div>
           </div>

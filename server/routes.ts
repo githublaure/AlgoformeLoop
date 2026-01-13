@@ -760,8 +760,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (isWeekly) return (price * 52) / 12;
         if (isLifetime) {
           if (!includeLifetime) return 0;
-          if (!sub.purchaseDate) return 0;
-          const purchaseDate = new Date(sub.purchaseDate);
+          const rawPurchaseDate = sub.purchaseDate ?? sub.createdAt ?? null;
+          if (!rawPurchaseDate) return 0;
+          const purchaseDate = new Date(rawPurchaseDate);
           if (Number.isNaN(purchaseDate.getTime())) return 0;
           const cutoff = new Date(purchaseDate);
           cutoff.setFullYear(cutoff.getFullYear() + 1);

@@ -41,8 +41,15 @@ export default function StatsPage() {
       if (event.key !== INCLUDE_LIFETIME_STORAGE_KEY) return;
       setIncludeLifetime(event.newValue === "true");
     };
+    const handleLocalToggle = () => {
+      setIncludeLifetime(window.localStorage.getItem(INCLUDE_LIFETIME_STORAGE_KEY) === "true");
+    };
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener("pigeon-include-lifetime-change", handleLocalToggle);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("pigeon-include-lifetime-change", handleLocalToggle);
+    };
   }, []);
 
   const trialSubscriptions = subscriptions.filter((sub) => sub.isTrial);

@@ -745,6 +745,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const normalizedFrequency = rawFrequency.normalize("NFD").replace(/\p{Diacritic}/gu, "");
         const isLifetime =
           rawFrequency === "lifetime" ||
+          normalizedFrequency.includes("lifetime") ||
+          normalizedFrequency.includes("life time") ||
           normalizedFrequency.includes("acces a vie") ||
           normalizedFrequency.includes("access a vie");
         const isYearly =

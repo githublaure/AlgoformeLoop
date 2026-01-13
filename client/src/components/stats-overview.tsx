@@ -43,6 +43,7 @@ export function StatsOverview() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(INCLUDE_LIFETIME_STORAGE_KEY, String(includeLifetime));
+    window.dispatchEvent(new Event("pigeon-include-lifetime-change"));
   }, [includeLifetime]);
 
   useEffect(() => {

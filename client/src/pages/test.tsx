@@ -268,8 +268,8 @@ export default function Test() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-visible pt-16 sm:pt-28">
-      <div className="absolute inset-x-0 top-0 flex justify-center">
+    <div className="min-h-screen bg-black text-white relative overflow-visible pt-16 sm:pt-28 flex flex-col">
+      <div className="flex justify-center">
         <div className="relative w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="absolute inset-x-0 -top-14 sm:-top-16 flex justify-center z-50 pointer-events-none">
             <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 drop-shadow-2xl">
@@ -301,87 +301,11 @@ export default function Test() {
                 <p className="text-xl sm:text-2xl font-semibold">PigeonSubscription</p>
               </div>
             </div>
-            <div className="grid w-full grid-cols-4 gap-2 text-xs sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:text-sm">
-              <Button
-                onClick={() => setLocation('/')}
-                className="w-full font-bold bg-white text-purple-800 shadow-2xl border border-purple-200 hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
-                aria-label="Retour"
-              >
-                <i className="fas fa-arrow-left sm:mr-2"></i>
-                <span className="hidden sm:inline">Retour</span>
-              </Button>
-              <Button
-                onClick={toggleMute}
-                variant="outline"
-                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
-                aria-label={isMuted ? "Son coupé" : "Son actif"}
-              >
-                <span className="sm:hidden">{isMuted ? "🔇" : "🔊"}</span>
-                <span className="hidden sm:inline">{isMuted ? "🔇 Son coupé" : "🔊 Son actif"}</span>
-              </Button>
-              <Button
-                onClick={startDemo}
-                className="w-full font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
-                disabled={isPlaying}
-                aria-label="Démarrer"
-              >
-                <span className="sm:hidden">▶️</span>
-                <span className="hidden sm:inline">▶️ Démarrer</span>
-              </Button>
-              <Button
-                onClick={togglePause}
-                variant="outline"
-                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
-                disabled={!isPlaying}
-                aria-label={isPaused ? "Reprendre" : "Pause"}
-              >
-                <span className="sm:hidden">{isPaused ? "▶️" : "⏸"}</span>
-                <span className="hidden sm:inline">{isPaused ? "▶️ Reprendre" : "⏸ Pause"}</span>
-              </Button>
-              <Button
-                onClick={() => seekBy(-10)}
-                variant="outline"
-                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
-                disabled={!isPlaying}
-                aria-label="Reculer de 10 secondes"
-              >
-                <span className="sm:hidden">⏪</span>
-                <span className="hidden sm:inline">⏪ -10s</span>
-              </Button>
-              <Button
-                onClick={() => seekBy(10)}
-                variant="outline"
-                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
-                disabled={!isPlaying}
-                aria-label="Avancer de 10 secondes"
-              >
-                <span className="sm:hidden">⏩</span>
-                <span className="hidden sm:inline">⏩ +10s</span>
-              </Button>
-              <Button
-                onClick={() => updatePlaybackRate(playbackRate === 1 ? 2 : 1)}
-                variant="outline"
-                className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
-                aria-label={`Lecture x${playbackRate}`}
-              >
-                <span className="sm:hidden">⚡ x{playbackRate}</span>
-                <span className="hidden sm:inline">⚡ Lecture x{playbackRate}</span>
-              </Button>
-              <Button
-                onClick={stopDemo}
-                variant="outline"
-                className="w-full font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
-                aria-label="Stop"
-              >
-                <span className="sm:hidden">⏹</span>
-                <span className="hidden sm:inline">⏹ Stop</span>
-              </Button>
-            </div>
           </div>
         </div>
       </div>
 
-      <div className="relative w-full px-4 sm:px-6 lg:px-8">
+      <div className="relative w-full px-4 sm:px-6 lg:px-8 flex-1 flex items-center">
         <div className="relative mx-auto w-full max-w-6xl aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black">
           <video
             ref={backgroundVideoRef}
@@ -391,6 +315,87 @@ export default function Test() {
             loop
             playsInline
           />
+        </div>
+      </div>
+
+      <div className="relative z-40 mt-auto sm:mt-0 px-4 sm:px-6 lg:px-8 pb-6 sm:pb-10">
+        <div className="mx-auto w-full max-w-6xl rounded-3xl bg-gradient-to-r from-purple-700/90 via-indigo-700/90 to-purple-800/90 border border-white/10 shadow-2xl px-3 sm:px-8 py-3 sm:py-6 backdrop-blur-sm">
+          <div className="grid w-full grid-cols-4 gap-2 text-xs sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:text-sm">
+            <Button
+              onClick={() => setLocation('/')}
+              className="w-full font-bold bg-white text-purple-800 shadow-2xl border border-purple-200 hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
+              aria-label="Retour"
+            >
+              <i className="fas fa-arrow-left sm:mr-2"></i>
+              <span className="hidden sm:inline">Retour</span>
+            </Button>
+            <Button
+              onClick={toggleMute}
+              variant="outline"
+              className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
+              aria-label={isMuted ? "Son coupé" : "Son actif"}
+            >
+              <span className="sm:hidden">{isMuted ? "🔇" : "🔊"}</span>
+              <span className="hidden sm:inline">{isMuted ? "🔇 Son coupé" : "🔊 Son actif"}</span>
+            </Button>
+            <Button
+              onClick={startDemo}
+              className="w-full font-bold bg-green-400 text-green-950 shadow-xl hover:bg-green-500 rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
+              disabled={isPlaying}
+              aria-label="Démarrer"
+            >
+              <span className="sm:hidden">▶️</span>
+              <span className="hidden sm:inline">▶️ Démarrer</span>
+            </Button>
+            <Button
+              onClick={togglePause}
+              variant="outline"
+              className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
+              disabled={!isPlaying}
+              aria-label={isPaused ? "Reprendre" : "Pause"}
+            >
+              <span className="sm:hidden">{isPaused ? "▶️" : "⏸"}</span>
+              <span className="hidden sm:inline">{isPaused ? "▶️ Reprendre" : "⏸ Pause"}</span>
+            </Button>
+            <Button
+              onClick={() => seekBy(-10)}
+              variant="outline"
+              className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
+              disabled={!isPlaying}
+              aria-label="Reculer de 10 secondes"
+            >
+              <span className="sm:hidden">⏪</span>
+              <span className="hidden sm:inline">⏪ -10s</span>
+            </Button>
+            <Button
+              onClick={() => seekBy(10)}
+              variant="outline"
+              className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
+              disabled={!isPlaying}
+              aria-label="Avancer de 10 secondes"
+            >
+              <span className="sm:hidden">⏩</span>
+              <span className="hidden sm:inline">⏩ +10s</span>
+            </Button>
+            <Button
+              onClick={() => updatePlaybackRate(playbackRate === 1 ? 2 : 1)}
+              variant="outline"
+              className="w-full font-bold bg-white text-purple-800 border-purple-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
+              aria-label={`Lecture x${playbackRate}`}
+            >
+              <span className="sm:hidden">⚡ x{playbackRate}</span>
+              <span className="hidden sm:inline">⚡ Lecture x{playbackRate}</span>
+            </Button>
+            <Button
+              onClick={stopDemo}
+              variant="outline"
+              className="w-full font-bold bg-white text-red-600 border-red-200 shadow-xl hover:bg-white rounded-full px-2.5 py-2 sm:px-4 sm:py-2.5 sm:w-auto"
+              aria-label="Stop"
+            >
+              <span className="sm:hidden">⏹</span>
+              <span className="hidden sm:inline">⏹ Stop</span>
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -179,18 +179,46 @@ export function VoiceControls() {
       </h3>
       <div className="space-y-4">
         <div>
-          <label htmlFor="voice-select" className="text-sm font-medium text-gray-700">
-            Voix du pigeon rappel
-          </label>
-          <select
-            id="voice-select"
-            value={voiceName}
-            onChange={(event) => setVoiceName(event.target.value)}
-            className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-          >
-            <option value="pierre-pigeon">Pierre Pigeon</option>
-            <option value="marie-colombe">Marie Colombe</option>
-          </select>
+          <p className="text-sm font-medium text-gray-700">Voix du pigeon rappel</p>
+          <div className="relative mt-2 flex items-center justify-between rounded-full border border-gray-200 bg-white p-1 shadow-sm">
+            <span
+              className={`absolute left-1 top-1 h-8 w-[calc(50%-0.25rem)] rounded-full transition-all duration-300 ${
+                voiceName === "pierre-pigeon"
+                  ? "bg-purple-100"
+                  : "bg-emerald-100 translate-x-full"
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => setVoiceName("pierre-pigeon")}
+              className={`relative z-10 flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${
+                voiceName === "pierre-pigeon"
+                  ? "text-purple-700"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Pierre Pigeon
+            </button>
+            <button
+              type="button"
+              onClick={() => setVoiceName("marie-colombe")}
+              className={`relative z-10 flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${
+                voiceName === "marie-colombe"
+                  ? "text-emerald-700"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Marie Colombe
+            </button>
+          </div>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-gray-500">
+            <span className={voiceName === "pierre-pigeon" ? "text-purple-600" : ""}>
+              🐦 Pierre
+            </span>
+            <span className={voiceName === "marie-colombe" ? "text-emerald-600" : ""}>
+              🕊️ Marie
+            </span>
+          </div>
         </div>
         <button 
           onClick={handleMonthlyReview}

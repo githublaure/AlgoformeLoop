@@ -7,8 +7,10 @@ import type { Subscription } from "@shared/schema";
 import { getPriceSuffix } from "@shared/subscription-utils";
 import type { StatsResponse } from "@/types/stats";
 import { Progress } from "@/components/ui/progress";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const INCLUDE_LIFETIME_STORAGE_KEY = "pigeon-include-lifetime";
 
@@ -57,6 +59,34 @@ export default function StatsPage() {
   const suspectSubscriptions = subscriptions.filter((sub) => sub.isSuspect && sub.usageFrequency !== 'very_used');
 
   const categoryEntries = Object.entries(stats?.categoryTotals || {}).sort(([, a], [, b]) => b - a);
+  const [mobileCategory, setMobileCategory] = useState<string | null>(null);
+  const [mobileUsageKey, setMobileUsageKey] = useState<string | null>(null);
+
+  const categoryLabels = useMemo(() => ({
+    entertainment: "Divertissement",
+    music: "Musique",
+    productivity: "Productivité",
+    design: "Design",
+    cloud: "Cloud",
+    other: "Autre",
+  }), []);
+
+  const getCategoryLabel = (category: string) => categoryLabels[category] || category;
+
+  const getCategorySubscriptions = (category: string) =>
+    subscriptions
+      .filter((sub) => sub.category === category)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+  const getUsageSubscriptions = (usageKey: string) =>
+    subscriptions
+      .filter((sub) => sub.usageFrequency === usageKey)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+  const mobileCategoryLabel = mobileCategory ? getCategoryLabel(mobileCategory) : "";
+  const mobileCategorySubscriptions = mobileCategory ? getCategorySubscriptions(mobileCategory) : [];
+  const mobileUsageLabel = mobileUsageKey ? usageLabels[mobileUsageKey] || mobileUsageKey : "";
+  const mobileUsageSubscriptions = mobileUsageKey ? getUsageSubscriptions(mobileUsageKey) : [];
 
   return (
     <LoginGuard>
@@ -87,17 +117,72 @@ export default function StatsPage() {
                   {categoryEntries.length === 0 ? (
                     <p className="text-gray-600 text-sm">Aucune donnée de catégorie pour le moment.</p>
                   ) : (
-                    <div className="space-y-3">
-                      {categoryEntries.map(([category, value]) => (
-                        <div key={category}>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="capitalize">{category}</span>
-                            <span className="font-medium">€{value.toFixed(2)}/mois</span>
-                          </div>
-                          <Progress value={Math.min(100, (value / (stats?.budgetCap || 1)) * 100)} className="h-2" />
-                        </div>
-                      ))}
-                    </div>
+                    <TooltipProvider delayDuration={100}>
+                      <div className="space-y-3">
+                        {categoryEntries.map(([category, value]) => {
+                          const categorySubscriptions = getCategorySubscriptions(category);
+                          const rowContent = (
+                            <div>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="capitalize">{getCategoryLabel(category)}</span>
+                                <span className="font-medium">€{value.toFixed(2)}/mois</span>
+                              </div>
+                              <Progress
+                                value={Math.min(100, (value / (stats?.budgetCap || 1)) * 100)}
+                                className="h-2"
+                              />
+                            </div>
+                          );
+
+                          const subscriptionsList = (
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold uppercase text-gray-500">
+                                Abonnements ({categorySubscriptions.length})
+                              </p>
+                              {categorySubscriptions.length === 0 ? (
+                                <p className="text-sm text-gray-600">Aucun abonnement dans cette catégorie.</p>
+                              ) : (
+                                <ul className="space-y-2">
+                                  {categorySubscriptions.map((sub) => (
+                                    <li key={sub.id} className="flex items-center justify-between gap-4 text-sm">
+                                      <span className="font-medium text-gray-900">{sub.name}</span>
+                                      <span className="text-gray-600">
+                                        €{Number(sub.price).toFixed(2)}{getPriceSuffix(sub.frequency)}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          );
+
+                          return (
+                            <div key={category}>
+                              <div className="hidden md:block">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="cursor-help">{rowContent}</div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <div className="space-y-2">
+                                      <p className="text-sm font-semibold">{getCategoryLabel(category)}</p>
+                                      {subscriptionsList}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <button
+                                type="button"
+                                className="md:hidden w-full text-left"
+                                onClick={() => setMobileCategory(category)}
+                              >
+                                {rowContent}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </TooltipProvider>
                   )}
                 </div>
 
@@ -106,19 +191,71 @@ export default function StatsPage() {
                     <i className="fas fa-signal" style={{ color: "hsl(162, 64%, 36%)" }}></i>
                     Usage des abonnements
                   </h2>
-                  <div className="space-y-3">
-                    {Object.entries(stats?.usageBreakdown || {}).map(([key, value]) => (
-                      <div key={key} className="flex items-center justify-between border rounded-lg p-3 bg-gray-50">
-                        <div>
-                          <p className="font-medium">{usageLabels[key] || key}</p>
-                          <p className="text-xs text-gray-600">{value} abonnement(s)</p>
-                        </div>
-                        <span className="text-sm font-semibold" style={{ color: "hsl(258, 71%, 65%)" }}>
-                          {stats?.activeSubscriptions ? Math.round((value / stats.activeSubscriptions) * 100) : 0}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                  <TooltipProvider delayDuration={100}>
+                    <div className="space-y-3">
+                      {Object.entries(stats?.usageBreakdown || {}).map(([key, value]) => {
+                        const usageSubscriptions = getUsageSubscriptions(key);
+                        const usageRow = (
+                          <div className="flex items-center justify-between border rounded-lg p-3 bg-gray-50">
+                            <div>
+                              <p className="font-medium">{usageLabels[key] || key}</p>
+                              <p className="text-xs text-gray-600">{value} abonnement(s)</p>
+                            </div>
+                            <span className="text-sm font-semibold" style={{ color: "hsl(258, 71%, 65%)" }}>
+                              {stats?.activeSubscriptions ? Math.round((value / stats.activeSubscriptions) * 100) : 0}%
+                            </span>
+                          </div>
+                        );
+
+                        const usageList = (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase text-gray-500">
+                              Abonnements ({usageSubscriptions.length})
+                            </p>
+                            {usageSubscriptions.length === 0 ? (
+                              <p className="text-sm text-gray-600">Aucun abonnement pour cet usage.</p>
+                            ) : (
+                              <ul className="space-y-2">
+                                {usageSubscriptions.map((sub) => (
+                                  <li key={sub.id} className="flex items-center justify-between gap-4 text-sm">
+                                    <span className="font-medium text-gray-900">{sub.name}</span>
+                                    <span className="text-gray-600">
+                                      €{Number(sub.price).toFixed(2)}{getPriceSuffix(sub.frequency)}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        );
+
+                        return (
+                          <div key={key}>
+                            <div className="hidden md:block">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="cursor-help">{usageRow}</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="space-y-2">
+                                    <p className="text-sm font-semibold">{usageLabels[key] || key}</p>
+                                    {usageList}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <button
+                              type="button"
+                              className="md:hidden w-full text-left"
+                              onClick={() => setMobileUsageKey(key)}
+                            >
+                              {usageRow}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </TooltipProvider>
                 </div>
               </div>
 
@@ -185,6 +322,58 @@ export default function StatsPage() {
           </div>
         </div>
       </div>
+      <Dialog open={mobileCategory !== null} onOpenChange={(open) => !open && setMobileCategory(null)}>
+        <DialogContent className="max-w-sm w-[90vw]">
+          <DialogHeader>
+            <DialogTitle>Abonnements · {mobileCategoryLabel}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {mobileCategorySubscriptions.length === 0 ? (
+              <p className="text-sm text-gray-600">Aucun abonnement dans cette catégorie.</p>
+            ) : (
+              <ul className="space-y-3">
+                {mobileCategorySubscriptions.map((sub) => (
+                  <li key={sub.id} className="flex items-center justify-between gap-4 text-sm">
+                    <div>
+                      <p className="font-medium text-gray-900">{sub.name}</p>
+                      <p className="text-xs text-gray-500 capitalize">{getCategoryLabel(sub.category)}</p>
+                    </div>
+                    <span className="text-gray-600">
+                      €{Number(sub.price).toFixed(2)}{getPriceSuffix(sub.frequency)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={mobileUsageKey !== null} onOpenChange={(open) => !open && setMobileUsageKey(null)}>
+        <DialogContent className="max-w-sm w-[90vw]">
+          <DialogHeader>
+            <DialogTitle>Abonnements · {mobileUsageLabel}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {mobileUsageSubscriptions.length === 0 ? (
+              <p className="text-sm text-gray-600">Aucun abonnement pour cet usage.</p>
+            ) : (
+              <ul className="space-y-3">
+                {mobileUsageSubscriptions.map((sub) => (
+                  <li key={sub.id} className="flex items-center justify-between gap-4 text-sm">
+                    <div>
+                      <p className="font-medium text-gray-900">{sub.name}</p>
+                      <p className="text-xs text-gray-500 capitalize">{usageLabels[sub.usageFrequency] || sub.usageFrequency}</p>
+                    </div>
+                    <span className="text-gray-600">
+                      €{Number(sub.price).toFixed(2)}{getPriceSuffix(sub.frequency)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </LoginGuard>
   );
 }

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -25,11 +25,6 @@ export const monthlyBudgets = pgTable("monthly_budgets", {
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
-
-export const monthlyBudgetsUserMonthIndex = uniqueIndex("monthly_budgets_user_month_idx").on(
-  monthlyBudgets.userId,
-  monthlyBudgets.month
-);
 
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),

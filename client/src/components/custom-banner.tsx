@@ -8,13 +8,13 @@ export function CustomBanner() {
 
   return (
     <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 px-6 shadow-lg">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-white/20 backdrop-blur-sm">
+      <div className="max-w-7xl mx-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 shrink-0 rounded-full overflow-hidden flex items-center justify-center bg-white/20 backdrop-blur-sm sm:h-16 sm:w-16">
             <img
               src="/pigeon2.png"
               alt="Pigeon qui fait une pirouette"
-              className="w-12 h-12 object-contain animate-[spin_6s_linear_infinite]"
+              className="h-11 w-11 object-contain animate-[spin_6s_linear_infinite] sm:h-12 sm:w-12"
             />
           </div>
           <div>
@@ -22,7 +22,7 @@ export function CustomBanner() {
             <p className="text-sm opacity-90">Bienvenue sur PigeonSub</p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           <p className="text-sm opacity-75">Gérez vos abonnements intelligemment</p>
         </div>
       </div>

@@ -1,4 +1,17 @@
-export async function generateVoiceReminder(text: string, apiKey?: string): Promise<string> {
+const DEFAULT_VOICE_ID = process.env.ELEVENLABS_DEFAULT_VOICE_ID || "21m00Tcm4TlvDq8ikWAM";
+
+const VOICE_IDS: Record<string, string> = {
+  "pierre-pigeon": process.env.ELEVENLABS_VOICE_PIERRE_PIGEON || process.env.ELEVENLABS_VOICE_PIERRE || DEFAULT_VOICE_ID,
+  "marie-colombe": process.env.ELEVENLABS_VOICE_MARIE_COLOMBE || process.env.ELEVENLABS_VOICE_MARIE || DEFAULT_VOICE_ID,
+};
+
+const resolveVoiceId = (voiceName?: string) => {
+  if (!voiceName) return DEFAULT_VOICE_ID;
+  const key = voiceName.trim().toLowerCase();
+  return VOICE_IDS[key] || DEFAULT_VOICE_ID;
+};
+
+export async function generateVoiceReminder(text: string, apiKey?: string, voiceName?: string): Promise<string> {
   const resolvedApiKey = apiKey || process.env.ELEVEN_LABS_API_KEY || process.env.ELEVENLABS_API_KEY;
 
   if (!resolvedApiKey) {
@@ -6,7 +19,8 @@ export async function generateVoiceReminder(text: string, apiKey?: string): Prom
   }
 
   try {
-    const response = await fetch("https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM", {
+    const voiceId = resolveVoiceId(voiceName);
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: "POST",
       headers: {
         "Accept": "audio/mpeg",

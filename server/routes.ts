@@ -683,14 +683,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Voice reminder routes
   app.post("/api/voice/generate", async (req, res) => {
     try {
-      const { subscriptionId, reminderType, text } = req.body;
+      const { subscriptionId, reminderType, text, voiceName } = req.body;
       const apiKey = (req.headers["x-elevenlabs-key"] as string | undefined)?.trim();
 
       if (!reminderType || !text) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      const audioUrl = await generateVoiceReminder(text, apiKey);
+      const audioUrl = await generateVoiceReminder(text, apiKey, voiceName);
 
       const reminder = await storage.createVoiceReminder({
         subscriptionId,

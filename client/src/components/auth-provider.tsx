@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface User {
   id: string;
@@ -39,6 +40,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const refreshAuthedQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['/api/subscriptions'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/subscriptions/upcoming/7'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+  };
 
   const checkAuthStatus = async () => {
     try {
@@ -89,6 +98,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.ok) {
         localStorage.setItem('authToken', data.token);
         setUser(data.user);
+        refreshAuthedQueries();
       } else {
         setError(data.message || 'Erreur de connexion');
       }
@@ -117,6 +127,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.ok) {
         localStorage.setItem('authToken', data.token);
         setUser(data.user);
+        refreshAuthedQueries();
       } else {
         setError(data.message || 'Erreur d\'inscription');
       }
@@ -131,6 +142,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem('authToken');
     setUser(null);
     setError(null);
+    queryClient.clear();
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {

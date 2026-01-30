@@ -10,7 +10,7 @@ export function CustomBanner() {
     <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 px-6 shadow-lg">
       <div className="max-w-7xl mx-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <div className="h-14 w-14 shrink-0 rounded-full overflow-hidden flex items-center justify-center bg-white/20 backdrop-blur-sm sm:h-16 sm:w-16">
+          <div className="h-14 w-14 min-w-[3.5rem] shrink-0 aspect-square rounded-full overflow-hidden flex items-center justify-center bg-white/20 backdrop-blur-sm sm:h-16 sm:w-16 sm:min-w-[4rem]">
             <img
               src="/pigeon2.png"
               alt="Pigeon qui fait une pirouette"

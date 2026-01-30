@@ -12,8 +12,15 @@ export function Header() {
         <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:h-16 sm:py-0">
           <div className="flex items-center gap-3">
             {/* Cartoon pigeon mascot */}
-            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center" style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}>
-              <img src="/pigeongangsta.png" alt="PigeonSub mascot" className="w-8 h-8 object-contain" />
+            <div
+              className="w-11 h-11 shrink-0 rounded-full overflow-hidden flex items-center justify-center sm:w-10 sm:h-10"
+              style={{ backgroundColor: 'hsl(258, 71%, 65%)' }}
+            >
+              <img
+                src="/pigeongangsta.png"
+                alt="PigeonSub mascot"
+                className="h-full w-full object-contain p-1"
+              />
             </div>
             <div>
               <h1 className="text-xl font-bold" style={{ color: 'hsl(258, 71%, 65%)' }}>PigeonSub</h1>

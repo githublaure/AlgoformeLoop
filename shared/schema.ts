@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -17,6 +17,19 @@ export const userSettings = pgTable("user_settings", {
   budgetCap: decimal("budget_cap", { precision: 10, scale: 2 }).default("100"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const monthlyBudgets = pgTable("monthly_budgets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  month: text("month").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const monthlyBudgetsUserMonthIndex = uniqueIndex("monthly_budgets_user_month_idx").on(
+  monthlyBudgets.userId,
+  monthlyBudgets.month
+);
 
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
@@ -89,6 +102,7 @@ export type VoiceReminder = typeof voiceReminders.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type UserSettings = typeof userSettings.$inferSelect;
+export type MonthlyBudget = typeof monthlyBudgets.$inferSelect;
 
 // Usage frequency options
 export const USAGE_FREQUENCIES = {

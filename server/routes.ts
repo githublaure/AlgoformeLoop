@@ -16,6 +16,18 @@ const normalizeBoolean = (value: any, fallback?: boolean) => {
   return Boolean(value);
 };
 
+const formatMonthKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  return `${year}-${month}`;
+};
+
+const addMonths = (date: Date, months: number) => {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months);
+  return next;
+};
+
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
 type DbUser = typeof users.$inferSelect;
 
@@ -79,6 +91,22 @@ async function ensureSchema() {
       "budget_cap" numeric(10, 2) DEFAULT 100,
       "created_at" timestamp DEFAULT now()
     );
+  `);
+
+  // Monthly budgets table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS "monthly_budgets" (
+      "id" serial PRIMARY KEY,
+      "user_id" integer REFERENCES "users"("id") NOT NULL,
+      "month" text NOT NULL,
+      "amount" numeric(10, 2) NOT NULL,
+      "created_at" timestamp DEFAULT now()
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS "monthly_budgets_user_month_idx"
+    ON "monthly_budgets" ("user_id", "month");
   `);
 
   // Ensure user_id column exists when table already present without migration
@@ -184,6 +212,12 @@ async function ensureSchema() {
         WHERE table_name = 'user_settings' AND column_name = 'created_at'
       ) THEN
         ALTER TABLE "user_settings" ADD COLUMN "created_at" timestamp DEFAULT now();
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'monthly_budgets' AND column_name = 'created_at'
+      ) THEN
+        ALTER TABLE "monthly_budgets" ADD COLUMN "created_at" timestamp DEFAULT now();
       END IF;
     END $$;
   `);
@@ -680,6 +714,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/settings/budgets", authenticateToken, async (req: any, res) => {
+    try {
+      await ensureSchema();
+      const settings = await storage.getUserSettings(req.user.id);
+      const fallbackBudget = parseFloat(process.env.SUBSCRIPTION_BUDGET || "100");
+      const defaultBudget = Number(settings?.budgetCap ?? fallbackBudget);
+      const startMonth = typeof req.query.start === "string" ? req.query.start : undefined;
+      const rawMonthsCount = Number(req.query.months ?? 12);
+      const monthsCount = Number.isFinite(rawMonthsCount) && rawMonthsCount > 0 ? rawMonthsCount : 12;
+      const startDate = startMonth ? new Date(`${startMonth}-01T00:00:00`) : new Date();
+      if (Number.isNaN(startDate.getTime())) {
+        return res.status(400).json({ message: "Invalid start month" });
+      }
+      const monthlyBudgets = await storage.getMonthlyBudgets(req.user.id);
+      const endDate = addMonths(startDate, Number.isFinite(monthsCount) ? monthsCount : 12);
+      const budgetsMap = monthlyBudgets.reduce<Record<string, number>>((acc, budget) => {
+        acc[budget.month] = Number(budget.amount);
+        return acc;
+      }, {});
+      const months = Array.from({ length: monthsCount }, (_, index) =>
+        formatMonthKey(addMonths(startDate, index))
+      );
+      res.json({
+        defaultBudget,
+        months,
+        monthlyBudgets: months.reduce<Record<string, number | null>>((acc, monthKey) => {
+          if (monthKey in budgetsMap) {
+            acc[monthKey] = budgetsMap[monthKey];
+          } else {
+            acc[monthKey] = null;
+          }
+          return acc;
+        }, {}),
+        range: {
+          start: formatMonthKey(startDate),
+          end: formatMonthKey(endDate),
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch monthly budgets" });
+    }
+  });
+
+  app.put("/api/settings/budgets", authenticateToken, async (req: any, res) => {
+    try {
+      await ensureSchema();
+      const budgets = Array.isArray(req.body?.budgets) ? req.body.budgets : [];
+      const sanitized = budgets
+        .map((budget: any) => ({
+          month: typeof budget?.month === "string" ? budget.month : "",
+          amount: budget?.amount === null || budget?.amount === ""
+            ? null
+            : Number(budget?.amount),
+        }))
+        .filter((budget: { month: string; amount: number | null }) => /^\d{4}-\d{2}$/.test(budget.month))
+        .map((budget: { month: string; amount: number | null }) => ({
+          month: budget.month,
+          amount: budget.amount === null || !Number.isFinite(budget.amount) || budget.amount < 0
+            ? null
+            : budget.amount.toFixed(2),
+        }));
+
+      if (sanitized.length === 0) {
+        return res.status(400).json({ message: "No valid budgets provided" });
+      }
+
+      const saved = await storage.setMonthlyBudgets(req.user.id, sanitized);
+      res.json({
+        monthlyBudgets: saved.reduce<Record<string, number>>((acc, budget) => {
+          acc[budget.month] = Number(budget.amount);
+          return acc;
+        }, {}),
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update monthly budgets" });
+    }
+  });
+
   // Voice reminder routes
   app.post("/api/voice/generate", async (req, res) => {
     try {
@@ -803,7 +915,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }, { very_used: 0, used: 0, rarely_used: 0 });
 
       const settings = await storage.getUserSettings(req.user.id);
-      const budgetCap = Number(settings?.budgetCap ?? process.env.SUBSCRIPTION_BUDGET ?? '100');
+      const defaultBudget = Number(settings?.budgetCap ?? process.env.SUBSCRIPTION_BUDGET ?? '100');
+      const currentMonthKey = formatMonthKey(new Date());
+      const monthlyBudgets = await storage.getMonthlyBudgets(req.user.id);
+      const currentBudgetOverride = monthlyBudgets.find((budget) => budget.month === currentMonthKey);
+      const budgetCap = Number(currentBudgetOverride?.amount ?? defaultBudget);
       const budgetGap = Math.max(monthlyTotal - budgetCap, 0);
 
       res.json({

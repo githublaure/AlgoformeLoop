@@ -1,4 +1,15 @@
-import { subscriptions, userSettings, voiceReminders, type Subscription, type InsertSubscription, type VoiceReminder, type InsertVoiceReminder, type UserSettings } from "@shared/schema";
+import {
+  monthlyBudgets,
+  subscriptions,
+  userSettings,
+  voiceReminders,
+  type InsertSubscription,
+  type InsertVoiceReminder,
+  type MonthlyBudget,
+  type Subscription,
+  type UserSettings,
+  type VoiceReminder,
+} from "@shared/schema";
 import { and, eq, gte, lte } from "drizzle-orm";
 // Note: avoid importing `db` at module import time so tests that only
 // exercise `MemStorage` don't require DATABASE_URL to be set.
@@ -20,6 +31,11 @@ export interface IStorage {
   // User settings methods
   getUserSettings(userId: number): Promise<UserSettings | undefined>;
   setUserBudgetCap(userId: number, budgetCap: string): Promise<UserSettings>;
+  getMonthlyBudgets(userId: number): Promise<MonthlyBudget[]>;
+  setMonthlyBudgets(
+    userId: number,
+    budgets: { month: string; amount: string | null }[]
+  ): Promise<MonthlyBudget[]>;
   
   // Voice reminder methods
   getVoiceReminders(): Promise<VoiceReminder[]>;
@@ -31,17 +47,21 @@ export class MemStorage implements IStorage {
   private subscriptions: Map<number, Subscription>;
   private voiceReminders: Map<number, VoiceReminder>;
   private userSettings: Map<number, UserSettings>;
+  private monthlyBudgets: Map<string, MonthlyBudget>;
   private currentSubscriptionId: number;
   private currentVoiceReminderId: number;
   private currentUserSettingsId: number;
+  private currentMonthlyBudgetId: number;
 
   constructor() {
     this.subscriptions = new Map();
     this.voiceReminders = new Map();
     this.userSettings = new Map();
+    this.monthlyBudgets = new Map();
     this.currentSubscriptionId = 1;
     this.currentVoiceReminderId = 1;
     this.currentUserSettingsId = 1;
+    this.currentMonthlyBudgetId = 1;
     
     // Initialize with some sample data
     this.initializeSampleData();
@@ -243,6 +263,33 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
+  async getMonthlyBudgets(userId: number): Promise<MonthlyBudget[]> {
+    return Array.from(this.monthlyBudgets.values()).filter((budget) => budget.userId === userId);
+  }
+
+  async setMonthlyBudgets(
+    userId: number,
+    budgets: { month: string; amount: string | null }[]
+  ): Promise<MonthlyBudget[]> {
+    budgets.forEach((budget) => {
+      const key = `${userId}-${budget.month}`;
+      if (budget.amount === null) {
+        this.monthlyBudgets.delete(key);
+        return;
+      }
+      const existing = this.monthlyBudgets.get(key);
+      const updated: MonthlyBudget = {
+        id: existing?.id ?? this.currentMonthlyBudgetId++,
+        userId,
+        month: budget.month,
+        amount: budget.amount,
+        createdAt: existing?.createdAt ?? new Date(),
+      };
+      this.monthlyBudgets.set(key, updated);
+    });
+    return this.getMonthlyBudgets(userId);
+  }
+
   async getVoiceReminders(): Promise<VoiceReminder[]> {
     return Array.from(this.voiceReminders.values());
   }
@@ -385,6 +432,37 @@ export class DatabaseStorage implements IStorage {
       .values({ userId, budgetCap })
       .returning();
     return created;
+  }
+
+  async getMonthlyBudgets(userId: number): Promise<MonthlyBudget[]> {
+    const { db } = await import('./db');
+    return await db
+      .select()
+      .from(monthlyBudgets)
+      .where(eq(monthlyBudgets.userId, userId));
+  }
+
+  async setMonthlyBudgets(
+    userId: number,
+    budgets: { month: string; amount: string | null }[]
+  ): Promise<MonthlyBudget[]> {
+    const { db } = await import('./db');
+    for (const budget of budgets) {
+      if (budget.amount === null) {
+        await db
+          .delete(monthlyBudgets)
+          .where(and(eq(monthlyBudgets.userId, userId), eq(monthlyBudgets.month, budget.month)));
+        continue;
+      }
+      await db
+        .insert(monthlyBudgets)
+        .values({ userId, month: budget.month, amount: budget.amount })
+        .onConflictDoUpdate({
+          target: [monthlyBudgets.userId, monthlyBudgets.month],
+          set: { amount: budget.amount },
+        });
+    }
+    return this.getMonthlyBudgets(userId);
   }
 
   async getVoiceReminders(): Promise<VoiceReminder[]> {

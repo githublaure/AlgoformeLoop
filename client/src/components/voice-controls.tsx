@@ -11,11 +11,13 @@ interface VoiceRequestPayload {
   text: string;
   reminderType: string;
   subscriptionId?: number;
+  voiceName?: string;
 }
 
 export function VoiceControls() {
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [lastAlert, setLastAlert] = useState<{ title: string; subtitle: string } | null>(null);
+  const [voiceName, setVoiceName] = useState("pierre-pigeon");
   const { toast } = useToast();
 
   const { data: subscriptions = [] } = useQuery<Subscription[]>({
@@ -41,11 +43,12 @@ export function VoiceControls() {
   };
 
   const generateVoiceMutation = useMutation({
-    mutationFn: async ({ text, reminderType, subscriptionId }: VoiceRequestPayload) => {
+    mutationFn: async ({ text, reminderType, subscriptionId, voiceName }: VoiceRequestPayload) => {
       const response = await apiRequest("POST", "/api/voice/generate", {
         subscriptionId,
         reminderType,
-        text
+        text,
+        voiceName
       });
       return response.json();
     },
@@ -119,7 +122,7 @@ export function VoiceControls() {
     }, 0);
 
     const text = `Voici votre revue des abonnements. Vous avez ${subscriptions.length} abonnement${subscriptions.length > 1 ? 's' : ''} actifs pour un total mensuel de ${totalMonthly.toFixed(2)} euros.`;
-    generateVoiceMutation.mutate({ text, reminderType: "monthly_review" });
+    generateVoiceMutation.mutate({ text, reminderType: "monthly_review", voiceName });
   };
 
   const handleUpcomingReminders = () => {
@@ -133,7 +136,12 @@ export function VoiceControls() {
 
     const renewalDate = format(new Date(nextRenewal.nextRenewal), "EEEE d MMMM", { locale: fr });
     const text = `Attention ! ${nextRenewal.name} se renouvelle ${renewalDate} pour ${nextRenewal.price} euros ${getFrequencySuffix(nextRenewal.frequency)}.`;
-    generateVoiceMutation.mutate({ text, reminderType: "upcoming_reminders", subscriptionId: nextRenewal.id });
+    generateVoiceMutation.mutate({
+      text,
+      reminderType: "upcoming_reminders",
+      subscriptionId: nextRenewal.id,
+      voiceName
+    });
   };
 
   const handleLastAlert = () => {
@@ -155,7 +163,12 @@ export function VoiceControls() {
     if (!target) return;
 
     const text = `${target.title} - ${target.subtitle}`;
-    generateVoiceMutation.mutate({ text, reminderType: "last_alert", subscriptionId: nextRenewal?.id });
+    generateVoiceMutation.mutate({
+      text,
+      reminderType: "last_alert",
+      subscriptionId: nextRenewal?.id,
+      voiceName
+    });
   };
 
   return (
@@ -165,6 +178,20 @@ export function VoiceControls() {
         Contrôles Vocaux
       </h3>
       <div className="space-y-4">
+        <div>
+          <label htmlFor="voice-select" className="text-sm font-medium text-gray-700">
+            Voix du pigeon rappel
+          </label>
+          <select
+            id="voice-select"
+            value={voiceName}
+            onChange={(event) => setVoiceName(event.target.value)}
+            className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+          >
+            <option value="pierre-pigeon">Pierre Pigeon</option>
+            <option value="marie-colombe">Marie Colombe</option>
+          </select>
+        </div>
         <button 
           onClick={handleMonthlyReview}
           disabled={generateVoiceMutation.isPending}

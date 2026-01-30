@@ -45,9 +45,10 @@ export default function Dashboard() {
       if ((subscription.rating ?? 0) < ratingValue) return false;
     }
 
-    // Pigeon filter: all | pigeon | not-pigeon (basé sur la note)
+    // Pigeon filter: all | pigeon | not-pigeon | scam (basé sur la note ou le flag suspect)
     if (pigeonFilter === 'pigeon' && !isPigeoned(subscription)) return false;
     if (pigeonFilter === 'not-pigeon' && isPigeoned(subscription)) return false;
+    if (pigeonFilter === 'scam' && !subscription.isSuspect) return false;
 
     // Upcoming filter
     if (upcomingFilter !== 'all') {
@@ -219,6 +220,7 @@ export default function Dashboard() {
                       <option value="all">Tous</option>
                       <option value="pigeon">Pigeonné</option>
                       <option value="not-pigeon">Non pigeonné</option>
+                      <option value="scam">Arnaques</option>
                     </select>
 
                     <label className="text-sm text-gray-600">Renouvellement</label>

@@ -60,6 +60,7 @@ export default function StatsPage() {
 
   const categoryEntries = Object.entries(stats?.categoryTotals || {}).sort(([, a], [, b]) => b - a);
   const [mobileCategory, setMobileCategory] = useState<string | null>(null);
+  const [mobileUsageKey, setMobileUsageKey] = useState<string | null>(null);
 
   const categoryLabels = useMemo(() => ({
     entertainment: "Divertissement",
@@ -77,8 +78,15 @@ export default function StatsPage() {
       .filter((sub) => sub.category === category)
       .sort((a, b) => a.name.localeCompare(b.name));
 
+  const getUsageSubscriptions = (usageKey: string) =>
+    subscriptions
+      .filter((sub) => sub.usageFrequency === usageKey)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
   const mobileCategoryLabel = mobileCategory ? getCategoryLabel(mobileCategory) : "";
   const mobileCategorySubscriptions = mobileCategory ? getCategorySubscriptions(mobileCategory) : [];
+  const mobileUsageLabel = mobileUsageKey ? usageLabels[mobileUsageKey] || mobileUsageKey : "";
+  const mobileUsageSubscriptions = mobileUsageKey ? getUsageSubscriptions(mobileUsageKey) : [];
 
   return (
     <LoginGuard>
@@ -183,19 +191,71 @@ export default function StatsPage() {
                     <i className="fas fa-signal" style={{ color: "hsl(162, 64%, 36%)" }}></i>
                     Usage des abonnements
                   </h2>
-                  <div className="space-y-3">
-                    {Object.entries(stats?.usageBreakdown || {}).map(([key, value]) => (
-                      <div key={key} className="flex items-center justify-between border rounded-lg p-3 bg-gray-50">
-                        <div>
-                          <p className="font-medium">{usageLabels[key] || key}</p>
-                          <p className="text-xs text-gray-600">{value} abonnement(s)</p>
-                        </div>
-                        <span className="text-sm font-semibold" style={{ color: "hsl(258, 71%, 65%)" }}>
-                          {stats?.activeSubscriptions ? Math.round((value / stats.activeSubscriptions) * 100) : 0}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                  <TooltipProvider delayDuration={100}>
+                    <div className="space-y-3">
+                      {Object.entries(stats?.usageBreakdown || {}).map(([key, value]) => {
+                        const usageSubscriptions = getUsageSubscriptions(key);
+                        const usageRow = (
+                          <div className="flex items-center justify-between border rounded-lg p-3 bg-gray-50">
+                            <div>
+                              <p className="font-medium">{usageLabels[key] || key}</p>
+                              <p className="text-xs text-gray-600">{value} abonnement(s)</p>
+                            </div>
+                            <span className="text-sm font-semibold" style={{ color: "hsl(258, 71%, 65%)" }}>
+                              {stats?.activeSubscriptions ? Math.round((value / stats.activeSubscriptions) * 100) : 0}%
+                            </span>
+                          </div>
+                        );
+
+                        const usageList = (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase text-gray-500">
+                              Abonnements ({usageSubscriptions.length})
+                            </p>
+                            {usageSubscriptions.length === 0 ? (
+                              <p className="text-sm text-gray-600">Aucun abonnement pour cet usage.</p>
+                            ) : (
+                              <ul className="space-y-2">
+                                {usageSubscriptions.map((sub) => (
+                                  <li key={sub.id} className="flex items-center justify-between gap-4 text-sm">
+                                    <span className="font-medium text-gray-900">{sub.name}</span>
+                                    <span className="text-gray-600">
+                                      €{Number(sub.price).toFixed(2)}{getPriceSuffix(sub.frequency)}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        );
+
+                        return (
+                          <div key={key}>
+                            <div className="hidden md:block">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="cursor-help">{usageRow}</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="space-y-2">
+                                    <p className="text-sm font-semibold">{usageLabels[key] || key}</p>
+                                    {usageList}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <button
+                              type="button"
+                              className="md:hidden w-full text-left"
+                              onClick={() => setMobileUsageKey(key)}
+                            >
+                              {usageRow}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </TooltipProvider>
                 </div>
               </div>
 
@@ -277,6 +337,32 @@ export default function StatsPage() {
                     <div>
                       <p className="font-medium text-gray-900">{sub.name}</p>
                       <p className="text-xs text-gray-500 capitalize">{getCategoryLabel(sub.category)}</p>
+                    </div>
+                    <span className="text-gray-600">
+                      €{Number(sub.price).toFixed(2)}{getPriceSuffix(sub.frequency)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={mobileUsageKey !== null} onOpenChange={(open) => !open && setMobileUsageKey(null)}>
+        <DialogContent className="max-w-sm w-[90vw]">
+          <DialogHeader>
+            <DialogTitle>Abonnements · {mobileUsageLabel}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {mobileUsageSubscriptions.length === 0 ? (
+              <p className="text-sm text-gray-600">Aucun abonnement pour cet usage.</p>
+            ) : (
+              <ul className="space-y-3">
+                {mobileUsageSubscriptions.map((sub) => (
+                  <li key={sub.id} className="flex items-center justify-between gap-4 text-sm">
+                    <div>
+                      <p className="font-medium text-gray-900">{sub.name}</p>
+                      <p className="text-xs text-gray-500 capitalize">{usageLabels[sub.usageFrequency] || sub.usageFrequency}</p>
                     </div>
                     <span className="text-gray-600">
                       €{Number(sub.price).toFixed(2)}{getPriceSuffix(sub.frequency)}

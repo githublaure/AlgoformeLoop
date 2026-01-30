@@ -1,0 +1,13 @@
+{
+  "name": "PigeonSub Subscriptions tracker",
+  "short_name": "PigeonSub",
+  "icons": [
+    {
+      "src": "/pigeon2.png",
+      "sizes": "497x504",
+      "type": "image/png"
+    }
+  ],
+  "display": "standalone",
+  "start_url": "/"
+}

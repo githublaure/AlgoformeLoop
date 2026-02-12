@@ -46,8 +46,16 @@ export function MonthlyBudgetChart({ subscriptions, includeProrata }: MonthlyBud
     queryKey: ['/api/settings'],
   });
 
-  const defaultBudget = Number(settings?.budgetCap ?? 100);
-  const monthlyOverrides = settings?.monthlyOverrides ?? {};
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const date = new Date();
+    date.setDate(1);
+    date.setHours(0, 0, 0, 0);
+    date.setMonth(date.getMonth() + i);
+    return {
+      key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+      label: new Intl.DateTimeFormat("fr-FR", { month: "short", year: "2-digit" }).format(date)
+    };
+  });
 
   const monthlyChartData = computeMonthlyStats(
     subscriptions,
@@ -57,17 +65,13 @@ export function MonthlyBudgetChart({ subscriptions, includeProrata }: MonthlyBud
   );
 
   useEffect(() => {
-    const months = Array.from({ length: 12 }, (_, i) => {
-      const date = new Date(start.getFullYear(), start.getMonth() + i, 1);
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    });
-    const drafts = months.reduce<Record<string, string>>((acc, monthKey) => {
-      const budget = monthlyOverrides[monthKey];
-      acc[monthKey] = budget !== null && budget !== undefined ? String(budget) : "";
+    const drafts = months.reduce<Record<string, string>>((acc, { key }) => {
+      const budget = monthlyOverrides[key];
+      acc[key] = budget !== null && budget !== undefined ? String(budget) : "";
       return acc;
     }, {});
     setMonthlyBudgetDrafts(drafts);
-  }, [monthlyOverrides]);
+  }, [monthlyOverrides, months]);
 
   const saveMonthlyBudgets = useMutation({
     mutationFn: async (payload: { monthlyOverrides: Record<string, number> }) => {
@@ -239,15 +243,11 @@ export function MonthlyBudgetChart({ subscriptions, includeProrata }: MonthlyBud
             type="button"
             className="pigeon-button-primary px-4 py-2 text-xs rounded-lg"
             onClick={() => {
-              const months = Array.from({ length: 12 }, (_, i) => {
-                const date = new Date(start.getFullYear(), start.getMonth() + i, 1);
-                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-              });
               const newOverrides: Record<string, number> = {};
-              months.forEach((monthKey) => {
-                const value = monthlyBudgetDrafts[monthKey];
+              months.forEach(({ key }) => {
+                const value = monthlyBudgetDrafts[key];
                 if (value !== "" && value !== undefined) {
-                  newOverrides[monthKey] = Number(value);
+                  newOverrides[key] = Number(value);
                 }
               });
               saveMonthlyBudgets.mutate({ monthlyOverrides: newOverrides });
@@ -258,35 +258,30 @@ export function MonthlyBudgetChart({ subscriptions, includeProrata }: MonthlyBud
           </button>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 12 }, (_, i) => {
-            const date = new Date(start.getFullYear(), start.getMonth() + i, 1);
-            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            const monthLabel = new Intl.DateTimeFormat("fr-FR", { month: "short", year: "2-digit" }).format(date);
-            return (
-              <label key={monthKey} className="flex flex-col gap-1 text-xs text-gray-500">
-                <span className="font-medium text-gray-600">{monthLabel}</span>
-                <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">
-                    €
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={monthlyBudgetDrafts[monthKey] ?? ""}
-                    onChange={(event) =>
-                      setMonthlyBudgetDrafts((prev) => ({
-                        ...prev,
-                        [monthKey]: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-md border border-gray-200 bg-white py-1.5 pl-6 pr-2 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-300"
-                    placeholder="—"
-                  />
-                </div>
-              </label>
-            );
-          })}
+          {months.map(({ key: monthKey, label: monthLabel }) => (
+            <label key={monthKey} className="flex flex-col gap-1 text-xs text-gray-500">
+              <span className="font-medium text-gray-600">{monthLabel}</span>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">
+                  €
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={monthlyBudgetDrafts[monthKey] ?? ""}
+                  onChange={(event) =>
+                    setMonthlyBudgetDrafts((prev) => ({
+                      ...prev,
+                      [monthKey]: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-md border border-gray-200 bg-white py-1.5 pl-6 pr-2 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                  placeholder="—"
+                />
+              </div>
+            </label>
+          ))}
         </div>
       </div>
     </div>

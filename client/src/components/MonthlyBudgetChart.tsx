@@ -46,6 +46,9 @@ export function MonthlyBudgetChart({ subscriptions, includeProrata }: MonthlyBud
     queryKey: ['/api/settings'],
   });
 
+  const defaultBudget = Number(settings?.budgetCap ?? 100);
+  const monthlyOverrides = settings?.monthlyOverrides ?? {};
+
   const months = Array.from({ length: 12 }, (_, i) => {
     const date = new Date();
     date.setDate(1);

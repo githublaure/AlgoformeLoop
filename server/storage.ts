@@ -442,7 +442,7 @@ export class DatabaseStorage implements IStorage {
 
     const [created] = await db
       .insert(userSettings)
-      .values({ userId, budgetCap })
+      .values({ userId, budgetCap, monthlyOverrides: {} })
       .returning();
     return created;
   }

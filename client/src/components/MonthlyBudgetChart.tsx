@@ -60,6 +60,8 @@ export function MonthlyBudgetChart({ subscriptions, includeProrata }: MonthlyBud
     };
   });
 
+  const [monthlyBudgetDrafts, setMonthlyBudgetDrafts] = useState<Record<string, string>>({});
+
   const monthlyChartData = computeMonthlyStats(
     subscriptions,
     defaultBudget,

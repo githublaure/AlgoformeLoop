@@ -42,59 +42,40 @@ export function MonthlyBudgetChart({ subscriptions, includeProrata }: MonthlyBud
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const startMonthKey = (() => {
-    const date = new Date();
-    date.setDate(1);
-    date.setHours(0, 0, 0, 0);
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, "0");
-    return `${year}-${month}`;
-  })();
-
-  const { data: monthlyBudgetsData, refetch: refetchMonthlyBudgets } = useQuery<MonthlyBudgetsResponse>({
-    queryKey: ["/api/settings/budgets", { startMonthKey }],
-    queryFn: async () => {
-      const response = await apiRequest(
-        "GET",
-        `/api/settings/budgets?start=${startMonthKey}&months=12`
-      );
-      return response.json();
-    },
-  });
-
-  const { data: settings } = useQuery<{ budgetCap: number | string }>({
+  const { data: settings } = useQuery({
     queryKey: ['/api/settings'],
   });
 
-  const [monthlyBudgetDrafts, setMonthlyBudgetDrafts] = useState<Record<string, string>>({});
-
   const defaultBudget = Number(settings?.budgetCap ?? 100);
-  const budgetOverrides = monthlyBudgetsData?.monthlyBudgets ?? {};
+  const monthlyOverrides = settings?.monthlyOverrides ?? {};
 
   const monthlyChartData = computeMonthlyStats(
     subscriptions,
     defaultBudget,
-    budgetOverrides,
+    monthlyOverrides,
     includeProrata
   );
 
   useEffect(() => {
-    if (!monthlyBudgetsData) return;
-    const drafts = monthlyBudgetsData.months.reduce<Record<string, string>>((acc, monthKey) => {
-      const budget = monthlyBudgetsData.monthlyBudgets?.[monthKey];
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const date = new Date(start.getFullYear(), start.getMonth() + i, 1);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    });
+    const drafts = months.reduce<Record<string, string>>((acc, monthKey) => {
+      const budget = monthlyOverrides[monthKey];
       acc[monthKey] = budget !== null && budget !== undefined ? String(budget) : "";
       return acc;
     }, {});
     setMonthlyBudgetDrafts(drafts);
-  }, [monthlyBudgetsData]);
+  }, [monthlyOverrides]);
 
   const saveMonthlyBudgets = useMutation({
-    mutationFn: async (payload: { budgets: { month: string; amount: string | null }[] }) => {
-      const response = await apiRequest("PUT", "/api/settings/budgets", payload);
+    mutationFn: async (payload: { monthlyOverrides: Record<string, number> }) => {
+      const response = await apiRequest("PATCH", "/api/settings/monthly-overrides", payload);
       return response.json();
     },
     onSuccess: async () => {
-      await refetchMonthlyBudgets();
+      await queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
       toast({
         title: "Budgets mensuels mis à jour",
         description: "Les budgets par mois ont été enregistrés.",
@@ -243,6 +224,70 @@ export function MonthlyBudgetChart({ subscriptions, includeProrata }: MonthlyBud
             />
           </LineChart>
         </ChartContainer>
+      </div>
+      <div className="mt-6 rounded-lg border border-gray-100 bg-gray-50/60 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-gray-700">Budgets par mois</p>
+            <p className="text-xs text-gray-500">
+              Laissez vide pour utiliser le budget par défaut (
+              {currencyFormatter.format(defaultBudget)}
+              ).
+            </p>
+          </div>
+          <button
+            type="button"
+            className="pigeon-button-primary px-4 py-2 text-xs rounded-lg"
+            onClick={() => {
+              const months = Array.from({ length: 12 }, (_, i) => {
+                const date = new Date(start.getFullYear(), start.getMonth() + i, 1);
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+              });
+              const newOverrides: Record<string, number> = {};
+              months.forEach((monthKey) => {
+                const value = monthlyBudgetDrafts[monthKey];
+                if (value !== "" && value !== undefined) {
+                  newOverrides[monthKey] = Number(value);
+                }
+              });
+              saveMonthlyBudgets.mutate({ monthlyOverrides: newOverrides });
+            }}
+            disabled={saveMonthlyBudgets.isPending}
+          >
+            {saveMonthlyBudgets.isPending ? "Enregistrement..." : "Enregistrer"}
+          </button>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 12 }, (_, i) => {
+            const date = new Date(start.getFullYear(), start.getMonth() + i, 1);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const monthLabel = new Intl.DateTimeFormat("fr-FR", { month: "short", year: "2-digit" }).format(date);
+            return (
+              <label key={monthKey} className="flex flex-col gap-1 text-xs text-gray-500">
+                <span className="font-medium text-gray-600">{monthLabel}</span>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">
+                    €
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={monthlyBudgetDrafts[monthKey] ?? ""}
+                    onChange={(event) =>
+                      setMonthlyBudgetDrafts((prev) => ({
+                        ...prev,
+                        [monthKey]: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-md border border-gray-200 bg-white py-1.5 pl-6 pr-2 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    placeholder="—"
+                  />
+                </div>
+              </label>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

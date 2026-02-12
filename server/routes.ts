@@ -712,6 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fallbackBudget = parseFloat(process.env.SUBSCRIPTION_BUDGET || "100");
       res.json({
         budgetCap: settings?.budgetCap ?? fallbackBudget,
+        monthlyOverrides: settings?.monthlyOverrides ?? {},
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch settings" });
@@ -730,6 +731,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ budgetCap: saved.budgetCap });
     } catch (error) {
       res.status(500).json({ message: "Failed to update budget cap" });
+    }
+  });
+
+  app.patch("/api/settings/monthly-overrides", authenticateToken, async (req: any, res) => {
+    try {
+      await ensureSchema();
+      const overrides = req.body?.monthlyOverrides;
+      if (!overrides || typeof overrides !== 'object') {
+        return res.status(400).json({ message: "Invalid monthlyOverrides" });
+      }
+      const saved = await storage.setMonthlyOverrides(req.user.id, overrides);
+      res.json({ monthlyOverrides: saved.monthlyOverrides });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update monthly overrides" });
     }
   });
 

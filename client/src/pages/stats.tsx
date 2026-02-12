@@ -2,6 +2,7 @@ import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { StatsOverview } from "@/components/stats-overview";
 import { LoginGuard } from "@/components/login-guard";
+import { MonthlyBudgetChart } from "@/components/MonthlyBudgetChart";
 import { useQuery } from "@tanstack/react-query";
 import type { Subscription } from "@shared/schema";
 import { getPriceSuffix } from "@shared/subscription-utils";
@@ -107,6 +108,8 @@ export default function StatsPage() {
               </div>
 
               <StatsOverview />
+
+              <MonthlyBudgetChart subscriptions={subscriptions} includeProrata={includeLifetime} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="pigeon-card p-6">

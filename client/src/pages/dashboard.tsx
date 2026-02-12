@@ -7,7 +7,6 @@ import { SubscriptionCard } from "../components/subscription-card";
 import { AddSubscriptionModal } from "../components/add-subscription-modal";
 import { OfferReminders } from "../components/offer-reminders";
 import { LoginGuard } from "../components/login-guard";
-import { MonthlyBudgetChart } from "../components/MonthlyBudgetChart";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Subscription } from "@shared/schema";
@@ -22,8 +21,6 @@ export default function Dashboard() {
   const [sortMode, setSortMode] = useState<"default" | "category-color" | "price-asc" | "price-desc">("default");
 
   const [includeArchived, setIncludeArchived] = useState<boolean>(false);
-  const [includeProrata, setIncludeProrata] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("statistics");
   const filterSelectClass =
     "appearance-none rounded-md border border-gray-200 bg-white px-3 py-2 pr-10 text-sm text-gray-700 shadow-sm transition focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-300";
   const filterSelectStyle = {
@@ -114,63 +111,18 @@ export default function Dashboard() {
           </div>
 
           <div className="lg:col-span-3">
-            <div className="flex border-b border-gray-200 mb-6">
-              <button
-                onClick={() => setActiveTab("statistics")}
-                className={`px-4 py-2 text-sm font-medium ${
-                  activeTab === "statistics"
-                    ? "border-b-2 border-purple-500 text-purple-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Statistiques
-              </button>
-              <button
-                onClick={() => setActiveTab("subscriptions")}
-                className={`px-4 py-2 text-sm font-medium ${
-                  activeTab === "subscriptions"
-                    ? "border-b-2 border-purple-500 text-purple-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Abonnements
-              </button>
+            <div id="statistiques">
+              <StatsOverview />
             </div>
 
-            {activeTab === "statistics" && (
-              <>
-                <StatsOverview />
-                <div className="pigeon-card p-6 mb-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-lg font-semibold">Paramètres du graphique</h2>
-                      <p className="text-sm text-gray-600">Activez le prorata pour répartir les coûts annuels mensuellement.</p>
-                    </div>
-                    <label className="flex items-center gap-2">
-                      <span className="text-sm">Prorata</span>
-                      <input
-                        type="checkbox"
-                        checked={includeProrata}
-                        onChange={(e) => setIncludeProrata(e.target.checked)}
-                        className="rounded"
-                      />
-                    </label>
-                  </div>
-                </div>
-                <MonthlyBudgetChart subscriptions={subscriptions} includeProrata={includeProrata} />
-              </>
-            )}
+            <UpcomingRenewals onEdit={(selected) => {
+              setEditingSubscription(selected);
+              setIsAddModalOpen(true);
+            }} />
 
-            {activeTab === "subscriptions" && (
-              <>
-                <UpcomingRenewals onEdit={(selected) => {
-                  setEditingSubscription(selected);
-                  setIsAddModalOpen(true);
-                }} />
+            <OfferReminders />
 
-                <OfferReminders />
-
-                <div id="essais-gratuits" className="pigeon-card mb-6">
+            <div id="essais-gratuits" className="pigeon-card mb-6">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -431,7 +383,6 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
-            </> )}
           </div>
         </div>
       </div>

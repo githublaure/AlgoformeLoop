@@ -66,6 +66,7 @@ async function ensureSchema() {
       "unsubscribe_proof_image" text,
       "rating" integer,
       "is_suspect" boolean DEFAULT false,
+      "is_flagged" boolean DEFAULT false,
       "use_safety_date" boolean DEFAULT false,
       "is_active" boolean DEFAULT true,
       "is_trial" boolean DEFAULT false,
@@ -156,6 +157,12 @@ async function ensureSchema() {
         WHERE table_name = 'subscriptions' AND column_name = 'is_suspect'
       ) THEN
         ALTER TABLE "subscriptions" ADD COLUMN "is_suspect" boolean DEFAULT false;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'is_flagged'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "is_flagged" boolean DEFAULT false;
       END IF;
       IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
@@ -588,6 +595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
         isSuspect: normalizeBoolean(req.body.isSuspect, false),
+        isFlagged: normalizeBoolean(req.body.isFlagged, false),
         useSafetyDate: normalizeBoolean(req.body.useSafetyDate, false),
         purchaseProofImage: req.body.purchaseProofImage ?? null,
         unsubscribeProofImage: req.body.unsubscribeProofImage ?? null,
@@ -652,6 +660,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
         isSuspect: normalizeBoolean(req.body.isSuspect),
+        isFlagged: normalizeBoolean(req.body.isFlagged),
         useSafetyDate: normalizeBoolean(req.body.useSafetyDate),
         purchaseProofImage: req.body.purchaseProofImage,
         unsubscribeProofImage: req.body.unsubscribeProofImage,

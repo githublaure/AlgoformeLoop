@@ -36,6 +36,7 @@ export const subscriptions = pgTable("subscriptions", {
   unsubscribeProofImage: text("unsubscribe_proof_image"),
   rating: integer("rating"),
   isSuspect: boolean("is_suspect").default(false),
+  isFlagged: boolean("is_flagged").default(false),
   useSafetyDate: boolean("use_safety_date").default(false),
   isActive: boolean("is_active").default(true),
   isTrial: boolean("is_trial").default(false),
@@ -77,6 +78,7 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions)
     purchaseProofImage: true,
     unsubscribeProofImage: true,
     useSafetyDate: true,
+    isFlagged: true,
   })
   .extend({
     rating: z.number().nullable().optional(),
@@ -87,6 +89,7 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions)
     purchaseProofImage: z.string().nullable().optional(),
     unsubscribeProofImage: z.string().nullable().optional(),
     useSafetyDate: z.boolean().optional(),
+    isFlagged: z.boolean().optional(),
   });
 
 export const insertVoiceReminderSchema = createInsertSchema(voiceReminders).omit({

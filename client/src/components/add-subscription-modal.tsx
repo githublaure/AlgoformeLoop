@@ -56,6 +56,7 @@ const formSchema = insertSubscriptionSchema.extend({
   purchaseProofImages: z.array(z.string()).default([]),
   unsubscribeProofImages: z.array(z.string()).default([]),
   isSuspect: z.coerce.boolean().default(false),
+  isFlagged: z.coerce.boolean().default(false),
   useSafetyDate: z.coerce.boolean().default(false),
   isTrial: z.coerce.boolean().default(false),
   renewalUnknown: z.coerce.boolean().default(false),
@@ -129,6 +130,7 @@ const defaultValues: FormData = {
   isActive: true,
   isTrial: false,
   isSuspect: false,
+  isFlagged: false,
   rating: null,
   note: "",
   purchaseDate: "",
@@ -319,6 +321,7 @@ export function AddSubscriptionModal({
         purchaseProofImages: parseStoredImages(subscription.purchaseProofImage),
         unsubscribeProofImages: parseStoredImages(subscription.unsubscribeProofImage),
         isSuspect: subscription.isSuspect ?? false,
+        isFlagged: subscription.isFlagged ?? false,
         useSafetyDate: subscription.useSafetyDate ?? false,
         note: subscription.note ?? "",
         categoryColor: subscription.categoryColor ?? subscription.bgColor ?? DEFAULT_BG_COLOR,
@@ -1006,6 +1009,22 @@ export function AddSubscriptionModal({
                     <div>
                       <FormLabel>Marquer comme suspect</FormLabel>
                       <p className="text-xs text-gray-600">Utile pour les abonnements douteux ou à surveiller.</p>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="isFlagged"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <FormLabel>Marquer avec alerte</FormLabel>
+                      <p className="text-xs text-gray-600">Ajoute un drapeau d'alerte pour revue rapide.</p>
                     </div>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />

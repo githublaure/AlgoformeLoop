@@ -7,7 +7,7 @@ import type { Subscription } from "@shared/schema";
 import { getFrequencySuffix, getPriceSuffix, isPigeoned } from "@shared/subscription-utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarPlus, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, CalendarPlus, Pencil, Trash2 } from "lucide-react";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
@@ -19,6 +19,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
   const queryClient = useQueryClient();
   const pigeoned = isPigeoned(subscription);
   const isSuspect = subscription.isSuspect ?? false;
+  const isFlagged = subscription.isFlagged ?? false;
 
   const deleteSubscription = useMutation({
     mutationFn: async (id: number) => {
@@ -62,6 +63,17 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
         variant: "destructive",
       });
     }
+  });
+
+  const toggleFlagged = useMutation({
+    mutationFn: async () => {
+      await apiRequest("PUT", `/api/subscriptions/${subscription.id}`, { isFlagged: !isFlagged });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions/upcoming/7'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+    },
   });
 
   const generateReview = useMutation({
@@ -227,7 +239,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
           <div>
             <div className="flex items-center">
               <h3 className="font-medium">{subscription.name}</h3>
-              {(isSuspect || pigeoned) && (
+              {(isSuspect || pigeoned || isFlagged) && (
                 <div className="ml-2 flex items-center space-x-1">
                   {isSuspect && (
                     <img
@@ -247,11 +259,14 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
                       className="w-6 h-6"
                     />
                   )}
+                  {isFlagged && (
+                    <AlertTriangle className="w-5 h-5 text-red-500" aria-label="abonnement-flaggé" />
+                  )}
                 </div>
               )}
             </div>
             <p className="text-sm text-gray-600">{getCategoryLabel(subscription.category)}</p>
-            {(subscription.isTrial || isSuspect || pigeoned || !subscription.isActive) && (
+            {(subscription.isTrial || isSuspect || pigeoned || isFlagged || !subscription.isActive) && (
               <div className="mt-1 flex flex-wrap gap-2 text-xs">
                 {subscription.isTrial && (
                   <span className="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700">
@@ -266,6 +281,11 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
                 {pigeoned && (
                   <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-700">
                     Pigeonné (≤ 2★)
+                  </span>
+                )}
+                {isFlagged && (
+                  <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
+                    Flaggé
                   </span>
                 )}
                 {!subscription.isActive && (
@@ -328,6 +348,19 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
             aria-label={`Modifier ${subscription.name}`}
           >
             <Pencil className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <button
+            onClick={() => toggleFlagged.mutate()}
+            disabled={toggleFlagged.isPending}
+            className="hover:opacity-70 transition-opacity disabled:opacity-50"
+            style={{ color: isFlagged ? 'hsl(10, 72%, 61%)' : 'hsl(258, 71%, 65%)' }}
+            aria-label={`Flagger ${subscription.name}`}
+          >
+            {toggleFlagged.isPending ? (
+              <i className="fas fa-spinner fa-spin"></i>
+            ) : (
+              <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+            )}
           </button>
           <button
             onClick={() => deleteSubscription.mutate(subscription.id)}

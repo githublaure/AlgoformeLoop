@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [pigeonFilter, setPigeonFilter] = useState<string>("all");
   const [upcomingFilter, setUpcomingFilter] = useState<string>("all");
+  const [sortMode, setSortMode] = useState<"default" | "category-color" | "price-asc" | "price-desc">("default");
 
   const [includeArchived, setIncludeArchived] = useState<boolean>(false);
   const filterSelectClass =
@@ -36,6 +37,7 @@ export default function Dashboard() {
 
   const trials = subscriptions.filter((subscription) => subscription.isTrial);
   const suspects = subscriptions.filter((subscription) => subscription.isSuspect);
+  const flagged = subscriptions.filter((subscription) => subscription.isFlagged);
 
   const filteredSubscriptions = subscriptions.filter((subscription) => {
     if (!includeArchived && !subscription.isActive) return false;
@@ -50,6 +52,7 @@ export default function Dashboard() {
     if (pigeonFilter === 'pigeon' && !isPigeoned(subscription)) return false;
     if (pigeonFilter === 'not-pigeon' && isPigeoned(subscription)) return false;
     if (pigeonFilter === 'scam' && !subscription.isSuspect) return false;
+    if (pigeonFilter === 'flagged' && !subscription.isFlagged) return false;
 
     // Upcoming filter
     if (upcomingFilter !== 'all') {
@@ -71,6 +74,21 @@ export default function Dashboard() {
     }
 
     return true;
+  });
+
+
+
+  const sortedSubscriptions = [...filteredSubscriptions].sort((a, b) => {
+    if (sortMode === "category-color") {
+      return (a.categoryColor || a.bgColor || "").localeCompare(b.categoryColor || b.bgColor || "");
+    }
+    if (sortMode === "price-asc") {
+      return Number(a.price) - Number(b.price);
+    }
+    if (sortMode === "price-desc") {
+      return Number(b.price) - Number(a.price);
+    }
+    return 0;
   });
 
   const handleCloseModal = () => {
@@ -192,6 +210,50 @@ export default function Dashboard() {
               </div>
             </div>
 
+            <div id="flagged" className="pigeon-card mb-6">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <i className="fas fa-triangle-exclamation" style={{ color: 'hsl(10, 72%, 61%)' }}></i>
+                    Abonnements flaggés
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setEditingSubscription(null);
+                      setIsAddModalOpen(true);
+                    }}
+                    className="pigeon-button-primary px-4 py-2 rounded-lg"
+                  >
+                    <i className="fas fa-plus mr-2"></i>
+                    Ajouter
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <i className="fas fa-spinner fa-spin text-2xl" style={{ color: 'hsl(258, 71%, 65%)' }}></i>
+                    <p className="mt-2 text-gray-600">Chargement des abonnements flaggés...</p>
+                  </div>
+                ) : flagged.length === 0 ? (
+                  <p className="text-gray-600 text-center">Aucun abonnement flaggé</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {flagged.map((subscription) => (
+                      <SubscriptionCard
+                        key={subscription.id}
+                        subscription={subscription}
+                        onEdit={(selected) => {
+                          setEditingSubscription(selected);
+                          setIsAddModalOpen(true);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* All Subscriptions */}
             <div className="pigeon-card">
               <div className="p-6 border-b border-gray-200">
@@ -224,6 +286,7 @@ export default function Dashboard() {
                       <option value="pigeon">Pigeonné</option>
                       <option value="not-pigeon">Non pigeonné</option>
                       <option value="scam">Arnaques</option>
+                      <option value="flagged">Flaggés</option>
                     </select>
 
                     <label className="text-sm text-gray-600">Renouvellement</label>
@@ -240,6 +303,26 @@ export default function Dashboard() {
                       <option value="unknown">Je ne sais pas</option>
                       <option value="lifetime">Accès à vie</option>
                     </select>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSortMode((prev) => (prev === "category-color" ? "default" : "category-color"))}
+                        className={`rounded-md border px-3 py-2 text-sm ${sortMode === "category-color" ? "border-purple-400 bg-purple-50 text-purple-700" : "border-gray-200 text-gray-600"}`}
+                        title="Trier par couleur de catégorie"
+                      >
+                        <i className="fas fa-palette"></i>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSortMode((prev) => (prev === "price-asc" ? "price-desc" : "price-asc"))}
+                        className={`rounded-md border px-3 py-2 text-sm ${sortMode === "price-asc" || sortMode === "price-desc" ? "border-purple-400 bg-purple-50 text-purple-700" : "border-gray-200 text-gray-600"}`}
+                        title="Trier par prix"
+                      >
+                        <i className="fas fa-dollar-sign"></i>
+                        <span className="ml-1 text-xs">{sortMode === "price-desc" ? "↓" : "↑"}</span>
+                      </button>
+                    </div>
 
                     <label className="flex items-center gap-2 text-sm text-gray-600">
                       <input
@@ -286,7 +369,7 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {filteredSubscriptions.map((subscription) => (
+                    {sortedSubscriptions.map((subscription) => (
                       <SubscriptionCard
                         key={subscription.id}
                         subscription={subscription}

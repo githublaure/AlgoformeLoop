@@ -733,6 +733,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/settings/budgets", authenticateToken, async (req: any, res) => {
+    try {
+      await ensureSchema();
+      const settings = await storage.getUserSettings(req.user.id);
+      const fallbackBudget = parseFloat(process.env.SUBSCRIPTION_BUDGET || "100");
+      const defaultBudget = Number(settings?.budgetCap ?? fallbackBudget);
+      const startMonth = req.query.start as string;
+      const monthsCount = parseInt(req.query.months as string) || 12;
+      if (!startMonth) {
+        return res.status(400).json({ message: "Missing start month" });
+      }
+      const startDate = new Date(`${startMonth}-01T00:00:00`);
+      if (Number.isNaN(startDate.getTime())) {
+        return res.status(400).json({ message: "Invalid start month" });
+      }
+      const months = Array.from({ length: monthsCount }, (_, i) => {
+        const date = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      });
+      const monthlyBudgets = (settings?.monthlyOverrides as Record<string, number>) ?? {};
+      res.json({
+        defaultBudget,
+        months,
+        monthlyBudgets,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch monthly budgets" });
+    }
+  });
+
+  app.put("/api/settings/budgets", authenticateToken, async (req: any, res) => {
+    try {
+      await ensureSchema();
+      const budgets = req.body?.budgets;
+      if (!Array.isArray(budgets)) {
+        return res.status(400).json({ message: "Budgets must be an array" });
+      }
+      const overrides: Record<string, number> = {};
+      for (const item of budgets) {
+        const { month, amount } = item;
+        if (typeof month !== 'string' || !/^\d{4}-\d{2}$/.test(month)) {
+          return res.status(400).json({ message: "Invalid month format" });
+        }
+        if (amount === null || amount === undefined) {
+          // keep as is, or remove
+        } else {
+          const parsed = Number(amount);
+          if (!Number.isFinite(parsed) || parsed < 0) {
+            return res.status(400).json({ message: "Invalid amount" });
+          }
+          overrides[month] = parsed;
+        }
+      }
+      const saved = await storage.setMonthlyOverrides(req.user.id, overrides);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update monthly budgets" });
+    }
+  });
+
   // Voice reminder routes
   app.post("/api/voice/generate", async (req, res) => {
     try {

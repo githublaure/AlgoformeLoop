@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { createSubscriptionCalendarEvent, downloadCalendarEvent } from "@/lib/calendar";
 import { getFrequencySuffix, getPriceSuffix, isPigeoned } from "@shared/subscription-utils";
+import { Switch } from "@/components/ui/switch";
 
 interface UpcomingRenewalsProps {
   onEdit?: (subscription: Subscription) => void;
@@ -19,12 +20,16 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
     queryKey: ['/api/subscriptions/upcoming/7'],
   });
 
+  const getReminderDate = (subscription: Subscription) =>
+    subscription.useSafetyDate && subscription.safetyDate ? subscription.safetyDate : subscription.nextRenewal;
+
   const generateRenewalAlert = useMutation({
     mutationFn: async ({ subscription }: { subscription: Subscription }) => {
-      if (!subscription.nextRenewal) {
-        throw new Error("Date de renouvellement inconnue");
+      const reminderDate = getReminderDate(subscription);
+      if (!reminderDate) {
+        throw new Error("Date de rappel inconnue");
       }
-      const renewalDate = format(new Date(subscription.nextRenewal), "EEEE d MMMM", { locale: fr });
+      const renewalDate = format(new Date(reminderDate), "EEEE d MMMM", { locale: fr });
       const text = `Attention ! ${subscription.name} se renouvelle ${renewalDate} pour ${subscription.price} euros ${getFrequencySuffix(subscription.frequency)}.`;
       
       const response = await apiRequest("POST", "/api/voice/generate", {
@@ -88,16 +93,17 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
   const iconClass = 'fas fa-dove';
 
   const handleAddToCalendar = (subscription: Subscription) => {
-    if (!subscription.nextRenewal) {
+    const reminderDate = getReminderDate(subscription);
+    if (!reminderDate) {
       toast({
         title: "Date inconnue",
-        description: "Ajoutez une date de renouvellement pour exporter.",
+        description: "Ajoutez une date de renouvellement ou de sûreté pour exporter.",
         variant: "destructive",
       });
       return;
     }
     try {
-      const icsContent = createSubscriptionCalendarEvent(subscription);
+      const icsContent = createSubscriptionCalendarEvent({ ...subscription, nextRenewal: reminderDate });
       downloadCalendarEvent(`renouvellement-${subscription.name}.ics`, icsContent);
       toast({
         title: "Rappel ajouté au calendrier",
@@ -135,6 +141,18 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
     return { backgroundColor, borderColor, urgencyBadge };
   };
 
+
+  const updateReminderMode = useMutation({
+    mutationFn: async ({ id, useSafetyDate }: { id: number; useSafetyDate: boolean }) => {
+      await apiRequest("PUT", `/api/subscriptions/${id}`, { useSafetyDate });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions/upcoming/7'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+    },
+  });
+
   const deleteSubscription = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/subscriptions/${id}`);
@@ -157,7 +175,8 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
     }
   });
 
-  const formatRenewalDate = (date: Date) => {
+  const formatRenewalDate = (date: Date | null) => {
+    if (!date) return "Date inconnue";
     const now = new Date();
     const renewal = new Date(date);
     const diffTime = renewal.getTime() - now.getTime();
@@ -202,10 +221,9 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
         ) : (
           <div className="space-y-4">
             {renewals.map((subscription) => {
-              if (!subscription.nextRenewal) {
-                return null;
-              }
-              const daysUntil = Math.ceil((new Date(subscription.nextRenewal).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+              const reminderDate = getReminderDate(subscription);
+              if (!reminderDate) return null;
+              const daysUntil = Math.ceil((new Date(reminderDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
               const { backgroundColor, borderColor, urgencyBadge } = getRenewalStyles(subscription, daysUntil);
               const flaggedSuspect = subscription.isSuspect ?? false;
               const ratedPigeoned = isPigeoned(subscription);
@@ -250,7 +268,7 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
                         )}
                       </div>
                       <p className="text-sm text-gray-600">
-                        {formatRenewalDate(subscription.nextRenewal)} • €{subscription.price}{getPriceSuffix(subscription.frequency)}
+                        {formatRenewalDate(reminderDate)} • €{subscription.price}{getPriceSuffix(subscription.frequency)}
                       </p>
                       <div className="mt-1 flex flex-wrap gap-2 text-xs items-center">
                         <span className={`inline-flex items-center rounded-full px-3 py-1 ${urgencyBadge.className}`}>
@@ -261,6 +279,11 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
                         )}
                         {ratedPigeoned && (
                           <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-700">Pigeonné</span>
+                        )}
+                        {subscription.useSafetyDate && subscription.safetyDate && (
+                          <span className="rounded-full bg-blue-100 px-3 py-1 text-blue-700">
+                            Rappel sur date de sûreté
+                          </span>
                         )}
                         {subscription.isTrial && (
                           <span className="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700">
@@ -274,6 +297,16 @@ export function UpcomingRenewals({ onEdit }: UpcomingRenewalsProps) {
                     <span className={getUsageBadgeClass(subscription.usageFrequency)}>
                       {getUsageLabel(subscription.usageFrequency)}
                     </span>
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <span>Date de sûreté</span>
+                      <Switch
+                        checked={Boolean(subscription.useSafetyDate)}
+                        disabled={!subscription.safetyDate || updateReminderMode.isPending}
+                        onCheckedChange={(checked) =>
+                          updateReminderMode.mutate({ id: subscription.id, useSafetyDate: checked })
+                        }
+                      />
+                    </div>
                     <button
                       onClick={() => handleAddToCalendar(subscription)}
                       className="hover:opacity-70 transition-opacity"

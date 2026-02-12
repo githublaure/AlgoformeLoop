@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import type { StatsResponse } from "@/types/stats";
+import type { Subscription } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 const INCLUDE_LIFETIME_STORAGE_KEY = "pigeon-include-lifetime";
 
@@ -34,6 +36,9 @@ export function StatsOverview() {
   });
   const { data: settings } = useQuery<{ budgetCap: number | string }>({
     queryKey: ['/api/settings'],
+  });
+  const { data: subscriptions = [] } = useQuery<Subscription[]>({
+    queryKey: ['/api/subscriptions'],
   });
 
   const [budgetInput, setBudgetInput] = useState("");
@@ -82,6 +87,44 @@ export function StatsOverview() {
       });
     },
   });
+
+
+  const getCardSubscriptions = (card: "cost" | "active" | "trial" | "suspect") => {
+    if (card === "trial") return subscriptions.filter((sub) => sub.isTrial);
+    if (card === "suspect") return subscriptions.filter((sub) => sub.isSuspect);
+    if (card === "active") return subscriptions.filter((sub) => sub.isActive);
+    return subscriptions.filter((sub) => sub.isActive);
+  };
+
+  const renderPigeonHover = (card: "cost" | "active" | "trial" | "suspect") => {
+    const items = getCardSubscriptions(card);
+    return (
+      <HoverCard>
+        <HoverCardTrigger asChild>
+          <img
+            src="/pigeon1.png"
+            alt="Voir les abonnements correspondants"
+            className="absolute right-6 top-6 w-12 h-12 object-contain opacity-70 grayscale brightness-0 cursor-pointer"
+          />
+        </HoverCardTrigger>
+        <HoverCardContent className="w-72">
+          <p className="text-sm font-semibold mb-2">Abonnements correspondants</p>
+          {items.length === 0 ? (
+            <p className="text-xs text-gray-500">Aucun abonnement pour cet indicateur.</p>
+          ) : (
+            <ul className="text-xs space-y-1 max-h-56 overflow-y-auto">
+              {items.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-2 border-b pb-1">
+                  <span className="truncate">{item.name}</span>
+                  <span className="text-gray-500">€{item.price}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </HoverCardContent>
+      </HoverCard>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -141,12 +184,7 @@ export function StatsOverview() {
               </div>
             </div>
           </div>
-          <img
-            src="/pigeon1.png"
-            alt=""
-            className="absolute right-6 top-6 w-12 h-12 object-contain opacity-70 grayscale brightness-0"
-            aria-hidden="true"
-          />
+          {renderPigeonHover("cost")}
         </div>
       </div>
 
@@ -159,12 +197,7 @@ export function StatsOverview() {
             </p>
             <p className="text-xs text-gray-600 mt-1">{stats?.upcomingRenewals || 0} renouvellements à venir</p>
           </div>
-          <img
-            src="/pigeon1.png"
-            alt=""
-            className="absolute right-6 top-6 w-12 h-12 object-contain opacity-70 grayscale brightness-0"
-            aria-hidden="true"
-          />
+          {renderPigeonHover("active")}
         </div>
       </div>
 
@@ -177,12 +210,7 @@ export function StatsOverview() {
             </p>
             <p className="text-xs text-gray-600 mt-1">{stats?.trialsEnding || 0} finissent sous 7 jours</p>
           </div>
-          <img
-            src="/pigeon1.png"
-            alt=""
-            className="absolute right-6 top-6 w-12 h-12 object-contain opacity-70 grayscale brightness-0"
-            aria-hidden="true"
-          />
+          {renderPigeonHover("trial")}
         </div>
       </div>
 
@@ -196,12 +224,7 @@ export function StatsOverview() {
             <p className="text-xs text-gray-600 mt-1">Perte estimée (peu utilisé): €{stats?.wastedEstimate || '0.00'}</p>
             <p className="text-xs text-gray-600">{stats?.suspectCount || 0} abonnements suspects</p>
           </div>
-          <img
-            src="/pigeon1.png"
-            alt=""
-            className="absolute right-6 top-6 w-12 h-12 object-contain opacity-70 grayscale brightness-0"
-            aria-hidden="true"
-          />
+          {renderPigeonHover("suspect")}
         </div>
       </div>
     </div>

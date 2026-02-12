@@ -1,5 +1,5 @@
 import { subscriptions, userSettings, voiceReminders, type Subscription, type InsertSubscription, type VoiceReminder, type InsertVoiceReminder, type UserSettings } from "@shared/schema";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 // Note: avoid importing `db` at module import time so tests that only
 // exercise `MemStorage` don't require DATABASE_URL to be set.
 
@@ -58,11 +58,15 @@ export class MemStorage implements IStorage {
         categoryColor: "#a855f7",
         usageFrequency: "very_used",
         nextRenewal: new Date(Date.now() + 24 * 60 * 60 * 1000), // tomorrow
+        safetyDate: null,
         iconClass: "fas fa-dove",
         bgColor: "#a855f7",
         note: "A partager avec la famille",
+        purchaseProofImage: null,
+        unsubscribeProofImage: null,
         rating: 5,
         isSuspect: false,
+        useSafetyDate: false,
         isActive: true,
         isTrial: false,
         trialEndsAt: null,
@@ -78,11 +82,15 @@ export class MemStorage implements IStorage {
         categoryColor: "#22c55e",
         usageFrequency: "very_used",
         nextRenewal: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days
+        safetyDate: null,
         iconClass: "fas fa-dove",
         bgColor: "#22c55e",
         note: "Indispensable au quotidien",
+        purchaseProofImage: null,
+        unsubscribeProofImage: null,
         rating: 4,
         isSuspect: false,
+        useSafetyDate: false,
         isActive: true,
         isTrial: false,
         trialEndsAt: null,
@@ -98,11 +106,15 @@ export class MemStorage implements IStorage {
         categoryColor: "#3b82f6",
         usageFrequency: "rarely_used",
         nextRenewal: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
+        safetyDate: null,
         iconClass: "fas fa-dove",
         bgColor: "#3b82f6",
         note: "A surveiller, peu utilisé",
+        purchaseProofImage: null,
+        unsubscribeProofImage: null,
         rating: 2,
         isSuspect: true,
+        useSafetyDate: false,
         isActive: true,
         isTrial: false,
         trialEndsAt: null,
@@ -118,11 +130,15 @@ export class MemStorage implements IStorage {
         categoryColor: "#f97316",
         usageFrequency: "very_used",
         nextRenewal: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days
+        safetyDate: null,
         iconClass: "fas fa-dove",
         bgColor: "#f97316",
         note: "Essai en cours sur un nouveau pack",
+        purchaseProofImage: null,
+        unsubscribeProofImage: null,
         rating: 3,
         isSuspect: false,
+        useSafetyDate: false,
         isActive: true,
         isTrial: true,
         trialEndsAt: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000),
@@ -160,14 +176,18 @@ export class MemStorage implements IStorage {
       id,
       userId: insertSubscription.userId ?? null,
       note: insertSubscription.note ?? null,
+      purchaseProofImage: insertSubscription.purchaseProofImage ?? null,
+      unsubscribeProofImage: insertSubscription.unsubscribeProofImage ?? null,
       categoryColor: insertSubscription.categoryColor ?? null,
       iconClass: insertSubscription.iconClass ?? null,
       bgColor: insertSubscription.bgColor ?? null,
       rating: insertSubscription.rating ?? null,
       nextRenewal: insertSubscription.nextRenewal ?? null,
+      safetyDate: insertSubscription.safetyDate ?? null,
       trialEndsAt: insertSubscription.trialEndsAt ?? null,
       purchaseDate: insertSubscription.purchaseDate ?? null,
       isSuspect: insertSubscription.isSuspect ?? false,
+      useSafetyDate: insertSubscription.useSafetyDate ?? false,
       isTrial: insertSubscription.isTrial ?? false,
       isActive: insertSubscription.isActive ?? true,
       createdAt: new Date()
@@ -188,7 +208,10 @@ export class MemStorage implements IStorage {
       ...existing,
       ...updates,
       nextRenewal: updates.nextRenewal ?? existing.nextRenewal ?? null,
+      safetyDate: updates.safetyDate ?? existing.safetyDate ?? null,
       note: updates.note ?? existing.note ?? null,
+      purchaseProofImage: updates.purchaseProofImage ?? existing.purchaseProofImage ?? null,
+      unsubscribeProofImage: updates.unsubscribeProofImage ?? existing.unsubscribeProofImage ?? null,
       rating: updates.rating !== undefined ? updates.rating : existing.rating ?? null,
       categoryColor: updates.categoryColor ?? existing.categoryColor ?? null,
       iconClass: updates.iconClass ?? existing.iconClass ?? null,
@@ -196,6 +219,7 @@ export class MemStorage implements IStorage {
       trialEndsAt: updates.trialEndsAt ?? existing.trialEndsAt ?? null,
       purchaseDate: updates.purchaseDate ?? existing.purchaseDate ?? null,
       isSuspect: updates.isSuspect ?? existing.isSuspect ?? false,
+      useSafetyDate: updates.useSafetyDate ?? existing.useSafetyDate ?? false,
       isTrial: updates.isTrial ?? existing.isTrial ?? false,
       isActive: updates.isActive ?? existing.isActive ?? true,
     };
@@ -217,14 +241,21 @@ export class MemStorage implements IStorage {
     cutoffDate.setHours(23, 59, 59, 999);
     cutoffDate.setDate(cutoffDate.getDate() + days);
     return Array.from(this.subscriptions.values())
-      .filter(sub =>
-        sub.isActive &&
-        sub.userId === userId &&
-        sub.nextRenewal &&
-        sub.nextRenewal >= now &&
-        sub.nextRenewal <= cutoffDate
-      )
-      .sort((a, b) => a.nextRenewal!.getTime() - b.nextRenewal!.getTime());
+      .filter(sub => {
+        const reminderDate = sub.useSafetyDate ? sub.safetyDate : sub.nextRenewal;
+        return (
+          sub.isActive &&
+          sub.userId === userId &&
+          Boolean(reminderDate) &&
+          reminderDate! >= now &&
+          reminderDate! <= cutoffDate
+        );
+      })
+      .sort((a, b) => {
+        const aDate = (a.useSafetyDate ? a.safetyDate : a.nextRenewal)!;
+        const bDate = (b.useSafetyDate ? b.safetyDate : b.nextRenewal)!;
+        return aDate.getTime() - bDate.getTime();
+      });
   }
 
   async getUserSettings(userId: number): Promise<UserSettings | undefined> {
@@ -341,18 +372,26 @@ export class DatabaseStorage implements IStorage {
     endDate.setHours(23, 59, 59, 999);
     endDate.setDate(endDate.getDate() + days);
 
-    return await db
+    const records = await db
       .select()
       .from(subscriptions)
       .where(
         and(
           eq(subscriptions.isActive, true),
           eq(subscriptions.userId, userId),
-          gte(subscriptions.nextRenewal, startDate),
-          lte(subscriptions.nextRenewal, endDate),
         )
-      )
-      .orderBy(subscriptions.nextRenewal);
+      );
+
+    return records
+      .filter((sub) => {
+        const reminderDate = sub.useSafetyDate ? sub.safetyDate : sub.nextRenewal;
+        return Boolean(reminderDate && reminderDate >= startDate && reminderDate <= endDate);
+      })
+      .sort((a, b) => {
+        const aDate = (a.useSafetyDate ? a.safetyDate : a.nextRenewal)!;
+        const bDate = (b.useSafetyDate ? b.safetyDate : b.nextRenewal)!;
+        return aDate.getTime() - bDate.getTime();
+      });
   }
 
   async getUserSettings(userId: number): Promise<UserSettings | undefined> {

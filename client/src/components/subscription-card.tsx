@@ -334,6 +334,25 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
           <span className="font-medium">Note :</span> {subscription.note}
         </div>
       )}
+      {(subscription.purchaseProofImage || subscription.unsubscribeProofImage) && (
+        <div className="mt-3 rounded-lg bg-gray-50 p-3">
+          <p className="text-xs font-medium text-gray-700 mb-2">Pièces justificatives</p>
+          <div className="flex gap-3">
+            {subscription.purchaseProofImage && (
+              <a href={subscription.purchaseProofImage} target="_blank" rel="noreferrer" className="text-xs">
+                <img src={subscription.purchaseProofImage} alt="Preuve d'achat" className="h-16 w-16 rounded border object-cover" />
+                <span className="block mt-1 text-gray-600">Achat</span>
+              </a>
+            )}
+            {subscription.unsubscribeProofImage && (
+              <a href={subscription.unsubscribeProofImage} target="_blank" rel="noreferrer" className="text-xs">
+                <img src={subscription.unsubscribeProofImage} alt="Preuve de désabonnement" className="h-16 w-16 rounded border object-cover" />
+                <span className="block mt-1 text-gray-600">Désabonnement</span>
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

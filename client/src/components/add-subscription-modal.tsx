@@ -48,11 +48,15 @@ const formSchema = insertSubscriptionSchema.extend({
   ),
   nextRenewal: z.string().optional(),
   trialEndsAt: z.string().optional(),
+  safetyDate: z.string().optional(),
   categoryColor: z.string().optional(),
   note: z.string().optional(),
   rating: z.coerce.number().min(0).max(5).nullable().optional(),
   purchaseDate: z.string().optional(),
+  purchaseProofImage: z.string().optional(),
+  unsubscribeProofImage: z.string().optional(),
   isSuspect: z.coerce.boolean().default(false),
+  useSafetyDate: z.coerce.boolean().default(false),
   isTrial: z.coerce.boolean().default(false),
   renewalUnknown: z.coerce.boolean().default(false),
 }).superRefine((data, ctx) => {
@@ -128,6 +132,10 @@ const defaultValues: FormData = {
   rating: null,
   note: "",
   purchaseDate: "",
+  safetyDate: "",
+  purchaseProofImage: "",
+  unsubscribeProofImage: "",
+  useSafetyDate: false,
 };
 
 export function AddSubscriptionModal({
@@ -185,6 +193,17 @@ export function AddSubscriptionModal({
     return format(new Date(date), "yyyy-MM-dd");
   };
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, field: "purchaseProofImage" | "unsubscribeProofImage") => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const value = typeof reader.result === "string" ? reader.result : "";
+      form.setValue(field, value, { shouldDirty: true });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const persistCustomCategories = useCallback((next: CategoryOption[]) => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(CUSTOM_CATEGORIES_STORAGE_KEY, JSON.stringify(next));
@@ -227,12 +246,16 @@ export function AddSubscriptionModal({
         category: subscription.category || DEFAULT_CATEGORY,
         price: subscription.price?.toString() ?? "",
         nextRenewal: subscription.nextRenewal ? formatDateForInput(subscription.nextRenewal) : "",
+        safetyDate: subscription.safetyDate ? formatDateForInput(subscription.safetyDate) : "",
         renewalUnknown: !subscription.nextRenewal,
         bgColor: subscription.bgColor ?? DEFAULT_BG_COLOR,
         iconClass: subscription.iconClass || defaultValues.iconClass,
         rating: subscription.rating ?? null,
         purchaseDate: subscription.purchaseDate ? formatDateForInput(subscription.purchaseDate) : "",
+        purchaseProofImage: subscription.purchaseProofImage ?? "",
+        unsubscribeProofImage: subscription.unsubscribeProofImage ?? "",
         isSuspect: subscription.isSuspect ?? false,
+        useSafetyDate: subscription.useSafetyDate ?? false,
         note: subscription.note ?? "",
         categoryColor: subscription.categoryColor ?? subscription.bgColor ?? DEFAULT_BG_COLOR,
         trialEndsAt: subscription.trialEndsAt ? formatDateForInput(subscription.trialEndsAt) : undefined,
@@ -269,6 +292,7 @@ export function AddSubscriptionModal({
         rating: data.rating ?? null,
         isSuspect: Boolean(data.isSuspect),
         nextRenewal: shouldClearRenewal ? null : new Date(data.nextRenewal ?? ""),
+        safetyDate: data.safetyDate ? new Date(data.safetyDate) : null,
         purchaseDate: data.frequency === "lifetime" && data.purchaseDate
           ? new Date(data.purchaseDate)
           : null,
@@ -324,6 +348,7 @@ export function AddSubscriptionModal({
       const subscriptionData = {
         ...data,
         nextRenewal: shouldClearRenewal ? null : new Date(data.nextRenewal ?? ""),
+        safetyDate: data.safetyDate ? new Date(data.safetyDate) : null,
         purchaseDate: data.frequency === "lifetime" && data.purchaseDate
           ? new Date(data.purchaseDate)
           : null,
@@ -377,7 +402,11 @@ export function AddSubscriptionModal({
       trialEndsAt: data.isTrial ? data.trialEndsAt : undefined,
       renewalUnknown: renewalUnknownValue,
       nextRenewal: renewalUnknownValue ? "" : data.nextRenewal,
+      safetyDate: data.safetyDate,
       purchaseDate: isLifetimeFrequency ? data.purchaseDate : "",
+      purchaseProofImage: data.purchaseProofImage ?? "",
+      unsubscribeProofImage: data.unsubscribeProofImage ?? "",
+      useSafetyDate: data.useSafetyDate ?? false,
     };
 
     if (isEditing) {
@@ -729,6 +758,21 @@ export function AddSubscriptionModal({
 
             <FormField
               control={form.control}
+              name="safetyDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date de sûreté (optionnel)</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <p className="text-xs text-gray-600">Rappel anticipé avant la vraie date de renouvellement.</p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="renewalUnknown"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
@@ -781,6 +825,44 @@ export function AddSubscriptionModal({
                   Rarement
                 </button>
               </div>
+            </div>
+
+            <div className="rounded-lg border p-3 space-y-3">
+              <p className="text-sm font-medium">Preuves & justificatifs</p>
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
+                Conseil : gardez aussi une copie locale (cloud, disque dur) de vos preuves d'achat et de désabonnement.
+              </p>
+              <FormField
+                control={form.control}
+                name="purchaseProofImage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preuve d'achat (image)</FormLabel>
+                    <FormControl>
+                      <div className="space-y-2">
+                        <Input type="file" accept="image/*" onChange={(event) => handleImageUpload(event, "purchaseProofImage")} />
+                        {field.value && <img src={field.value} alt="Preuve d'achat" className="h-20 rounded border object-cover" />}
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="unsubscribeProofImage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preuve de désabonnement (image)</FormLabel>
+                    <FormControl>
+                      <div className="space-y-2">
+                        <Input type="file" accept="image/*" onChange={(event) => handleImageUpload(event, "unsubscribeProofImage")} />
+                        {field.value && <img src={field.value} alt="Preuve de désabonnement" className="h-20 rounded border object-cover" />}
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             </div>
 
             <FormField

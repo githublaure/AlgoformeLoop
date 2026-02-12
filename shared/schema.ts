@@ -28,11 +28,15 @@ export const subscriptions = pgTable("subscriptions", {
   categoryColor: text("category_color").default("#7c3aed"),
   usageFrequency: text("usage_frequency").notNull(), // very_used, used, rarely_used
   nextRenewal: timestamp("next_renewal"),
+  safetyDate: timestamp("safety_date"),
   iconClass: text("icon_class"), // Font Awesome class for the icon
   bgColor: text("bg_color"), // Background color for the icon
   note: text("note"),
+  purchaseProofImage: text("purchase_proof_image"),
+  unsubscribeProofImage: text("unsubscribe_proof_image"),
   rating: integer("rating"),
   isSuspect: boolean("is_suspect").default(false),
+  useSafetyDate: boolean("use_safety_date").default(false),
   isActive: boolean("is_active").default(true),
   isTrial: boolean("is_trial").default(false),
   trialEndsAt: timestamp("trial_ends_at"),
@@ -67,14 +71,22 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions)
   .partial({
     rating: true,
     nextRenewal: true,
+    safetyDate: true,
     trialEndsAt: true,
     purchaseDate: true,
+    purchaseProofImage: true,
+    unsubscribeProofImage: true,
+    useSafetyDate: true,
   })
   .extend({
     rating: z.number().nullable().optional(),
     nextRenewal: z.date().nullable().optional(),
+    safetyDate: z.date().nullable().optional(),
     trialEndsAt: z.date().nullable().optional(),
     purchaseDate: z.date().nullable().optional(),
+    purchaseProofImage: z.string().nullable().optional(),
+    unsubscribeProofImage: z.string().nullable().optional(),
+    useSafetyDate: z.boolean().optional(),
   });
 
 export const insertVoiceReminderSchema = createInsertSchema(voiceReminders).omit({

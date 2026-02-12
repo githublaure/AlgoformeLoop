@@ -58,11 +58,15 @@ async function ensureSchema() {
       "category_color" text DEFAULT '#7c3aed',
       "usage_frequency" text NOT NULL,
       "next_renewal" timestamp,
+      "safety_date" timestamp,
       "icon_class" text,
       "bg_color" text,
       "note" text,
+      "purchase_proof_image" text,
+      "unsubscribe_proof_image" text,
       "rating" integer,
       "is_suspect" boolean DEFAULT false,
+      "use_safety_date" boolean DEFAULT false,
       "is_active" boolean DEFAULT true,
       "is_trial" boolean DEFAULT false,
       "trial_ends_at" timestamp,
@@ -99,6 +103,12 @@ async function ensureSchema() {
       END IF;
       IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'safety_date'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "safety_date" timestamp;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
         WHERE table_name = 'subscriptions' AND column_name = 'icon_class'
       ) THEN
         ALTER TABLE "subscriptions" ADD COLUMN "icon_class" text;
@@ -121,6 +131,18 @@ async function ensureSchema() {
       ) THEN
         ALTER TABLE "subscriptions" ADD COLUMN "rating" integer;
       END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'purchase_proof_image'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "purchase_proof_image" text;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'unsubscribe_proof_image'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "unsubscribe_proof_image" text;
+      END IF;
       IF EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'subscriptions'
@@ -134,6 +156,12 @@ async function ensureSchema() {
         WHERE table_name = 'subscriptions' AND column_name = 'is_suspect'
       ) THEN
         ALTER TABLE "subscriptions" ADD COLUMN "is_suspect" boolean DEFAULT false;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'subscriptions' AND column_name = 'use_safety_date'
+      ) THEN
+        ALTER TABLE "subscriptions" ADD COLUMN "use_safety_date" boolean DEFAULT false;
       END IF;
       IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
@@ -548,6 +576,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : req.body.nextRenewal
             ? new Date(req.body.nextRenewal)
             : undefined,
+        safetyDate: req.body.safetyDate === null
+          ? null
+          : req.body.safetyDate
+            ? new Date(req.body.safetyDate)
+            : undefined,
         purchaseDate: req.body.purchaseDate === null
           ? null
           : req.body.purchaseDate
@@ -555,6 +588,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
         isSuspect: normalizeBoolean(req.body.isSuspect, false),
+        useSafetyDate: normalizeBoolean(req.body.useSafetyDate, false),
+        purchaseProofImage: req.body.purchaseProofImage ?? null,
+        unsubscribeProofImage: req.body.unsubscribeProofImage ?? null,
         isTrial: normalizeBoolean(req.body.isTrial, false),
         isActive: normalizeBoolean(req.body.isActive, true),
       };
@@ -604,6 +640,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : req.body.nextRenewal
             ? new Date(req.body.nextRenewal)
             : undefined,
+        safetyDate: req.body.safetyDate === null
+          ? null
+          : req.body.safetyDate
+            ? new Date(req.body.safetyDate)
+            : undefined,
         purchaseDate: req.body.purchaseDate === null
           ? null
           : req.body.purchaseDate
@@ -611,6 +652,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : undefined,
         trialEndsAt: req.body.trialEndsAt ? new Date(req.body.trialEndsAt) : undefined,
         isSuspect: normalizeBoolean(req.body.isSuspect),
+        useSafetyDate: normalizeBoolean(req.body.useSafetyDate),
+        purchaseProofImage: req.body.purchaseProofImage,
+        unsubscribeProofImage: req.body.unsubscribeProofImage,
         isTrial: normalizeBoolean(req.body.isTrial),
         isActive: normalizeBoolean(req.body.isActive),
       };

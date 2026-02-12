@@ -5,6 +5,7 @@ import { StatsOverview } from "../components/stats-overview";
 import { UpcomingRenewals } from "../components/upcoming-renewals";
 import { SubscriptionCard } from "../components/subscription-card";
 import { AddSubscriptionModal } from "../components/add-subscription-modal";
+import { OfferReminders } from "../components/offer-reminders";
 import { LoginGuard } from "../components/login-guard";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -100,6 +101,8 @@ export default function Dashboard() {
               setEditingSubscription(selected);
               setIsAddModalOpen(true);
             }} />
+
+            <OfferReminders />
 
             <div id="essais-gratuits" className="pigeon-card mb-6">
               <div className="p-6 border-b border-gray-200">

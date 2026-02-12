@@ -18,6 +18,14 @@ export const userSettings = pgTable("user_settings", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const monthlyBudgets = pgTable("monthly_budgets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  month: text("month").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
@@ -89,6 +97,7 @@ export type VoiceReminder = typeof voiceReminders.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type UserSettings = typeof userSettings.$inferSelect;
+export type MonthlyBudget = typeof monthlyBudgets.$inferSelect;
 
 // Usage frequency options
 export const USAGE_FREQUENCIES = {

@@ -214,7 +214,7 @@ export function AddSubscriptionModal({
     return JSON.stringify(images);
   };
 
-  const compressImage = (file: File, maxWidth = 1280, quality = 0.72) =>
+  const compressImage = (file: File, maxWidth = 1024, quality = 0.65) =>
     new Promise<string>((resolve, reject) => {
       const image = new Image();
       const reader = new FileReader();
@@ -414,11 +414,17 @@ export function AddSubscriptionModal({
       const shouldClearRenewal = data.renewalUnknown || data.frequency === "lifetime";
       const subscriptionData = {
         ...data,
+        price: String(data.price ?? ""),
+        iconClass: "fas fa-dove",
+        bgColor: data.categoryColor || data.bgColor,
+        rating: data.rating ?? null,
+        isSuspect: Boolean(data.isSuspect),
         nextRenewal: shouldClearRenewal ? null : new Date(data.nextRenewal ?? ""),
         safetyDate: data.safetyDate ? new Date(data.safetyDate) : null,
         purchaseDate: data.frequency === "lifetime" && data.purchaseDate
           ? new Date(data.purchaseDate)
           : null,
+        trialEndsAt: data.isTrial && data.trialEndsAt ? new Date(data.trialEndsAt) : undefined,
       };
       delete (subscriptionData as Partial<FormData>).renewalUnknown;
       const response = await apiRequest(

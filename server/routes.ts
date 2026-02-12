@@ -216,6 +216,12 @@ async function ensureSchema() {
       END IF;
       IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'user_settings' AND column_name = 'monthly_overrides'
+      ) THEN
+        ALTER TABLE "user_settings" ADD COLUMN "monthly_overrides" jsonb DEFAULT '{}';
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
         WHERE table_name = 'user_settings' AND column_name = 'created_at'
       ) THEN
         ALTER TABLE "user_settings" ADD COLUMN "created_at" timestamp DEFAULT now();
@@ -318,7 +324,7 @@ async function sendResetEmail(email: string, resetToken: string, req: any) {
 }
 
 // Middleware pour vérifier l'authentification
-const authenticateToken = (req: any, res: any, next: any) => {
+const authenticateToken = async (req: any, res: any, next: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -326,13 +332,14 @@ const authenticateToken = (req: any, res: any, next: any) => {
     return res.status(401).json({ message: 'Token d\'accès requis' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-    if (err) {
-      return res.status(403).json({ message: 'Token invalide' });
-    }
+  try {
+    const user = jwt.verify(token, JWT_SECRET) as any;
     req.user = user;
+    await backfillOrphanSubscriptions(user.id);
     next();
-  });
+  } catch (_error) {
+    return res.status(403).json({ message: 'Token invalide' });
+  }
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -782,9 +789,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await ensureSchema();
       const budgets = req.body?.budgets;
+      const defaultBudgetRaw = req.body?.defaultBudget;
+
       if (!Array.isArray(budgets)) {
         return res.status(400).json({ message: "Budgets must be an array" });
       }
+
       const overrides: Record<string, number> = {};
       for (const item of budgets) {
         const { month, amount } = item;
@@ -792,17 +802,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Invalid month format" });
         }
         if (amount === null || amount === undefined) {
-          // keep as is, or remove
-        } else {
-          const parsed = Number(amount);
-          if (!Number.isFinite(parsed) || parsed < 0) {
-            return res.status(400).json({ message: "Invalid amount" });
-          }
-          overrides[month] = parsed;
+          continue;
         }
+        const parsed = Number(amount);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+          return res.status(400).json({ message: "Invalid amount" });
+        }
+        overrides[month] = parsed;
       }
-      const saved = await storage.setMonthlyOverrides(req.user.id, overrides);
-      res.json({ success: true });
+
+      let savedBudgetCap: string | number | undefined;
+      if (defaultBudgetRaw !== undefined && defaultBudgetRaw !== null && defaultBudgetRaw !== "") {
+        const parsedBudget = Number(defaultBudgetRaw);
+        if (!Number.isFinite(parsedBudget) || parsedBudget < 0) {
+          return res.status(400).json({ message: "Invalid default budget" });
+        }
+        const budgetSaved = await storage.setUserBudgetCap(req.user.id, parsedBudget.toFixed(2));
+        savedBudgetCap = budgetSaved.budgetCap;
+      }
+
+      const savedOverrides = await storage.setMonthlyOverrides(req.user.id, overrides);
+      res.json({
+        success: true,
+        defaultBudget: savedBudgetCap ?? savedOverrides.budgetCap,
+        monthlyBudgets: savedOverrides.monthlyOverrides ?? {},
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to update monthly budgets" });
     }

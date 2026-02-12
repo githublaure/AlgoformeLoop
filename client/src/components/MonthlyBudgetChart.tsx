@@ -61,6 +61,7 @@ export function MonthlyBudgetChart({ subscriptions, includeProrata }: MonthlyBud
   });
 
   const [monthlyBudgetDrafts, setMonthlyBudgetDrafts] = useState<Record<string, string>>({});
+  const [defaultBudgetDraft, setDefaultBudgetDraft] = useState<string>(String(defaultBudget));
 
   const monthlyChartData = computeMonthlyStats(
     subscriptions,
@@ -70,17 +71,22 @@ export function MonthlyBudgetChart({ subscriptions, includeProrata }: MonthlyBud
   );
 
   useEffect(() => {
+    setDefaultBudgetDraft(String(defaultBudget));
     const drafts = months.reduce<Record<string, string>>((acc, { key }) => {
       const budget = monthlyOverrides[key];
       acc[key] = budget !== null && budget !== undefined ? String(budget) : "";
       return acc;
     }, {});
     setMonthlyBudgetDrafts(drafts);
-  }, [monthlyOverrides, months]);
+  }, [monthlyOverrides, months, defaultBudget]);
 
   const saveMonthlyBudgets = useMutation({
-    mutationFn: async (payload: { monthlyOverrides: Record<string, number> }) => {
-      const response = await apiRequest("PATCH", "/api/settings/monthly-overrides", payload);
+    mutationFn: async (payload: { defaultBudget: number; monthlyOverrides: Record<string, number> }) => {
+      const budgets = Object.entries(payload.monthlyOverrides).map(([month, amount]) => ({ month, amount }));
+      const response = await apiRequest("PUT", "/api/settings/budgets", {
+        defaultBudget: payload.defaultBudget,
+        budgets,
+      });
       return response.json();
     },
     onSuccess: async () => {
@@ -236,26 +242,52 @@ export function MonthlyBudgetChart({ subscriptions, includeProrata }: MonthlyBud
       </div>
       <div className="mt-6 rounded-lg border border-gray-100 bg-gray-50/60 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+          <div className="space-y-2">
             <p className="text-sm font-medium text-gray-700">Budgets par mois</p>
+            <label className="flex items-center gap-2 text-xs text-gray-600">
+              <span>Budget par défaut (€)</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={defaultBudgetDraft}
+                onChange={(event) => setDefaultBudgetDraft(event.target.value)}
+                className="w-28 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-300"
+              />
+            </label>
             <p className="text-xs text-gray-500">
-              Laissez vide pour utiliser le budget par défaut (
-              {currencyFormatter.format(defaultBudget)}
-              ).
+              Laissez un mois vide pour utiliser ce budget par défaut.
             </p>
           </div>
           <button
             type="button"
             className="pigeon-button-primary px-4 py-2 text-xs rounded-lg"
             onClick={() => {
+              const parsedDefaultBudget = Number(defaultBudgetDraft);
+              if (!Number.isFinite(parsedDefaultBudget) || parsedDefaultBudget < 0) {
+                toast({
+                  title: "Budget par défaut invalide",
+                  description: "Le budget par défaut doit être un nombre positif.",
+                  variant: "destructive",
+                });
+                return;
+              }
+
               const newOverrides: Record<string, number> = {};
               months.forEach(({ key }) => {
                 const value = monthlyBudgetDrafts[key];
                 if (value !== "" && value !== undefined) {
-                  newOverrides[key] = Number(value);
+                  const parsed = Number(value);
+                  if (Number.isFinite(parsed) && parsed >= 0) {
+                    newOverrides[key] = parsed;
+                  }
                 }
               });
-              saveMonthlyBudgets.mutate({ monthlyOverrides: newOverrides });
+
+              saveMonthlyBudgets.mutate({
+                defaultBudget: parsedDefaultBudget,
+                monthlyOverrides: newOverrides,
+              });
             }}
             disabled={saveMonthlyBudgets.isPending}
           >

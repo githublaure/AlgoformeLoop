@@ -447,6 +447,29 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async setMonthlyOverrides(userId: number, overrides: Record<string, number>): Promise<UserSettings> {
+    const { db } = await import('./db');
+    const [existing] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId));
+
+    if (existing) {
+      const [updated] = await db
+        .update(userSettings)
+        .set({ monthlyOverrides: overrides })
+        .where(eq(userSettings.userId, userId))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db
+      .insert(userSettings)
+      .values({ userId, budgetCap: "100", monthlyOverrides: overrides })
+      .returning();
+    return created;
+  }
+
   async getVoiceReminders(): Promise<VoiceReminder[]> {
     const { db } = await import('./db');
     return await db.select().from(voiceReminders);

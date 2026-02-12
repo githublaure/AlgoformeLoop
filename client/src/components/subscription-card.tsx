@@ -156,6 +156,21 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
     );
   };
 
+  const parseProofImages = (raw: string | null | undefined) => {
+    if (!raw) return [] as string[];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter((item): item is string => typeof item === "string");
+      if (typeof parsed === "string") return [parsed];
+    } catch {
+      return [raw];
+    }
+    return [] as string[];
+  };
+
+  const purchaseProofs = parseProofImages(subscription.purchaseProofImage);
+  const unsubscribeProofs = parseProofImages(subscription.unsubscribeProofImage);
+
   const getCategoryLabel = (category: string) => {
     const categories: Record<string, string> = {
       entertainment: "Divertissement",
@@ -334,21 +349,33 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
           <span className="font-medium">Note :</span> {subscription.note}
         </div>
       )}
-      {(subscription.purchaseProofImage || subscription.unsubscribeProofImage) && (
+      {(purchaseProofs.length > 0 || unsubscribeProofs.length > 0) && (
         <div className="mt-3 rounded-lg bg-gray-50 p-3">
           <p className="text-xs font-medium text-gray-700 mb-2">Pièces justificatives</p>
-          <div className="flex gap-3">
-            {subscription.purchaseProofImage && (
-              <a href={subscription.purchaseProofImage} target="_blank" rel="noreferrer" className="text-xs">
-                <img src={subscription.purchaseProofImage} alt="Preuve d'achat" className="h-16 w-16 rounded border object-cover" />
-                <span className="block mt-1 text-gray-600">Achat</span>
-              </a>
+          <div className="space-y-2">
+            {purchaseProofs.length > 0 && (
+              <div>
+                <p className="text-[11px] text-gray-600 mb-1">Achat</p>
+                <div className="flex flex-wrap gap-2">
+                  {purchaseProofs.map((proof, index) => (
+                    <a key={`purchase-${index}`} href={proof} target="_blank" rel="noreferrer" className="text-xs">
+                      <img src={proof} alt={`Preuve d'achat ${index + 1}`} className="h-16 w-16 rounded border object-cover" />
+                    </a>
+                  ))}
+                </div>
+              </div>
             )}
-            {subscription.unsubscribeProofImage && (
-              <a href={subscription.unsubscribeProofImage} target="_blank" rel="noreferrer" className="text-xs">
-                <img src={subscription.unsubscribeProofImage} alt="Preuve de désabonnement" className="h-16 w-16 rounded border object-cover" />
-                <span className="block mt-1 text-gray-600">Désabonnement</span>
-              </a>
+            {unsubscribeProofs.length > 0 && (
+              <div>
+                <p className="text-[11px] text-gray-600 mb-1">Désabonnement</p>
+                <div className="flex flex-wrap gap-2">
+                  {unsubscribeProofs.map((proof, index) => (
+                    <a key={`unsubscribe-${index}`} href={proof} target="_blank" rel="noreferrer" className="text-xs">
+                      <img src={proof} alt={`Preuve de désabonnement ${index + 1}`} className="h-16 w-16 rounded border object-cover" />
+                    </a>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>

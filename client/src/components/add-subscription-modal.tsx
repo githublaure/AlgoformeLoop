@@ -53,8 +53,8 @@ const formSchema = insertSubscriptionSchema.extend({
   note: z.string().optional(),
   rating: z.coerce.number().min(0).max(5).nullable().optional(),
   purchaseDate: z.string().optional(),
-  purchaseProofImage: z.string().optional(),
-  unsubscribeProofImage: z.string().optional(),
+  purchaseProofImages: z.array(z.string()).default([]),
+  unsubscribeProofImages: z.array(z.string()).default([]),
   isSuspect: z.coerce.boolean().default(false),
   useSafetyDate: z.coerce.boolean().default(false),
   isTrial: z.coerce.boolean().default(false),
@@ -133,8 +133,8 @@ const defaultValues: FormData = {
   note: "",
   purchaseDate: "",
   safetyDate: "",
-  purchaseProofImage: "",
-  unsubscribeProofImage: "",
+  purchaseProofImages: [],
+  unsubscribeProofImages: [],
   useSafetyDate: false,
 };
 
@@ -193,15 +193,79 @@ export function AddSubscriptionModal({
     return format(new Date(date), "yyyy-MM-dd");
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, field: "purchaseProofImage" | "unsubscribeProofImage") => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const value = typeof reader.result === "string" ? reader.result : "";
-      form.setValue(field, value, { shouldDirty: true });
-    };
-    reader.readAsDataURL(file);
+  const parseStoredImages = (raw: string | null | undefined) => {
+    if (!raw) return [] as string[];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item): item is string => typeof item === "string");
+      }
+      if (typeof parsed === "string") return [parsed];
+    } catch {
+      return [raw];
+    }
+    return [] as string[];
+  };
+
+  const encodeStoredImages = (images: string[]) => {
+    if (!images.length) return null;
+    return JSON.stringify(images);
+  };
+
+  const compressImage = (file: File, maxWidth = 1280, quality = 0.72) =>
+    new Promise<string>((resolve, reject) => {
+      const image = new Image();
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        image.src = String(reader.result || "");
+      };
+      reader.onerror = () => reject(new Error("Impossible de lire l'image"));
+
+      image.onload = () => {
+        const ratio = Math.min(1, maxWidth / image.width);
+        const width = Math.round(image.width * ratio);
+        const height = Math.round(image.height * ratio);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas non disponible"));
+          return;
+        }
+
+        ctx.drawImage(image, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+
+      image.onerror = () => reject(new Error("Image invalide"));
+      reader.readAsDataURL(file);
+    });
+
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    field: "purchaseProofImages" | "unsubscribeProofImages",
+  ) => {
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
+
+    try {
+      const compressed = await Promise.all(files.map((file) => compressImage(file)));
+      const current = form.getValues(field) ?? [];
+      const next = [...current, ...compressed].slice(0, 8);
+      form.setValue(field, next, { shouldDirty: true });
+    } catch {
+      toast({
+        title: "Erreur image",
+        description: "Impossible de traiter une des images.",
+        variant: "destructive",
+      });
+    } finally {
+      event.target.value = "";
+    }
   };
 
   const persistCustomCategories = useCallback((next: CategoryOption[]) => {
@@ -252,8 +316,8 @@ export function AddSubscriptionModal({
         iconClass: subscription.iconClass || defaultValues.iconClass,
         rating: subscription.rating ?? null,
         purchaseDate: subscription.purchaseDate ? formatDateForInput(subscription.purchaseDate) : "",
-        purchaseProofImage: subscription.purchaseProofImage ?? "",
-        unsubscribeProofImage: subscription.unsubscribeProofImage ?? "",
+        purchaseProofImages: parseStoredImages(subscription.purchaseProofImage),
+        unsubscribeProofImages: parseStoredImages(subscription.unsubscribeProofImage),
         isSuspect: subscription.isSuspect ?? false,
         useSafetyDate: subscription.useSafetyDate ?? false,
         note: subscription.note ?? "",
@@ -404,8 +468,8 @@ export function AddSubscriptionModal({
       nextRenewal: renewalUnknownValue ? "" : data.nextRenewal,
       safetyDate: data.safetyDate,
       purchaseDate: isLifetimeFrequency ? data.purchaseDate : "",
-      purchaseProofImage: data.purchaseProofImage ?? "",
-      unsubscribeProofImage: data.unsubscribeProofImage ?? "",
+      purchaseProofImage: encodeStoredImages(data.purchaseProofImages ?? []),
+      unsubscribeProofImage: encodeStoredImages(data.unsubscribeProofImages ?? []),
       useSafetyDate: data.useSafetyDate ?? false,
     };
 
@@ -834,14 +898,23 @@ export function AddSubscriptionModal({
               </p>
               <FormField
                 control={form.control}
-                name="purchaseProofImage"
+                name="purchaseProofImages"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Preuve d'achat (image)</FormLabel>
+                    <FormLabel>Preuves d'achat (images)</FormLabel>
                     <FormControl>
                       <div className="space-y-2">
-                        <Input type="file" accept="image/*" onChange={(event) => handleImageUpload(event, "purchaseProofImage")} />
-                        {field.value && <img src={field.value} alt="Preuve d'achat" className="h-20 rounded border object-cover" />}
+                        <Input type="file" accept="image/*" multiple onChange={(event) => handleImageUpload(event, "purchaseProofImages")} />
+                        {field.value?.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {field.value.map((image: string, index: number) => (
+                              <div key={index} className="relative">
+                                <img src={image} alt={`Preuve d'achat ${index + 1}`} className="h-20 w-20 rounded border object-cover" />
+                                <button type="button" className="absolute -top-2 -right-2 rounded-full bg-white border px-1 text-xs" onClick={() => form.setValue("purchaseProofImages", field.value.filter((_: string, i: number) => i !== index), { shouldDirty: true })}>×</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </FormControl>
                   </FormItem>
@@ -850,14 +923,23 @@ export function AddSubscriptionModal({
 
               <FormField
                 control={form.control}
-                name="unsubscribeProofImage"
+                name="unsubscribeProofImages"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Preuve de désabonnement (image)</FormLabel>
+                    <FormLabel>Preuves de désabonnement (images)</FormLabel>
                     <FormControl>
                       <div className="space-y-2">
-                        <Input type="file" accept="image/*" onChange={(event) => handleImageUpload(event, "unsubscribeProofImage")} />
-                        {field.value && <img src={field.value} alt="Preuve de désabonnement" className="h-20 rounded border object-cover" />}
+                        <Input type="file" accept="image/*" multiple onChange={(event) => handleImageUpload(event, "unsubscribeProofImages")} />
+                        {field.value?.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {field.value.map((image: string, index: number) => (
+                              <div key={index} className="relative">
+                                <img src={image} alt={`Preuve de désabonnement ${index + 1}`} className="h-20 w-20 rounded border object-cover" />
+                                <button type="button" className="absolute -top-2 -right-2 rounded-full bg-white border px-1 text-xs" onClick={() => form.setValue("unsubscribeProofImages", field.value.filter((_: string, i: number) => i !== index), { shouldDirty: true })}>×</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </FormControl>
                   </FormItem>

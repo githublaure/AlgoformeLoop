@@ -20,6 +20,7 @@ export interface IStorage {
   // User settings methods
   getUserSettings(userId: number): Promise<UserSettings | undefined>;
   setUserBudgetCap(userId: number, budgetCap: string): Promise<UserSettings>;
+  setMonthlyOverrides(userId: number, overrides: Record<string, number>): Promise<UserSettings>;
   
   // Voice reminder methods
   getVoiceReminders(): Promise<VoiceReminder[]>;
@@ -274,6 +275,20 @@ export class MemStorage implements IStorage {
       id: existing?.id ?? this.currentUserSettingsId++,
       userId,
       budgetCap,
+      monthlyOverrides: existing?.monthlyOverrides ?? {},
+      createdAt: existing?.createdAt ?? new Date(),
+    };
+    this.userSettings.set(userId, updated);
+    return updated;
+  }
+
+  async setMonthlyOverrides(userId: number, overrides: Record<string, number>): Promise<UserSettings> {
+    const existing = this.userSettings.get(userId);
+    const updated: UserSettings = {
+      id: existing?.id ?? this.currentUserSettingsId++,
+      userId,
+      budgetCap: existing?.budgetCap ?? "100",
+      monthlyOverrides: overrides,
       createdAt: existing?.createdAt ?? new Date(),
     };
     this.userSettings.set(userId, updated);

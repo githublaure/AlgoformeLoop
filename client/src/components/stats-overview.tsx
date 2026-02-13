@@ -44,7 +44,110 @@ export function StatsOverview() {
   const [budgetInput, setBudgetInput] = useState("");
 
   const budgetCap = Number(settings?.budgetCap ?? stats?.budgetCap ?? 0);
-  const budgetGap = Number(stats?.budgetGap ?? 0);
+
+
+  const normalizeToMonthly = (sub: Subscription) => {
+    const price = Number(sub.price);
+    if (!Number.isFinite(price)) return 0;
+
+    const rawFrequency = String(sub.frequency ?? "").toLowerCase();
+    const normalizedFrequency = rawFrequency.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    const isLifetime =
+      rawFrequency === "lifetime" ||
+      normalizedFrequency.includes("lifetime") ||
+      normalizedFrequency.includes("life time") ||
+      normalizedFrequency.includes("acces a vie") ||
+      normalizedFrequency.includes("access a vie");
+    const isYearly =
+      rawFrequency === "yearly" ||
+      normalizedFrequency.includes("annuel") ||
+      normalizedFrequency === "an" ||
+      normalizedFrequency.includes("annee");
+    const isWeekly =
+      rawFrequency === "weekly" ||
+      normalizedFrequency.includes("hebdomadaire") ||
+      normalizedFrequency.includes("semaine");
+
+    if (isYearly) {
+      return includeLifetime ? price / 12 : 0;
+    }
+    if (isWeekly) {
+      return (price * 52) / 12;
+    }
+    if (isLifetime) {
+      if (!includeLifetime) return 0;
+      const rawPurchaseDate = sub.purchaseDate ?? sub.createdAt ?? null;
+      if (!rawPurchaseDate) return 0;
+      const purchaseDate = new Date(rawPurchaseDate);
+      if (Number.isNaN(purchaseDate.getTime())) return 0;
+      const cutoff = new Date(purchaseDate);
+      cutoff.setFullYear(cutoff.getFullYear() + 1);
+      if (new Date() >= cutoff) return 0;
+      return price / 12;
+    }
+
+    return price;
+  };
+
+  const activeSubscriptionsFallback = subscriptions.filter((sub) => sub.isActive).length;
+  const trialCountFallback = subscriptions.filter((sub) => sub.isTrial).length;
+  const now = Date.now();
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+  const trialsEndingFallback = subscriptions.filter(
+    (sub) =>
+      sub.isTrial &&
+      sub.trialEndsAt &&
+      new Date(sub.trialEndsAt).getTime() <= now + sevenDays,
+  ).length;
+  const monthlyCostFallback = subscriptions.reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
+  const suspectSubscriptionsFallback = subscriptions.filter(
+    (sub) => sub.isSuspect && sub.usageFrequency !== "very_used",
+  );
+  const suspectMonthlyFallback = suspectSubscriptionsFallback.reduce(
+    (sum, sub) => sum + normalizeToMonthly(sub),
+    0,
+  );
+  const wastedEstimateFallback = subscriptions
+    .filter((sub) => sub.usageFrequency === "rarely_used")
+    .reduce((sum, sub) => sum + normalizeToMonthly(sub), 0);
+  const upcomingRenewalsFallback = subscriptions.filter((sub) => {
+    if (!sub.isActive) return false;
+    const reminderDate = sub.useSafetyDate && sub.safetyDate ? sub.safetyDate : sub.nextRenewal;
+    if (!reminderDate) return false;
+    const time = new Date(reminderDate).getTime();
+    return Number.isFinite(time) && time >= now && time <= now + sevenDays;
+  }).length;
+
+  const statsTotalMonthlyCost = stats?.totalMonthlyCost !== undefined ? Number(stats.totalMonthlyCost) : null;
+  const statsActiveSubscriptions = stats?.activeSubscriptions;
+  const statsLooksBroken =
+    Boolean(stats) &&
+    subscriptions.length > 0 &&
+    (Number(statsActiveSubscriptions ?? 0) === 0 || Number(statsTotalMonthlyCost ?? 0) === 0);
+
+  const totalMonthlyCost =
+    !statsLooksBroken && statsTotalMonthlyCost !== null ? statsTotalMonthlyCost : monthlyCostFallback;
+  const activeSubscriptions =
+    !statsLooksBroken && statsActiveSubscriptions !== undefined
+      ? statsActiveSubscriptions
+      : activeSubscriptionsFallback;
+  const trialCount = !statsLooksBroken && stats?.trialCount !== undefined ? stats.trialCount : trialCountFallback;
+  const trialsEnding =
+    !statsLooksBroken && stats?.trialsEnding !== undefined ? stats.trialsEnding : trialsEndingFallback;
+  const suspectMonthly =
+    !statsLooksBroken && stats?.suspectMonthly !== undefined
+      ? Number(stats.suspectMonthly)
+      : suspectMonthlyFallback;
+  const wastedEstimate =
+    !statsLooksBroken && stats?.wastedEstimate !== undefined
+      ? Number(stats.wastedEstimate)
+      : wastedEstimateFallback;
+  const suspectCount =
+    !statsLooksBroken && stats?.suspectCount !== undefined ? stats.suspectCount : suspectSubscriptionsFallback.length;
+  const upcomingRenewals =
+    !statsLooksBroken && stats?.upcomingRenewals !== undefined ? stats.upcomingRenewals : upcomingRenewalsFallback;
+
+  const budgetGap = Math.max(totalMonthlyCost - budgetCap, 0);
 
   useEffect(() => {
     setBudgetInput(budgetCap ? budgetCap.toFixed(0) : "0");
@@ -146,7 +249,7 @@ export function StatsOverview() {
           <div>
             <p className="text-sm text-gray-600">Coût mensuel</p>
             <p className="text-2xl font-bold" style={{ color: 'hsl(258, 71%, 65%)' }}>
-              €{stats?.totalMonthlyCost || '0.00'}
+              €{totalMonthlyCost.toFixed(2)}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600">
               <span>Budget cible:</span>
@@ -193,9 +296,9 @@ export function StatsOverview() {
           <div>
             <p className="text-sm text-gray-600">Abonnements actifs</p>
             <p className="text-2xl font-bold" style={{ color: 'hsl(162, 64%, 36%)' }}>
-              {stats?.activeSubscriptions || 0}
+              {activeSubscriptions}
             </p>
-            <p className="text-xs text-gray-600 mt-1">{stats?.upcomingRenewals || 0} renouvellements à venir</p>
+            <p className="text-xs text-gray-600 mt-1">{upcomingRenewals} renouvellements à venir</p>
           </div>
           {renderPigeonHover("active")}
         </div>
@@ -206,9 +309,9 @@ export function StatsOverview() {
           <div>
             <p className="text-sm text-gray-600">Essais gratuits</p>
             <p className="text-2xl font-bold" style={{ color: 'hsl(42, 96%, 70%)' }}>
-              {stats?.trialCount || 0}
+              {trialCount}
             </p>
-            <p className="text-xs text-gray-600 mt-1">{stats?.trialsEnding || 0} finissent sous 7 jours</p>
+            <p className="text-xs text-gray-600 mt-1">{trialsEnding} finissent sous 7 jours</p>
           </div>
           {renderPigeonHover("trial")}
         </div>
@@ -219,10 +322,10 @@ export function StatsOverview() {
           <div>
             <p className="text-sm text-gray-600">Risque d'arnaque</p>
             <p className="text-2xl font-bold" style={{ color: 'hsl(10, 72%, 61%)' }}>
-              €{stats?.suspectMonthly || '0.00'}
+              €{suspectMonthly.toFixed(2)}
             </p>
-            <p className="text-xs text-gray-600 mt-1">Perte estimée (peu utilisé): €{stats?.wastedEstimate || '0.00'}</p>
-            <p className="text-xs text-gray-600">{stats?.suspectCount || 0} abonnements suspects</p>
+            <p className="text-xs text-gray-600 mt-1">Perte estimée (peu utilisé): €{wastedEstimate.toFixed(2)}</p>
+            <p className="text-xs text-gray-600">{suspectCount} abonnements suspects</p>
           </div>
           {renderPigeonHover("suspect")}
         </div>

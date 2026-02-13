@@ -128,6 +128,7 @@ export default function StatsPage() {
   const usageTotal = stats?.activeSubscriptions || subscriptions.length;
 
   const categoryEntries = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a);
+  const totalCategoryCost = categoryEntries.reduce((sum, [, value]) => sum + value, 0);
   const [mobileCategory, setMobileCategory] = useState<string | null>(null);
   const [mobileUsageKey, setMobileUsageKey] = useState<string | null>(null);
 
@@ -199,7 +200,7 @@ export default function StatsPage() {
                                 <span className="font-medium">€{value.toFixed(2)}/mois</span>
                               </div>
                               <Progress
-                                value={Math.min(100, (value / (stats?.budgetCap || 1)) * 100)}
+                                value={totalCategoryCost > 0 ? Math.min(100, (value / totalCategoryCost) * 100) : 0}
                                 className="h-2"
                               />
                             </div>

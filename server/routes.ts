@@ -22,12 +22,26 @@ type DbUser = typeof users.$inferSelect;
 let schemaReady = false;
 
 async function backfillOrphanSubscriptions(userId: number) {
-  // Ré-associe les abonnements historiques sans user_id à l'utilisateur courant
   const { db } = await import('./db');
+
+  // 1) Ré-associe les abonnements historiques sans user_id à l'utilisateur courant.
   await db.execute(sql`
     UPDATE "subscriptions"
     SET "user_id" = ${userId}
     WHERE "user_id" IS NULL
+  `);
+
+  // 2) Si l'utilisateur n'a encore aucun abonnement visible,
+  // on migre les anciennes données mono-utilisateur vers son compte.
+  await db.execute(sql`
+    WITH current_user_count AS (
+      SELECT COUNT(*)::int AS count
+      FROM "subscriptions"
+      WHERE "user_id" = ${userId}
+    )
+    UPDATE "subscriptions"
+    SET "user_id" = ${userId}
+    WHERE (SELECT count FROM current_user_count) = 0
   `);
 }
 
@@ -226,6 +240,16 @@ async function ensureSchema() {
       ) THEN
         ALTER TABLE "user_settings" ADD COLUMN "created_at" timestamp DEFAULT now();
       END IF;
+
+      -- Données legacy: évite que les abonnements disparaissent des stats si is_active est NULL.
+      UPDATE "subscriptions"
+      SET "is_active" = true
+      WHERE "is_active" IS NULL;
+
+      -- Valeurs de secours pour l'usage afin d'éviter les cartes de répartition vides.
+      UPDATE "subscriptions"
+      SET "usage_frequency" = 'used'
+      WHERE "usage_frequency" IS NULL OR trim("usage_frequency") = '';
     END $$;
   `);
 

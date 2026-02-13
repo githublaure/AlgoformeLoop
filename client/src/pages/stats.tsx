@@ -59,7 +59,75 @@ export default function StatsPage() {
   // Exclude subscriptions that are marked as 'very_used' from the suspect list
   const suspectSubscriptions = subscriptions.filter((sub) => sub.isSuspect && sub.usageFrequency !== 'very_used');
 
-  const categoryEntries = Object.entries(stats?.categoryTotals || {}).sort(([, a], [, b]) => b - a);
+  const normalizeToMonthly = (sub: Subscription) => {
+    const price = Number(sub.price);
+    if (!Number.isFinite(price)) return 0;
+
+    const rawFrequency = String(sub.frequency ?? "").toLowerCase();
+    const normalizedFrequency = rawFrequency.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    const isLifetime =
+      rawFrequency === "lifetime" ||
+      normalizedFrequency.includes("lifetime") ||
+      normalizedFrequency.includes("life time") ||
+      normalizedFrequency.includes("acces a vie") ||
+      normalizedFrequency.includes("access a vie");
+    const isYearly =
+      rawFrequency === "yearly" ||
+      normalizedFrequency.includes("annuel") ||
+      normalizedFrequency === "an" ||
+      normalizedFrequency.includes("annee");
+    const isWeekly =
+      rawFrequency === "weekly" ||
+      normalizedFrequency.includes("hebdomadaire") ||
+      normalizedFrequency.includes("semaine");
+
+    if (isYearly) {
+      return includeLifetime ? price / 12 : 0;
+    }
+    if (isWeekly) {
+      return (price * 52) / 12;
+    }
+    if (isLifetime) {
+      if (!includeLifetime) return 0;
+      const rawPurchaseDate = sub.purchaseDate ?? sub.createdAt ?? null;
+      if (!rawPurchaseDate) return 0;
+      const purchaseDate = new Date(rawPurchaseDate);
+      if (Number.isNaN(purchaseDate.getTime())) return 0;
+      const cutoff = new Date(purchaseDate);
+      cutoff.setFullYear(cutoff.getFullYear() + 1);
+      if (new Date() >= cutoff) return 0;
+      return price / 12;
+    }
+
+    return price;
+  };
+
+  const fallbackCategoryTotals = subscriptions.reduce<Record<string, number>>((acc, sub) => {
+    const monthly = normalizeToMonthly(sub);
+    const categoryKey = sub.category || "other";
+    acc[categoryKey] = (acc[categoryKey] || 0) + monthly;
+    return acc;
+  }, {});
+
+  const fallbackUsageBreakdown = subscriptions.reduce<Record<string, number>>(
+    (acc, sub) => {
+      const key = sub.usageFrequency || "used";
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    },
+    { very_used: 0, used: 0, rarely_used: 0 },
+  );
+
+  const statsCategoryTotals = stats?.categoryTotals ?? {};
+  const statsUsageBreakdown = stats?.usageBreakdown ?? {};
+  const hasStatsCategoryTotals = Object.keys(statsCategoryTotals).length > 0;
+  const hasStatsUsageBreakdown = Object.keys(statsUsageBreakdown).length > 0;
+
+  const categoryTotals = hasStatsCategoryTotals ? statsCategoryTotals : fallbackCategoryTotals;
+  const usageBreakdown = hasStatsUsageBreakdown ? statsUsageBreakdown : fallbackUsageBreakdown;
+  const usageTotal = stats?.activeSubscriptions || subscriptions.length;
+
+  const categoryEntries = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a);
   const [mobileCategory, setMobileCategory] = useState<string | null>(null);
   const [mobileUsageKey, setMobileUsageKey] = useState<string | null>(null);
 
@@ -196,7 +264,7 @@ export default function StatsPage() {
                   </h2>
                   <TooltipProvider delayDuration={100}>
                     <div className="space-y-3">
-                      {Object.entries(stats?.usageBreakdown || {}).map(([key, value]) => {
+                      {Object.entries(usageBreakdown).map(([key, value]) => {
                         const usageSubscriptions = getUsageSubscriptions(key);
                         const usageRow = (
                           <div className="flex items-center justify-between border rounded-lg p-3 bg-gray-50">
@@ -205,7 +273,7 @@ export default function StatsPage() {
                               <p className="text-xs text-gray-600">{value} abonnement(s)</p>
                             </div>
                             <span className="text-sm font-semibold" style={{ color: "hsl(258, 71%, 65%)" }}>
-                              {stats?.activeSubscriptions ? Math.round((value / stats.activeSubscriptions) * 100) : 0}%
+                              {usageTotal ? Math.round((value / usageTotal) * 100) : 0}%
                             </span>
                           </div>
                         );

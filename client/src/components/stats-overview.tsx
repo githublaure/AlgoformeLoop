@@ -7,8 +7,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const INCLUDE_LIFETIME_STORAGE_KEY = "pigeon-include-lifetime";
+
+type StatsCardKey = "cost" | "active" | "trial" | "suspect";
 
 export function StatsOverview() {
   const { toast } = useToast();
@@ -192,40 +195,67 @@ export function StatsOverview() {
   });
 
 
-  const getCardSubscriptions = (card: "cost" | "active" | "trial" | "suspect") => {
+  const getCardSubscriptions = (card: StatsCardKey) => {
     if (card === "trial") return subscriptions.filter((sub) => sub.isTrial);
     if (card === "suspect") return subscriptions.filter((sub) => sub.isSuspect);
     if (card === "active") return subscriptions.filter((sub) => sub.isActive);
     return subscriptions.filter((sub) => sub.isActive);
   };
 
-  const renderPigeonHover = (card: "cost" | "active" | "trial" | "suspect") => {
+  const [mobileDetailsCard, setMobileDetailsCard] = useState<StatsCardKey | null>(null);
+
+  const renderSubscriptionList = (card: StatsCardKey) => {
     const items = getCardSubscriptions(card);
     return (
-      <HoverCard>
-        <HoverCardTrigger asChild>
+      <>
+        {items.length === 0 ? (
+          <p className="text-xs text-gray-500">Aucun abonnement pour cet indicateur.</p>
+        ) : (
+          <ul className="text-xs space-y-1 max-h-56 overflow-y-auto">
+            {items.map((item) => (
+              <li key={item.id} className="flex items-center justify-between gap-2 border-b pb-1">
+                <span className="truncate">{item.name}</span>
+                <span className="text-gray-500">€{item.price}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </>
+    );
+  };
+
+  const renderPigeonHover = (card: StatsCardKey) => {
+    return (
+      <>
+        <div className="hidden sm:block">
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <img
+                src="/pigeon1.png"
+                alt="Voir les abonnements correspondants"
+                className="absolute right-6 top-6 w-12 h-12 object-contain opacity-70 grayscale brightness-0 cursor-pointer"
+              />
+            </HoverCardTrigger>
+            <HoverCardContent className="w-72">
+              <p className="text-sm font-semibold mb-2">Abonnements correspondants</p>
+              {renderSubscriptionList(card)}
+            </HoverCardContent>
+          </HoverCard>
+        </div>
+        <button
+          type="button"
+          className="sm:hidden absolute right-4 top-4"
+          onClick={() => setMobileDetailsCard(card)}
+          aria-label="Voir les abonnements correspondants"
+        >
           <img
             src="/pigeon1.png"
-            alt="Voir les abonnements correspondants"
-            className="absolute right-6 top-6 w-12 h-12 object-contain opacity-70 grayscale brightness-0 cursor-pointer"
+            alt=""
+            className="w-10 h-10 object-contain opacity-70 grayscale brightness-0"
+            aria-hidden="true"
           />
-        </HoverCardTrigger>
-        <HoverCardContent className="w-72">
-          <p className="text-sm font-semibold mb-2">Abonnements correspondants</p>
-          {items.length === 0 ? (
-            <p className="text-xs text-gray-500">Aucun abonnement pour cet indicateur.</p>
-          ) : (
-            <ul className="text-xs space-y-1 max-h-56 overflow-y-auto">
-              {items.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-2 border-b pb-1">
-                  <span className="truncate">{item.name}</span>
-                  <span className="text-gray-500">€{item.price}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </HoverCardContent>
-      </HoverCard>
+        </button>
+      </>
     );
   };
 
@@ -330,6 +360,15 @@ export function StatsOverview() {
           {renderPigeonHover("suspect")}
         </div>
       </div>
+
+      <Dialog open={mobileDetailsCard !== null} onOpenChange={(open) => !open && setMobileDetailsCard(null)}>
+        <DialogContent className="sm:hidden max-w-[90vw]">
+          <DialogHeader>
+            <DialogTitle>Abonnements correspondants</DialogTitle>
+          </DialogHeader>
+          {mobileDetailsCard ? renderSubscriptionList(mobileDetailsCard) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

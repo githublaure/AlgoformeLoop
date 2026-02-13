@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import type { StatsResponse } from "@/types/stats";
 import type { Subscription } from "@shared/schema";
+import { getPriceSuffix } from "@shared/subscription-utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -215,7 +216,7 @@ export function StatsOverview() {
             {items.map((item) => (
               <li key={item.id} className="flex items-center justify-between gap-2 border-b pb-1">
                 <span className="truncate">{item.name}</span>
-                <span className="text-gray-500">€{item.price}</span>
+                <span className="text-gray-500">€{Number(item.price).toFixed(2)}{getPriceSuffix(item.frequency)}</span>
               </li>
             ))}
           </ul>

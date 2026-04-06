@@ -7,10 +7,12 @@ import { SubscriptionCard } from "../components/subscription-card";
 import { AddSubscriptionModal } from "../components/add-subscription-modal";
 import { OfferReminders } from "../components/offer-reminders";
 import { LoginGuard } from "../components/login-guard";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Subscription } from "@shared/schema";
 import { isPigeoned } from "@shared/subscription-utils";
+
+type SortMode = "default" | "name-asc" | "name-desc" | "category-asc" | "price-asc" | "price-desc" | "renewal-asc";
 
 export default function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -18,7 +20,8 @@ export default function Dashboard() {
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [pigeonFilter, setPigeonFilter] = useState<string>("all");
   const [upcomingFilter, setUpcomingFilter] = useState<string>("all");
-  const [sortMode, setSortMode] = useState<"default" | "category-color" | "price-asc" | "price-desc">("default");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [sortMode, setSortMode] = useState<SortMode>("default");
 
   const [includeArchived, setIncludeArchived] = useState<boolean>(false);
   const filterSelectClass =
@@ -34,6 +37,16 @@ export default function Dashboard() {
   const { data: subscriptions = [], isLoading } = useQuery<Subscription[]>({
     queryKey: ['/api/subscriptions', { includeArchived }],
   });
+
+  const categoryOptions = useMemo(() => {
+    const uniqueCategories = new Set(
+      subscriptions
+        .map((subscription) => subscription.category?.trim())
+        .filter((category): category is string => Boolean(category)),
+    );
+
+    return Array.from(uniqueCategories).sort((a, b) => a.localeCompare(b, "fr"));
+  }, [subscriptions]);
 
   const trials = subscriptions.filter((subscription) => subscription.isTrial);
   const suspects = subscriptions.filter((subscription) => subscription.isSuspect);
@@ -73,20 +86,35 @@ export default function Dashboard() {
       if (upcomingFilter === 'overdue' && days >= 0) return false;
     }
 
+    if (categoryFilter !== "all" && (subscription.category || "") !== categoryFilter) {
+      return false;
+    }
+
     return true;
   });
 
 
 
   const sortedSubscriptions = [...filteredSubscriptions].sort((a, b) => {
-    if (sortMode === "category-color") {
-      return (a.categoryColor || a.bgColor || "").localeCompare(b.categoryColor || b.bgColor || "");
+    if (sortMode === "name-asc") {
+      return (a.name || "").localeCompare(b.name || "", "fr");
+    }
+    if (sortMode === "name-desc") {
+      return (b.name || "").localeCompare(a.name || "", "fr");
+    }
+    if (sortMode === "category-asc") {
+      return (a.category || "").localeCompare(b.category || "", "fr");
     }
     if (sortMode === "price-asc") {
       return Number(a.price) - Number(b.price);
     }
     if (sortMode === "price-desc") {
       return Number(b.price) - Number(a.price);
+    }
+    if (sortMode === "renewal-asc") {
+      const aDate = a.nextRenewal ? new Date(a.nextRenewal).getTime() : Number.POSITIVE_INFINITY;
+      const bDate = b.nextRenewal ? new Date(b.nextRenewal).getTime() : Number.POSITIVE_INFINITY;
+      return aDate - bDate;
     }
     return 0;
   });
@@ -257,73 +285,98 @@ export default function Dashboard() {
             {/* All Subscriptions */}
             <div className="pigeon-card">
               <div className="p-6 border-b border-gray-200">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-4">
                   <h2 className="text-lg font-semibold">Tous les abonnements</h2>
-                  <div className="flex flex-wrap items-center gap-3 w-full md:w-auto md:justify-end">
-                    <label className="text-sm text-gray-600">Filtrer par note</label>
-                    <select
-                      className={filterSelectClass}
-                      style={filterSelectStyle}
-                      value={ratingFilter}
-                      onChange={(event) => setRatingFilter(event.target.value)}
-                    >
-                      <option value="all">Toutes les notes</option>
-                      <option value="5">5 étoiles</option>
-                      <option value="4">4 étoiles et plus</option>
-                      <option value="3">3 étoiles et plus</option>
-                      <option value="2">2 étoiles et plus</option>
-                      <option value="1">1 étoile et plus</option>
-                    </select>
+                  <div className="w-full">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium uppercase tracking-wide text-gray-500">Filtrer par note</label>
+                        <select
+                          className={`${filterSelectClass} w-full`}
+                          style={filterSelectStyle}
+                          value={ratingFilter}
+                          onChange={(event) => setRatingFilter(event.target.value)}
+                        >
+                          <option value="all">Toutes les notes</option>
+                          <option value="5">5 étoiles</option>
+                          <option value="4">4 étoiles et plus</option>
+                          <option value="3">3 étoiles et plus</option>
+                          <option value="2">2 étoiles et plus</option>
+                          <option value="1">1 étoile et plus</option>
+                        </select>
+                      </div>
 
-                    <label className="text-sm text-gray-600">Type</label>
-                    <select
-                      className={filterSelectClass}
-                      style={filterSelectStyle}
-                      value={pigeonFilter}
-                      onChange={(e) => setPigeonFilter(e.target.value)}
-                    >
-                      <option value="all">Tous</option>
-                      <option value="pigeon">Pigeonné</option>
-                      <option value="not-pigeon">Non pigeonné</option>
-                      <option value="scam">Arnaques</option>
-                      <option value="flagged">Flaggés</option>
-                    </select>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium uppercase tracking-wide text-gray-500">Type</label>
+                        <select
+                          className={`${filterSelectClass} w-full`}
+                          style={filterSelectStyle}
+                          value={pigeonFilter}
+                          onChange={(e) => setPigeonFilter(e.target.value)}
+                        >
+                          <option value="all">Tous les types</option>
+                          <option value="pigeon">Pigeonné</option>
+                          <option value="not-pigeon">Non pigeonné</option>
+                          <option value="scam">Arnaques</option>
+                          <option value="flagged">Flaggés</option>
+                        </select>
+                      </div>
 
-                    <label className="text-sm text-gray-600">Renouvellement</label>
-                    <select
-                      className={filterSelectClass}
-                      style={filterSelectStyle}
-                      value={upcomingFilter}
-                      onChange={(e) => setUpcomingFilter(e.target.value)}
-                    >
-                      <option value="all">Tous</option>
-                      <option value="7">Sous 7 jours</option>
-                      <option value="30">Sous 30 jours</option>
-                      <option value="overdue">Échu</option>
-                      <option value="unknown">Je ne sais pas</option>
-                      <option value="lifetime">Accès à vie</option>
-                    </select>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium uppercase tracking-wide text-gray-500">Renouvellement</label>
+                        <select
+                          className={`${filterSelectClass} w-full`}
+                          style={filterSelectStyle}
+                          value={upcomingFilter}
+                          onChange={(e) => setUpcomingFilter(e.target.value)}
+                        >
+                          <option value="all">Tous les renouvellements</option>
+                          <option value="7">Sous 7 jours</option>
+                          <option value="30">Sous 30 jours</option>
+                          <option value="overdue">Échu</option>
+                          <option value="unknown">Je ne sais pas</option>
+                          <option value="lifetime">Accès à vie</option>
+                        </select>
+                      </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSortMode((prev) => (prev === "category-color" ? "default" : "category-color"))}
-                        className={`rounded-md border px-3 py-2 text-sm ${sortMode === "category-color" ? "border-purple-400 bg-purple-50 text-purple-700" : "border-gray-200 text-gray-600"}`}
-                        title="Trier par couleur de catégorie"
-                      >
-                        <i className="fas fa-palette"></i>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSortMode((prev) => (prev === "price-asc" ? "price-desc" : "price-asc"))}
-                        className={`rounded-md border px-3 py-2 text-sm ${sortMode === "price-asc" || sortMode === "price-desc" ? "border-purple-400 bg-purple-50 text-purple-700" : "border-gray-200 text-gray-600"}`}
-                        title="Trier par prix"
-                      >
-                        <i className="fas fa-dollar-sign"></i>
-                        <span className="ml-1 text-xs">{sortMode === "price-desc" ? "↓" : "↑"}</span>
-                      </button>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium uppercase tracking-wide text-gray-500">Catégorie</label>
+                        <select
+                          className={`${filterSelectClass} w-full`}
+                          style={filterSelectStyle}
+                          value={categoryFilter}
+                          onChange={(event) => setCategoryFilter(event.target.value)}
+                        >
+                          <option value="all">Toutes les catégories</option>
+                          {categoryOptions.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium uppercase tracking-wide text-gray-500">Trier par</label>
+                        <select
+                          className={`${filterSelectClass} w-full`}
+                          style={filterSelectStyle}
+                          value={sortMode}
+                          onChange={(event) => setSortMode(event.target.value as SortMode)}
+                        >
+                          <option value="default">Ordre actuel</option>
+                          <option value="name-asc">Nom (A → Z)</option>
+                          <option value="name-desc">Nom (Z → A)</option>
+                          <option value="category-asc">Catégorie (A → Z)</option>
+                          <option value="price-asc">Prix (croissant)</option>
+                          <option value="price-desc">Prix (décroissant)</option>
+                          <option value="renewal-asc">Prochain renouvellement</option>
+                        </select>
+                      </div>
                     </div>
+                  </div>
 
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <label className="flex items-center gap-2 text-sm text-gray-600">
                       <input
                         type="checkbox"

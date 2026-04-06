@@ -270,6 +270,11 @@ export function AddSubscriptionModal({
     }
   };
 
+  const openImageInNewTab = (image: string) => {
+    if (typeof window === "undefined" || !image) return;
+    window.open(image, "_blank", "noopener,noreferrer");
+  };
+
   const persistCustomCategories = useCallback((next: CategoryOption[]) => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(CUSTOM_CATEGORIES_STORAGE_KEY, JSON.stringify(next));
@@ -918,7 +923,12 @@ export function AddSubscriptionModal({
                           <div className="flex flex-wrap gap-2">
                             {field.value.map((image: string, index: number) => (
                               <div key={index} className="relative">
-                                <img src={image} alt={`Preuve d'achat ${index + 1}`} className="h-20 w-20 rounded border object-cover" />
+                                <img
+                                  src={image}
+                                  alt={`Preuve d'achat ${index + 1}`}
+                                  className="h-20 w-20 rounded border object-cover cursor-zoom-in"
+                                  onClick={() => openImageInNewTab(image)}
+                                />
                                 <button type="button" className="absolute -top-2 -right-2 rounded-full bg-white border px-1 text-xs" onClick={() => form.setValue("purchaseProofImages", field.value.filter((_: string, i: number) => i !== index), { shouldDirty: true })}>×</button>
                               </div>
                             ))}
@@ -943,7 +953,12 @@ export function AddSubscriptionModal({
                           <div className="flex flex-wrap gap-2">
                             {field.value.map((image: string, index: number) => (
                               <div key={index} className="relative">
-                                <img src={image} alt={`Preuve de désabonnement ${index + 1}`} className="h-20 w-20 rounded border object-cover" />
+                                <img
+                                  src={image}
+                                  alt={`Preuve de désabonnement ${index + 1}`}
+                                  className="h-20 w-20 rounded border object-cover cursor-zoom-in"
+                                  onClick={() => openImageInNewTab(image)}
+                                />
                                 <button type="button" className="absolute -top-2 -right-2 rounded-full bg-white border px-1 text-xs" onClick={() => form.setValue("unsubscribeProofImages", field.value.filter((_: string, i: number) => i !== index), { shouldDirty: true })}>×</button>
                               </div>
                             ))}

@@ -10,12 +10,19 @@ export function openImagePreview(image: string) {
 
   const isDataUrl = image.startsWith("data:image");
   if (isDataUrl) {
-    const previewWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!previewWindow) return;
-    previewWindow.document.write(
-      `<html><head><title>Aperçu image</title></head><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;"><img src="${image}" style="max-width:100%;max-height:100vh;object-fit:contain;" /></body></html>`,
-    );
-    previewWindow.document.close();
+    const [meta, base64Data] = image.split(",", 2);
+    if (!meta || !base64Data) return;
+    const mime = meta.match(/data:(.*?);base64/)?.[1] || "image/jpeg";
+
+    const binary = window.atob(base64Data);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    const blobUrl = URL.createObjectURL(new Blob([bytes], { type: mime }));
+    window.open(blobUrl, "_blank");
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
     return;
   }
 

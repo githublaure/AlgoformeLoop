@@ -162,6 +162,11 @@ export function OfferReminders() {
     }));
   };
 
+  const openImage = (image: string) => {
+    if (typeof window === "undefined" || !image) return;
+    window.open(image, "_blank", "noopener,noreferrer");
+  };
+
   const submit = () => {
     if (!form.appName.trim()) return;
 
@@ -207,7 +212,12 @@ export function OfferReminders() {
           <div className="flex flex-wrap gap-2">
             {form.images.map((image, index) => (
               <div key={`${image.slice(0, 32)}-${index}`} className="relative">
-                <img src={image} alt={`Offre ${index + 1}`} className="h-16 w-16 rounded border object-cover" />
+                <img
+                  src={image}
+                  alt={`Offre ${index + 1}`}
+                  className="h-16 w-16 rounded border object-cover cursor-zoom-in"
+                  onClick={() => openImage(image)}
+                />
                 <button
                   type="button"
                   className="absolute -top-2 -right-2 rounded-full border bg-white px-1 text-[10px] text-red-600"
@@ -249,7 +259,14 @@ export function OfferReminders() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  {offer.images[0] && <img src={offer.images[0]} alt={offer.appName} className="h-14 w-14 rounded border object-cover" />}
+                  {offer.images[0] && (
+                    <img
+                      src={offer.images[0]}
+                      alt={offer.appName}
+                      className="h-14 w-14 rounded border object-cover cursor-zoom-in"
+                      onClick={() => openImage(offer.images[0])}
+                    />
+                  )}
                   {offer.images.length > 1 && <span className="text-xs text-gray-500">+{offer.images.length - 1}</span>}
                   <button className="text-xs text-purple-600" onClick={() => startEdit(offer)}>
                     Éditer

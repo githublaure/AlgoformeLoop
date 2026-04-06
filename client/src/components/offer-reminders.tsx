@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { openImagePreview } from "@/lib/utils";
 
 type OfferReminder = {
   id: number;
@@ -162,11 +163,6 @@ export function OfferReminders() {
     }));
   };
 
-  const openImage = (image: string) => {
-    if (typeof window === "undefined" || !image) return;
-    window.open(image, "_blank", "noopener,noreferrer");
-  };
-
   const submit = () => {
     if (!form.appName.trim()) return;
 
@@ -216,7 +212,7 @@ export function OfferReminders() {
                   src={image}
                   alt={`Offre ${index + 1}`}
                   className="h-16 w-16 rounded border object-cover cursor-zoom-in"
-                  onClick={() => openImage(image)}
+                  onClick={() => openImagePreview(image)}
                 />
                 <button
                   type="button"
@@ -264,7 +260,7 @@ export function OfferReminders() {
                       src={offer.images[0]}
                       alt={offer.appName}
                       className="h-14 w-14 rounded border object-cover cursor-zoom-in"
-                      onClick={() => openImage(offer.images[0])}
+                      onClick={() => openImagePreview(offer.images[0])}
                     />
                   )}
                   {offer.images.length > 1 && <span className="text-xs text-gray-500">+{offer.images.length - 1}</span>}

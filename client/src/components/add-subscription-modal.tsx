@@ -33,6 +33,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { insertSubscriptionSchema, type Subscription } from "@shared/schema";
 import { format } from "date-fns";
+import { openImagePreview } from "@/lib/utils";
 
 interface AddSubscriptionModalProps {
   isOpen: boolean;
@@ -268,11 +269,6 @@ export function AddSubscriptionModal({
     } finally {
       event.target.value = "";
     }
-  };
-
-  const openImageInNewTab = (image: string) => {
-    if (typeof window === "undefined" || !image) return;
-    window.open(image, "_blank", "noopener,noreferrer");
   };
 
   const persistCustomCategories = useCallback((next: CategoryOption[]) => {
@@ -927,7 +923,7 @@ export function AddSubscriptionModal({
                                   src={image}
                                   alt={`Preuve d'achat ${index + 1}`}
                                   className="h-20 w-20 rounded border object-cover cursor-zoom-in"
-                                  onClick={() => openImageInNewTab(image)}
+                                  onClick={() => openImagePreview(image)}
                                 />
                                 <button type="button" className="absolute -top-2 -right-2 rounded-full bg-white border px-1 text-xs" onClick={() => form.setValue("purchaseProofImages", field.value.filter((_: string, i: number) => i !== index), { shouldDirty: true })}>×</button>
                               </div>
@@ -957,7 +953,7 @@ export function AddSubscriptionModal({
                                   src={image}
                                   alt={`Preuve de désabonnement ${index + 1}`}
                                   className="h-20 w-20 rounded border object-cover cursor-zoom-in"
-                                  onClick={() => openImageInNewTab(image)}
+                                  onClick={() => openImagePreview(image)}
                                 />
                                 <button type="button" className="absolute -top-2 -right-2 rounded-full bg-white border px-1 text-xs" onClick={() => form.setValue("unsubscribeProofImages", field.value.filter((_: string, i: number) => i !== index), { shouldDirty: true })}>×</button>
                               </div>

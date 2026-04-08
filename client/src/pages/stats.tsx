@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/sidebar";
 import { StatsOverview } from "@/components/stats-overview";
 import { LoginGuard } from "@/components/login-guard";
 import { MonthlyBudgetChart } from "@/components/MonthlyBudgetChart";
+import { PaywallGate, PremiumBadge } from "@/components/paywall-gate";
 import { useQuery } from "@tanstack/react-query";
 import type { Subscription } from "@shared/schema";
 import { getPriceSuffix } from "@shared/subscription-utils";
@@ -178,13 +179,23 @@ export default function StatsPage() {
 
               <StatsOverview />
 
+              <PaywallGate
+                feature="Statistiques avancées"
+                description="Les graphiques détaillés et la répartition par catégorie sont réservés aux abonnés Pigeon Pro."
+                highlights={[
+                  "Graphique de budget mensuel",
+                  "Répartition par catégorie",
+                  "Analyse d'utilisation",
+                  "Suivi des dépenses suspects"
+                ]}
+              >
               <MonthlyBudgetChart subscriptions={subscriptions} includeProrata={includeLifetime} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="pigeon-card p-6">
                   <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <i className="fas fa-chart-pie" style={{ color: "hsl(258, 71%, 65%)" }}></i>
-                    Répartition par catégorie
+                    Répartition par catégorie <PremiumBadge />
                   </h2>
                   {categoryEntries.length === 0 ? (
                     <p className="text-gray-600 text-sm">Aucune donnée de catégorie pour le moment.</p>
@@ -390,6 +401,7 @@ export default function StatsPage() {
                   )}
                 </div>
               </div>
+              </PaywallGate>
             </div>
           </div>
         </div>

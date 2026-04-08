@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/sidebar";
 import { LoginGuard } from "@/components/login-guard";
 import { VoiceControls } from "@/components/voice-controls";
 import { AddSubscriptionModal } from "@/components/add-subscription-modal";
+import { PaywallGate } from "@/components/paywall-gate";
 import { useQuery } from "@tanstack/react-query";
 import type { VoiceReminder, Subscription } from "@shared/schema";
 import { useState } from "react";
@@ -50,6 +51,16 @@ export default function VoiceRemindersPage() {
                 <h1 className="text-2xl font-semibold">Rappels vocaux</h1>
               </div>
 
+              <PaywallGate
+                feature="Rappels vocaux IA"
+                description="Les rappels vocaux par IA (ElevenLabs) sont réservés aux abonnés Pigeon Pro."
+                highlights={[
+                  "Voix IA naturelle (Pierre Pigeon & Marie Colombe)",
+                  "Rappels de renouvellement personnalisés",
+                  "Bilan mensuel audio automatique",
+                  "Alertes essais gratuits"
+                ]}
+              >
               <VoiceControls />
 
               <div className="pigeon-card p-6">
@@ -90,6 +101,7 @@ export default function VoiceRemindersPage() {
                   </div>
                 )}
               </div>
+              </PaywallGate>
             </div>
           </div>
         </div>

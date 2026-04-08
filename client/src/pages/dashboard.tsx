@@ -14,6 +14,9 @@ import { isPigeoned } from "@shared/subscription-utils";
 import { Switch } from "@/components/ui/switch";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { usePremium, FREE_SUBSCRIPTION_LIMIT } from "@/hooks/use-premium";
+import { Zap, AlertTriangle } from "lucide-react";
+import { Link } from "wouter";
 
 type SortMode = "default" | "name-asc" | "name-desc" | "category-asc" | "price-asc" | "price-desc" | "renewal-asc";
 
@@ -50,6 +53,8 @@ export default function Dashboard() {
     backgroundRepeat: "no-repeat",
     backgroundSize: "14px 14px",
   };
+
+  const { isPremium } = usePremium();
 
   const { data: subscriptions = [], isLoading } = useQuery<Subscription[]>({
     queryKey: ['/api/subscriptions', { includeArchived }],
@@ -188,6 +193,48 @@ export default function Dashboard() {
             <div id="statistiques">
               <StatsOverview />
             </div>
+
+            {!isPremium && (() => {
+              const activeCount = subscriptions.filter(s => s.isActive !== false).length;
+              const remaining = FREE_SUBSCRIPTION_LIMIT - activeCount;
+              const pct = Math.min(100, (activeCount / FREE_SUBSCRIPTION_LIMIT) * 100);
+              const isAtLimit = activeCount >= FREE_SUBSCRIPTION_LIMIT;
+              return (
+                <div className={`mb-6 rounded-xl border px-5 py-4 flex items-center justify-between gap-4 ${isAtLimit ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    {isAtLimit
+                      ? <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                      : <Zap className="w-5 h-5 text-amber-500 shrink-0" />
+                    }
+                    <div className="min-w-0">
+                      <p className={`text-sm font-semibold ${isAtLimit ? 'text-red-700' : 'text-amber-800'}`}>
+                        {isAtLimit
+                          ? "Limite atteinte — vous ne pouvez plus ajouter d'abonnements"
+                          : `Plan gratuit : ${activeCount}/${FREE_SUBSCRIPTION_LIMIT} abonnements utilisés`
+                        }
+                      </p>
+                      <div className="mt-1 h-1.5 w-full max-w-xs rounded-full bg-gray-200 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${isAtLimit ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-primary'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      {!isAtLimit && (
+                        <p className="text-xs text-amber-700 mt-0.5">
+                          {remaining} emplacement{remaining > 1 ? 's' : ''} restant{remaining > 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Link href="/pricing">
+                    <a className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center gap-1">
+                      <Zap className="w-3 h-3" />
+                      Passer Pro
+                    </a>
+                  </Link>
+                </div>
+              );
+            })()}
 
             <UpcomingRenewals onEdit={(selected) => {
               setEditingSubscription(selected);

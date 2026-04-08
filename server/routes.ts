@@ -646,6 +646,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isTrial: normalizeBoolean(req.body.isTrial, false),
         isActive: normalizeBoolean(req.body.isActive, true),
       };
+      // Enforce free tier limit: max 5 active subscriptions for non-premium users
+      const FREE_LIMIT = 5;
+      const existingSubs = await storage.getSubscriptions(req.user.id);
+      const activeSubs = existingSubs.filter((s) => s.isActive !== false);
+      if (activeSubs.length >= FREE_LIMIT) {
+        // Check if user has an active Stripe subscription
+        let hasPremium = false;
+        try {
+          const { db: dbCheck } = await import('./db');
+          const [userRow] = await dbCheck.select().from(users).where(eq(users.id, req.user.id));
+          const customerId = (userRow as any)?.stripe_customer_id;
+          if (customerId) {
+            const subRows = await dbCheck.execute(sql`
+              SELECT id FROM stripe.subscriptions WHERE customer = ${customerId} AND status = 'active' LIMIT 1
+            `);
+            hasPremium = ((subRows as any).rows?.length ?? 0) > 0;
+          }
+        } catch {
+          hasPremium = false;
+        }
+        if (!hasPremium) {
+          return res.status(403).json({
+            message: "Limite atteinte : passez à Pigeon Pro pour ajouter des abonnements illimités.",
+            limitReached: true,
+          });
+        }
+      }
+
       // Toujours associer l'abonnement à l'utilisateur authentifié, même si le client
       // n'envoie pas explicitement l'identifiant. Sans cela, l'abonnement resterait
       // orphelin et ne remonterait pas dans le dashboard filtré par userId.

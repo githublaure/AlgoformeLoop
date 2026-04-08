@@ -3,9 +3,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Star } from "lucide-react";
+import { Star, Zap } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -148,6 +149,7 @@ export function AddSubscriptionModal({
 }: AddSubscriptionModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [selectedUsage, setSelectedUsage] = useState<string>(defaultValues.usageFrequency);
   const [customCategories, setCustomCategories] = useState<CategoryOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>(DEFAULT_CATEGORIES);
@@ -372,6 +374,11 @@ export function AddSubscriptionModal({
         ? await apiRequest("PUT", `/api/subscriptions/${subscription.id}`, payload)
         : await apiRequest("POST", "/api/subscriptions", payload);
 
+      if (response.status === 403) {
+        const err = await response.json();
+        throw Object.assign(new Error(err.message), { limitReached: true });
+      }
+
       return response.json() as Promise<Subscription>;
     },
     onSuccess: (savedSubscription) => {
@@ -398,7 +405,17 @@ export function AddSubscriptionModal({
       resetForm();
       onClose();
     },
-    onError: () => {
+    onError: (err: any) => {
+      if (err?.limitReached) {
+        toast({
+          title: "Limite atteinte",
+          description: "Passez à Pigeon Pro pour ajouter des abonnements illimités.",
+          variant: "destructive",
+        });
+        onClose();
+        navigate("/pricing");
+        return;
+      }
       toast({
         title: "Erreur",
         description: isEditing

@@ -12,6 +12,7 @@ import NotFound from "@/pages/not-found";
 import ResetPassword from "@/pages/reset-password";
 import StatsPage from "@/pages/stats";
 import VoiceRemindersPage from "@/pages/voice-reminders";
+import PricingPage from "@/pages/pricing";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/test" component={Test} />
       <Route path="/stats" component={StatsPage} />
       <Route path="/voice-reminders" component={VoiceRemindersPage} />
+      <Route path="/pricing" component={PricingPage} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route component={NotFound} />
     </Switch>

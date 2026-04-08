@@ -7,7 +7,7 @@ import { SubscriptionCard } from "../components/subscription-card";
 import { AddSubscriptionModal } from "../components/add-subscription-modal";
 import { OfferReminders } from "../components/offer-reminders";
 import { LoginGuard } from "../components/login-guard";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Subscription } from "@shared/schema";
 import { isPigeoned } from "@shared/subscription-utils";
@@ -19,6 +19,18 @@ type SortMode = "default" | "name-asc" | "name-desc" | "category-asc" | "price-a
 
 export default function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'success') {
+      toast({
+        title: "Paiement réussi !",
+        description: "Bienvenue sur Pigeon Pro. Votre abonnement est maintenant actif.",
+      });
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [pigeonFilter, setPigeonFilter] = useState<string>("all");
@@ -29,7 +41,6 @@ export default function Dashboard() {
   const [includeArchived, setIncludeArchived] = useState<boolean>(false);
   const [useSafetyDateDisplay, setUseSafetyDateDisplay] = useState<boolean>(false);
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   const filterSelectClass =
     "appearance-none rounded-md border border-gray-200 bg-white px-3 py-2 pr-10 text-sm text-gray-700 shadow-sm transition focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-300";
   const filterSelectStyle = {

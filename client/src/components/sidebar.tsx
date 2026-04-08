@@ -74,6 +74,12 @@ export function Sidebar({ onAddSubscription }: SidebarProps) {
             <span>Rappels vocaux</span>
           </a>
         </Link>
+        <Link href="/pricing">
+          <a className={linkClass("/pricing")}>
+            <i className="fas fa-credit-card"></i>
+            <span>Tarifs & Abonnement</span>
+          </a>
+        </Link>
       </nav>
 
       <VoiceControls />

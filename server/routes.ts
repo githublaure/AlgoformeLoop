@@ -8,6 +8,7 @@ import { generateVoiceReminder } from "./services/voice";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
+import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 
 const normalizeBoolean = (value: any, fallback?: boolean) => {
   if (value === undefined) return fallback;
@@ -242,6 +243,19 @@ async function ensureSchema() {
       "reminder_type" text NOT NULL,
       "created_at" timestamp DEFAULT now()
     );
+  `);
+
+  // Add stripe_customer_id to users table if not present
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'users' AND column_name = 'stripe_customer_id'
+      ) THEN
+        ALTER TABLE "users" ADD COLUMN "stripe_customer_id" text;
+      END IF;
+    END $$;
   `);
 
   schemaReady = true;
@@ -997,6 +1011,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
+  // ─── Stripe Routes ────────────────────────────────────────────────────────
+
+  // Get publishable key (public, no auth required)
+  app.get("/api/stripe/config", async (_req, res) => {
+    try {
+      const publishableKey = await getStripePublishableKey();
+      res.json({ publishableKey });
+    } catch (error: any) {
+      res.status(500).json({ message: "Stripe not configured" });
+    }
+  });
+
+  // List products with prices
+  app.get("/api/stripe/products", async (_req, res) => {
+    try {
+      const { db } = await import('./db');
+      const rows = await db.execute(sql`
+        WITH paginated_products AS (
+          SELECT id, name, description, metadata, active
+          FROM stripe.products
+          WHERE active = true
+          ORDER BY id
+          LIMIT 20
+        )
+        SELECT
+          p.id as product_id,
+          p.name as product_name,
+          p.description as product_description,
+          p.active as product_active,
+          p.metadata as product_metadata,
+          pr.id as price_id,
+          pr.unit_amount,
+          pr.currency,
+          pr.recurring,
+          pr.active as price_active
+        FROM paginated_products p
+        LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
+        ORDER BY p.id, pr.unit_amount
+      `);
+
+      const productsMap = new Map();
+      for (const row of (rows as any).rows) {
+        if (!productsMap.has(row.product_id)) {
+          productsMap.set(row.product_id, {
+            id: row.product_id,
+            name: row.product_name,
+            description: row.product_description,
+            active: row.product_active,
+            metadata: row.product_metadata,
+            prices: [],
+          });
+        }
+        if (row.price_id) {
+          productsMap.get(row.product_id).prices.push({
+            id: row.price_id,
+            unit_amount: row.unit_amount,
+            currency: row.currency,
+            recurring: row.recurring,
+            active: row.price_active,
+          });
+        }
+      }
+
+      res.json({ data: Array.from(productsMap.values()) });
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  // Create checkout session (requires auth)
+  app.post("/api/stripe/checkout", authenticateToken, async (req: any, res) => {
+    try {
+      const { priceId } = req.body;
+      if (!priceId) return res.status(400).json({ message: "priceId is required" });
+
+      const { db } = await import('./db');
+      const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
+      if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+      const stripe = await getUncachableStripeClient();
+
+      // Get or create Stripe customer
+      let customerId = (user as any).stripeCustomerId as string | undefined;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: user.name,
+          metadata: { userId: String(user.id) },
+        });
+        customerId = customer.id;
+        await db.execute(sql`UPDATE users SET stripe_customer_id = ${customerId} WHERE id = ${user.id}`);
+      }
+
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: 'subscription',
+        success_url: `${baseUrl}/?payment=success`,
+        cancel_url: `${baseUrl}/pricing?payment=cancelled`,
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      res.status(500).json({ message: "Failed to create checkout session" });
+    }
+  });
+
+  // Create customer portal session (requires auth)
+  app.post("/api/stripe/portal", authenticateToken, async (req: any, res) => {
+    try {
+      const { db } = await import('./db');
+      const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
+      if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+      const customerId = (user as any).stripeCustomerId as string | undefined;
+      if (!customerId) {
+        return res.status(400).json({ message: "Aucun compte de facturation trouvé" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: `${baseUrl}/`,
+      });
+
+      res.json({ url: portalSession.url });
+    } catch (error: any) {
+      console.error('Portal error:', error);
+      res.status(500).json({ message: "Failed to create portal session" });
+    }
+  });
+
+  // Get current user's subscription status
+  app.get("/api/stripe/subscription", authenticateToken, async (req: any, res) => {
+    try {
+      const { db } = await import('./db');
+      const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
+      if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+      const customerId = (user as any).stripeCustomerId as string | undefined;
+      if (!customerId) return res.json({ subscription: null });
+
+      const subRows = await db.execute(sql`
+        SELECT * FROM stripe.subscriptions WHERE customer = ${customerId} AND status = 'active' LIMIT 1
+      `);
+      const sub = (subRows as any).rows?.[0] ?? null;
+      res.json({ subscription: sub });
+    } catch (error: any) {
+      res.json({ subscription: null });
     }
   });
 

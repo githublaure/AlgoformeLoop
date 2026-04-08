@@ -1,8 +1,10 @@
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Lock, Zap, CheckCircle, Loader2 } from "lucide-react";
+import { Lock, Zap, CheckCircle, Loader2, Eye } from "lucide-react";
 import { usePremium } from "@/hooks/use-premium";
 import type { ReactNode } from "react";
+
+const PAYWALL_ENFORCE = import.meta.env.VITE_PAYWALL_ENFORCE === "true";
 
 interface PaywallGateProps {
   children: ReactNode;
@@ -25,6 +27,28 @@ export function PaywallGate({ children, feature, description, highlights = [] }:
 
   if (isPremium) {
     return <>{children}</>;
+  }
+
+  if (!PAYWALL_ENFORCE) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20 text-sm text-primary">
+          <Eye className="w-4 h-4 shrink-0" />
+          <span className="font-medium">Aperçu MVP</span>
+          <span className="text-muted-foreground font-normal">— {feature} sera réservé à Pigeon Pro au lancement</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-7 text-xs text-primary hover:text-primary"
+            onClick={() => navigate("/pricing")}
+          >
+            <Zap className="w-3 h-3 mr-1" />
+            Voir les tarifs
+          </Button>
+        </div>
+        {children}
+      </div>
+    );
   }
 
   return (

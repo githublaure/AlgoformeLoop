@@ -17,7 +17,7 @@ interface LoginGuardProps {
 }
 
 export function LoginGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, login, register, forgotPassword, error } =
+  const { isAuthenticated, isLoading, login, loginDemo, register, forgotPassword, error } =
     useAuth();
   const [, setLocation] = useLocation();
   const [isLogin, setIsLogin] = useState(true);
@@ -429,6 +429,21 @@ export function LoginGuard({ children }: { children: React.ReactNode }) {
                             ? "Se connecter"
                             : "S'inscrire"}
                     </Button>
+
+                    {isLogin && !showForgotPassword && (
+                      <div className="space-y-3 pt-2">
+                        <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-gray-400">
+                          <span className="h-px flex-1 bg-gray-200" />
+                          ou
+                          <span className="h-px flex-1 bg-gray-200" />
+                        </div>
+                        <Button type="button" variant="outline" disabled={isLoading} onClick={loginDemo} className="w-full border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100">
+                          <i className="fas fa-dove mr-2" aria-hidden="true" />
+                          Explorer avec le compte démo
+                        </Button>
+                        <p className="text-center text-xs text-gray-500">Données fictives incluses — aucun mot de passe requis</p>
+                      </div>
+                    )}
 
                     <div className="text-center space-y-2">
                       {!showForgotPassword && (

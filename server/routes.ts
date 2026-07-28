@@ -8,6 +8,7 @@ import { generateVoiceReminder } from "./services/voice";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
+import { ensureDemoAccount } from "./demo-account";
 
 const normalizeBoolean = (value: any, fallback?: boolean) => {
   if (value === undefined) return fallback;
@@ -424,6 +425,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Erreur lors de la connexion:", error);
       res.status(500).json({ message: "Erreur lors de la connexion" });
+    }
+  });
+
+  app.post("/api/auth/demo", async (_req, res) => {
+    try {
+      await ensureSchema();
+      const { db } = await import('./db');
+      const user = await ensureDemoAccount(db);
+      const token = jwt.sign(
+        { id: user.id, email: user.email, demo: true },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    } catch (error) {
+      console.error("Erreur lors de l'ouverture du compte démo:", error);
+      res.status(500).json({ message: "Impossible d'ouvrir le compte démo" });
     }
   });
 

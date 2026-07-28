@@ -13,6 +13,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email?: string, password?: string) => Promise<void>;
+  loginDemo: () => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -138,6 +139,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const loginDemo = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/auth/demo', { method: 'POST' });
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem('authToken', data.token);
+        setUser(data.user);
+        refreshAuthedQueries();
+      } else {
+        setError(data.message || "Impossible d'ouvrir le compte démo");
+      }
+    } catch (_error) {
+      setError("Impossible d'ouvrir le compte démo");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('authToken');
     setUser(null);
@@ -230,6 +251,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     isAuthenticated: !!user,
     login,
+    loginDemo,
     register,
     logout,
     changePassword,

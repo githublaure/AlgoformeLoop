@@ -3,6 +3,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LoginGuard } from "../login-guard";
 
+const loginDemo = vi.fn();
+
 // Mock the auth provider to control isAuthenticated and functions
 vi.mock("../auth-provider", () => {
   return {
@@ -10,6 +12,7 @@ vi.mock("../auth-provider", () => {
       isAuthenticated: false,
       isLoading: false,
       login: vi.fn(),
+      loginDemo,
       register: vi.fn(),
       forgotPassword: vi.fn(),
       error: null,
@@ -18,6 +21,14 @@ vi.mock("../auth-provider", () => {
 });
 
 describe("LoginGuard", () => {
+  test("offers passwordless access to the populated demo account", async () => {
+    render(<LoginGuard><div>Children</div></LoginGuard>);
+
+    await userEvent.click(screen.getByRole("button", { name: /explorer avec le compte démo/i }));
+    expect(loginDemo).toHaveBeenCalledOnce();
+    expect(screen.getByText(/données fictives incluses/i)).toBeInTheDocument();
+  });
+
   test("pigeon play toggles animation and shows sound indicator", async () => {
     render(
       <LoginGuard>

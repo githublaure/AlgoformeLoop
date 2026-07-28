@@ -121,6 +121,10 @@ Depuis l'écran de connexion, le bouton **« Explorer avec le compte démo »** 
 les renouvellements, essais, alertes, archives, fréquences de paiement et budgets
 afin de pouvoir parcourir le tableau de bord, les statistiques et les rappels.
 
+En développement, `npm run dev` surveille aussi le serveur Express : l'ajout ou la
+modification d'une route API est donc pris en compte automatiquement. Après une mise
+à jour d'un Repl déjà lancé, un premier redémarrage du workflow peut être nécessaire.
+
 ### ℹ️ Astuce sur les fichiers binaires de la démo
 
 Si tu vois l'avertissement « Binary files are not supported » dans l'interface GitHub, c'est normal : la vidéo de démonstration est un fichier binaire que GitHub ne peut pas prévisualiser en diff. Pour éviter d'alourdir la PR, le fichier `Introduction-To-Cybersecurity.mp4` n'est pas commité ; il est toutefois déjà présent dans l'espace Replit. Pour le tester en local, place simplement la vidéo dans `client/public/test/` (même nom de fichier) avant d'ouvrir la page `/test`.

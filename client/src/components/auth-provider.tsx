@@ -144,13 +144,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     try {
       const response = await fetch('/api/auth/demo', { method: 'POST' });
-      const data = await response.json();
+      // A stale Replit backend can return its HTML 404 page while Vite has already
+      // hot-reloaded this client. Do not let JSON parsing hide the useful HTTP status.
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
         localStorage.setItem('authToken', data.token);
         setUser(data.user);
         refreshAuthedQueries();
       } else {
-        setError(data.message || "Impossible d'ouvrir le compte démo");
+        setError(
+          data.message ||
+          (response.status === 404
+            ? "Le serveur n'est pas encore à jour. Redémarrez l'application Replit puis réessayez."
+            : `Impossible d'ouvrir le compte démo (erreur ${response.status})`)
+        );
       }
     } catch (_error) {
       setError("Impossible d'ouvrir le compte démo");

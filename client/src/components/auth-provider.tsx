@@ -143,7 +143,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null);
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/demo', { method: 'POST' });
+      const response = await fetch('/api/auth/demo-login', { method: 'POST' });
       // A stale Replit backend can return its HTML 404 page while Vite has already
       // hot-reloaded this client. Do not let JSON parsing hide the useful HTTP status.
       const data = await response.json().catch(() => ({}));

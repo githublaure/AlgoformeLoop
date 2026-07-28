@@ -428,7 +428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/demo", async (_req, res) => {
+  app.post("/api/auth/demo-login", async (_req, res) => {
     try {
       await ensureSchema();
       const { db } = await import('./db');

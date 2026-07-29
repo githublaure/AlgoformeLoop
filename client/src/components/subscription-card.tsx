@@ -8,13 +8,15 @@ import { getFrequencySuffix, getPriceSuffix, isPigeoned } from "@shared/subscrip
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { AlertTriangle, CalendarPlus, Pencil, Trash2 } from "lucide-react";
+import { openImagePreview } from "@/lib/utils";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
   onEdit?: (subscription: Subscription) => void;
+  preferSafetyDate?: boolean;
 }
 
-export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps) {
+export function SubscriptionCard({ subscription, onEdit, preferSafetyDate = false }: SubscriptionCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const pigeoned = isPigeoned(subscription);
@@ -182,6 +184,7 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
 
   const purchaseProofs = parseProofImages(subscription.purchaseProofImage);
   const unsubscribeProofs = parseProofImages(subscription.unsubscribeProofImage);
+  const reminderDate = preferSafetyDate && subscription.safetyDate ? subscription.safetyDate : subscription.nextRenewal;
 
   const getCategoryLabel = (category: string) => {
     const categories: Record<string, string> = {
@@ -327,8 +330,8 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
       
       <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
         <span>
-          Prochain: {subscription.nextRenewal
-            ? format(new Date(subscription.nextRenewal), "d MMM yyyy", { locale: fr })
+          Prochain: {reminderDate
+            ? format(new Date(reminderDate), "d MMM yyyy", { locale: fr })
             : "Date inconnue"}
         </span>
         <div className="flex space-x-2">
@@ -391,9 +394,14 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
                 <p className="text-[11px] text-gray-600 mb-1">Achat</p>
                 <div className="flex flex-wrap gap-2">
                   {purchaseProofs.map((proof, index) => (
-                    <a key={`purchase-${index}`} href={proof} target="_blank" rel="noreferrer" className="text-xs">
-                      <img src={proof} alt={`Preuve d'achat ${index + 1}`} className="h-16 w-16 rounded border object-cover" />
-                    </a>
+                    <button
+                      key={`purchase-${index}`}
+                      type="button"
+                      onClick={() => openImagePreview(proof)}
+                      className="text-xs"
+                    >
+                      <img src={proof} alt={`Preuve d'achat ${index + 1}`} className="h-16 w-16 rounded border object-cover cursor-zoom-in" />
+                    </button>
                   ))}
                 </div>
               </div>
@@ -403,9 +411,14 @@ export function SubscriptionCard({ subscription, onEdit }: SubscriptionCardProps
                 <p className="text-[11px] text-gray-600 mb-1">Désabonnement</p>
                 <div className="flex flex-wrap gap-2">
                   {unsubscribeProofs.map((proof, index) => (
-                    <a key={`unsubscribe-${index}`} href={proof} target="_blank" rel="noreferrer" className="text-xs">
-                      <img src={proof} alt={`Preuve de désabonnement ${index + 1}`} className="h-16 w-16 rounded border object-cover" />
-                    </a>
+                    <button
+                      key={`unsubscribe-${index}`}
+                      type="button"
+                      onClick={() => openImagePreview(proof)}
+                      className="text-xs"
+                    >
+                      <img src={proof} alt={`Preuve de désabonnement ${index + 1}`} className="h-16 w-16 rounded border object-cover cursor-zoom-in" />
+                    </button>
                   ))}
                 </div>
               </div>

@@ -8,9 +8,12 @@ import { AddSubscriptionModal } from "../components/add-subscription-modal";
 import { OfferReminders } from "../components/offer-reminders";
 import { LoginGuard } from "../components/login-guard";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Subscription } from "@shared/schema";
 import { isPigeoned } from "@shared/subscription-utils";
+import { Switch } from "@/components/ui/switch";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 type SortMode = "default" | "name-asc" | "name-desc" | "category-asc" | "price-asc" | "price-desc" | "renewal-asc";
 
@@ -24,6 +27,9 @@ export default function Dashboard() {
   const [sortMode, setSortMode] = useState<SortMode>("default");
 
   const [includeArchived, setIncludeArchived] = useState<boolean>(false);
+  const [useSafetyDateDisplay, setUseSafetyDateDisplay] = useState<boolean>(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const filterSelectClass =
     "appearance-none rounded-md border border-gray-200 bg-white px-3 py-2 pr-10 text-sm text-gray-700 shadow-sm transition focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-300";
   const filterSelectStyle = {
@@ -36,6 +42,26 @@ export default function Dashboard() {
 
   const { data: subscriptions = [], isLoading } = useQuery<Subscription[]>({
     queryKey: ['/api/subscriptions', { includeArchived }],
+  });
+
+  const updateReminderModeBulk = useMutation({
+    mutationFn: async ({ enabled, ids }: { enabled: boolean; ids: number[] }) => {
+      await Promise.all(
+        ids.map((id) => apiRequest("PUT", `/api/subscriptions/${id}`, { useSafetyDate: enabled })),
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subscriptions/upcoming/7'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la date de sûreté pour les abonnements concernés.",
+        variant: "destructive",
+      });
+    },
   });
 
   const categoryOptions = useMemo(() => {
@@ -124,6 +150,15 @@ export default function Dashboard() {
     setEditingSubscription(null);
   };
 
+  const handleToggleSafetyDate = (enabled: boolean) => {
+    setUseSafetyDateDisplay(enabled);
+    const eligibleIds = subscriptions
+      .filter((subscription) => Boolean(subscription.safetyDate))
+      .map((subscription) => subscription.id);
+    if (eligibleIds.length === 0) return;
+    updateReminderModeBulk.mutate({ enabled, ids: eligibleIds });
+  };
+
   return (
     <LoginGuard>
     <div className="min-h-screen" style={{ backgroundColor: 'hsl(210, 17%, 98%)' }}>
@@ -157,6 +192,15 @@ export default function Dashboard() {
                     <i className="fas fa-feather" style={{ color: 'hsl(42, 96%, 70%)' }}></i>
                     Essais gratuits
                   </h2>
+                  <div className="flex items-center gap-5">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span>Date de sûreté</span>
+                      <Switch
+                        checked={useSafetyDateDisplay}
+                        onCheckedChange={handleToggleSafetyDate}
+                        disabled={updateReminderModeBulk.isPending}
+                      />
+                    </div>
                   <button
                     onClick={() => {
                       setEditingSubscription(null);
@@ -167,6 +211,7 @@ export default function Dashboard() {
                     <i className="fas fa-plus mr-2"></i>
                     Ajouter
                   </button>
+                  </div>
                 </div>
               </div>
               <div className="p-6">
@@ -183,6 +228,7 @@ export default function Dashboard() {
                       <SubscriptionCard
                         key={subscription.id}
                         subscription={subscription}
+                        preferSafetyDate={useSafetyDateDisplay}
                         onEdit={(selected) => {
                           setEditingSubscription(selected);
                           setIsAddModalOpen(true);
@@ -286,7 +332,17 @@ export default function Dashboard() {
             <div className="pigeon-card">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex flex-col gap-4">
-                  <h2 className="text-lg font-semibold">Tous les abonnements</h2>
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold">Tous les abonnements</h2>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span>Date de sûreté</span>
+                      <Switch
+                        checked={useSafetyDateDisplay}
+                        onCheckedChange={handleToggleSafetyDate}
+                        disabled={updateReminderModeBulk.isPending}
+                      />
+                    </div>
+                  </div>
                   <div className="w-full">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       <div className="space-y-1">
@@ -426,6 +482,7 @@ export default function Dashboard() {
                       <SubscriptionCard
                         key={subscription.id}
                         subscription={subscription}
+                        preferSafetyDate={useSafetyDateDisplay}
                         onEdit={(sub) => {
                           setEditingSubscription(sub);
                           setIsAddModalOpen(true);
